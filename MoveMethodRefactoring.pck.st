@@ -1,12 +1,12 @@
-'From Cuis 6.0 [latest update: #5706] on 11 April 2023 at 2:04:15 am'!
+'From Cuis 6.0 [latest update: #5706] on 11 April 2023 at 11:19:40 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 1!
+!provides: 'MoveMethodRefactoring' 1 2!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
 !classDefinition: #XXXXReplacer category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #XXXXReplacer
-	instanceVariableNames: 'compiledMethod intervalsToModify'
+	instanceVariableNames: 'compiledMethod intervalsToModify intervalsToReject'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -35,11 +35,12 @@ MoveMethodRefactoring class
 	instanceVariableNames: ''!
 
 
-!XXXXReplacer methodsFor: 'initialization' stamp: 'mc 4/9/2023 19:44:58'!
+!XXXXReplacer methodsFor: 'initialization' stamp: 'mc 4/11/2023 22:36:46'!
 initializeFor: aCompiledMethod 
 	
 	compiledMethod := aCompiledMethod.
-	intervalsToModify := OrderedCollection new.! !
+	intervalsToModify := OrderedCollection new.
+	intervalsToReject := OrderedCollection new.! !
 
 !XXXXReplacer methodsFor: 'applying' stamp: 'mc 4/11/2023 01:10:15'!
 apply
@@ -53,13 +54,33 @@ apply
 	
 	^compiledMethod sourceCode copyReplacing: intervalsToModify.! !
 
-!XXXXReplacer methodsFor: 'visiting' stamp: 'mc 4/11/2023 01:10:24'!
+!XXXXReplacer methodsFor: 'applying' stamp: 'mc 4/11/2023 23:17:33'!
+firstUnseenIntervalFor: aNode 
+	| completeRangesOfassigmentNode |
+	completeRangesOfassigmentNode := self sourceRangesOf: aNode.
+	self removeSeenRanges: completeRangesOfassigmentNode.
+	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
+
+!XXXXReplacer methodsFor: 'applying' stamp: 'mc 4/11/2023 22:54:37'!
+registerInterval: anInterval withModification: sourceCodeForInterval 
+	intervalsToReject add: anInterval.
+	intervalsToModify add: anInterval -> sourceCodeForInterval! !
+
+!XXXXReplacer methodsFor: 'applying' stamp: 'mc 4/11/2023 22:35:38'!
+removeSeenRanges: rangesOfNode 
+	^rangesOfNode removeAllSuchThat: [ :aSourceInterval | intervalsToReject anySatisfy: [ :aSourceIntervalToModify | aSourceIntervalToModify includesAllOf: aSourceInterval ] ]! !
+
+!XXXXReplacer methodsFor: 'applying' stamp: 'mc 4/11/2023 22:34:54'!
+sourceRangesOf: aNode 
+	^compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
+
+!XXXXReplacer methodsFor: 'visiting' stamp: 'mc 4/11/2023 22:55:21'!
 visitInstanceVariableNode: anInstanceVariableNode 
-	| anIntervalToModify sourceCodeForInterval |
+	| sourceCodeForInterval anInterval |
 	"self halt."
-	anIntervalToModify := compiledMethod methodNode completeSourceRangesOf: anInstanceVariableNode ifAbsent: [].
+	anInterval := self firstUnseenIntervalFor: anInstanceVariableNode.
 	sourceCodeForInterval := 'sourceObject ', anInstanceVariableNode key.
-	intervalsToModify add: anIntervalToModify anyOne -> sourceCodeForInterval! !
+	self registerInterval: anInterval withModification: sourceCodeForInterval.! !
 
 !XXXXReplacer class methodsFor: 'instance creation' stamp: 'mc 4/9/2023 03:42:51'!
 for: aCompiledMethod 
@@ -210,8 +231,8 @@ test102CanMoveMethodWhenReferencesAnInstanceVariable
 	self deny: (sourceClass includesSelector: #m1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/11/2023 00:25:32'!
-test103CanMoveMethodWhenReferencesAnInstanceVariable
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/11/2023 22:24:19'!
+test103CanMoveMethodWhenReferencesAnInstanceVariableForReading
 	
 	| sourceClass targetClass refactoring |
 	
@@ -224,6 +245,23 @@ test103CanMoveMethodWhenReferencesAnInstanceVariable
 	refactoring apply.
 	
 	self assert: 'm1: sourceObject ^sourceObject iv3' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
+	self deny: (sourceClass includesSelector: #m1).
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/11/2023 23:19:11'!
+test104CanMoveMethodWhenReferencesTwoInstanceVariableForReading
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3 iv4'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'm1 ^iv3 + iv4' .
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject iv3 + sourceObject iv4' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
 	self deny: (sourceClass includesSelector: #m1).
 	! !
 
