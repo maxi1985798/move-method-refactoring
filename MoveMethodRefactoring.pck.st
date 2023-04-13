@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 11 April 2023 at 11:19:40 pm'!
+'From Cuis 6.0 [latest update: #5706] on 13 April 2023 at 2:16:02 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 2!
+!provides: 'MoveMethodRefactoring' 1 3!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -73,6 +73,17 @@ removeSeenRanges: rangesOfNode
 !XXXXReplacer methodsFor: 'applying' stamp: 'mc 4/11/2023 22:34:54'!
 sourceRangesOf: aNode 
 	^compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
+
+!XXXXReplacer methodsFor: 'visiting' stamp: 'mc 4/13/2023 01:47:49'!
+visitAssignmentNode: anAssignmentNode 
+	 
+	| completeRangesOfassigmentNode completeRangesOfassigmentNodeValue newCodeForNode |
+	"self halt."
+	completeRangesOfassigmentNode := self firstUnseenIntervalFor: anAssignmentNode.
+	completeRangesOfassigmentNodeValue := self firstUnseenIntervalFor: anAssignmentNode value.
+	"intervalToUse := self firstIntervalOn: completeRangesOfassigmentNode."
+	newCodeForNode := compiledMethod sourceCode copyFrom: completeRangesOfassigmentNodeValue first to: completeRangesOfassigmentNodeValue last.
+	self registerInterval: completeRangesOfassigmentNode withModification: ('sourceObject ', anAssignmentNode variable name, ': ', newCodeForNode)! !
 
 !XXXXReplacer methodsFor: 'visiting' stamp: 'mc 4/11/2023 22:55:21'!
 visitInstanceVariableNode: anInstanceVariableNode 
@@ -182,86 +193,120 @@ test007InstanceVariableToAccessingThroughShouldExistsInSourceClass
 		assertCreation: [MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv2'] 
 		failsWith: [MoveMethodRefactoring instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/5/2023 01:51:38'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/13/2023 01:47:09'!
 test100CanMoveMethodWithoutReferences
 	
 	| sourceClass targetClass refactoring |
 	
 	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
 	targetClass := self createClassNamed: #TargetClass.
-	sourceClass compile: 'm1 ^1' .
+	sourceClass compile: 'm1 ^1.' .
 	
 	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
 	refactoring apply.
 	
-	self assert: 'm1 ^1' equals: (targetClass compiledMethodAt: #m1) sourceCode.
+	self assert: 'm1 ^1.' equals: (targetClass compiledMethodAt: #m1) sourceCode.
 	self deny: (sourceClass includesSelector: #m1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/5/2023 01:51:50'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/13/2023 01:47:02'!
 test101CanMoveMethodWithoutReferences
 	
 	| sourceClass targetClass refactoring |
 	
 	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
 	targetClass := self createClassNamed: #TargetClass.
-	sourceClass compile: 'm1 ^2' .
+	sourceClass compile: 'm1 ^2.' .
 	
 	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
 	refactoring apply.
 	
-	self assert: 'm1 ^2' equals: (targetClass compiledMethodAt: #m1) sourceCode.
+	self assert: 'm1 ^2.' equals: (targetClass compiledMethodAt: #m1) sourceCode.
 	self deny: (sourceClass includesSelector: #m1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/11/2023 01:11:17'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/13/2023 01:46:52'!
 test102CanMoveMethodWhenReferencesAnInstanceVariable
 	
 	| sourceClass targetClass refactoring |
 	
 	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2'.
 	targetClass := self createClassNamed: #TargetClass.
-	sourceClass compile: 'm1 ^iv2' .
+	sourceClass compile: 'm1 ^iv2.' .
 	
 	
 	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
 	refactoring apply.
 	
-	self assert: 'm1: sourceObject ^sourceObject iv2' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
+	self assert: 'm1: sourceObject ^sourceObject iv2.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
 	self deny: (sourceClass includesSelector: #m1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/11/2023 22:24:19'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/13/2023 01:46:47'!
 test103CanMoveMethodWhenReferencesAnInstanceVariableForReading
 	
 	| sourceClass targetClass refactoring |
 	
 	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3'.
 	targetClass := self createClassNamed: #TargetClass.
-	sourceClass compile: 'm1 ^iv3' .
+	sourceClass compile: 'm1 ^iv3.' .
 	
 	
 	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
 	refactoring apply.
 	
-	self assert: 'm1: sourceObject ^sourceObject iv3' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
+	self assert: 'm1: sourceObject ^sourceObject iv3.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
 	self deny: (sourceClass includesSelector: #m1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/11/2023 23:19:11'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/13/2023 01:46:40'!
 test104CanMoveMethodWhenReferencesTwoInstanceVariableForReading
 	
 	| sourceClass targetClass refactoring |
 	
 	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3 iv4'.
 	targetClass := self createClassNamed: #TargetClass.
-	sourceClass compile: 'm1 ^iv3 + iv4' .
+	sourceClass compile: 'm1 ^iv3 + iv4.' .
 	
 	
 	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
 	refactoring apply.
 	
-	self assert: 'm1: sourceObject ^sourceObject iv3 + sourceObject iv4' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
+	self assert: 'm1: sourceObject ^sourceObject iv3 + sourceObject iv4.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
+	self deny: (sourceClass includesSelector: #m1).
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/13/2023 01:46:33'!
+test105CanMoveMethodWhenReferencesAnInstanceVariableForWriting
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'm1 ^iv3 := 1.' .
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject iv3: 1.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
+	self deny: (sourceClass includesSelector: #m1).
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/13/2023 02:15:36'!
+wiptest106CanMoveMethodWhenReferencesTwoInstanceVariableForWriting
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3 iv4'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'm1 iv3 := iv4 := 1.' .
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject sourceObject iv3: (sourceObject iv4: 1).' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
 	self deny: (sourceClass includesSelector: #m1).
 	! !
 
