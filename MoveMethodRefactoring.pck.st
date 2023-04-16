@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 13 April 2023 at 2:16:02 am'!
+'From Cuis 6.0 [latest update: #5706] on 16 April 2023 at 1:27:46 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 3!
+!provides: 'MoveMethodRefactoring' 1 4!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -12,6 +12,16 @@ ParseNodeVisitor subclass: #XXXXReplacer
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'XXXXReplacer class' category: 'MoveMethodRefactoring'!
 XXXXReplacer class
+	instanceVariableNames: ''!
+
+!classDefinition: #XXXXReplacerForNode category: 'MoveMethodRefactoring'!
+ParseNodeVisitor subclass: #XXXXReplacerForNode
+	instanceVariableNames: 'compiledMethod intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'XXXXReplacerForNode class' category: 'MoveMethodRefactoring'!
+XXXXReplacerForNode class
 	instanceVariableNames: ''!
 
 !classDefinition: #MoveMethodRefactoringTest category: 'MoveMethodRefactoring'!
@@ -42,14 +52,17 @@ initializeFor: aCompiledMethod
 	intervalsToModify := OrderedCollection new.
 	intervalsToReject := OrderedCollection new.! !
 
-!XXXXReplacer methodsFor: 'applying' stamp: 'mc 4/11/2023 01:10:15'!
+!XXXXReplacer methodsFor: 'applying' stamp: 'mc 4/15/2023 20:20:48'!
 apply
 	| methodNode |
 	"self halt."
 	"compiledMethod selector: (compiledMethod selector, ': sourceObject')."
 	
 	methodNode := compiledMethod methodNode.
-	intervalsToModify add: (1 to: methodNode selectorLastPosition ) -> (methodNode selectorAndArgumentsAsString, ': sourceObject').
+	(methodNode selectorAndArgumentsAsString includes: $:) 
+		ifTrue: [intervalsToModify add: (1 to: methodNode selectorLastPosition ) -> (methodNode selectorAndArgumentsAsString, ' sourceObject: sourceObject')]
+		ifFalse: [intervalsToModify add: (1 to: methodNode selectorLastPosition ) -> (methodNode selectorAndArgumentsAsString, ': sourceObject')].
+	
 	methodNode accept: self.
 	
 	^compiledMethod sourceCode copyReplacing: intervalsToModify.! !
@@ -74,16 +87,24 @@ removeSeenRanges: rangesOfNode
 sourceRangesOf: aNode 
 	^compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
 
-!XXXXReplacer methodsFor: 'visiting' stamp: 'mc 4/13/2023 01:47:49'!
+!XXXXReplacer methodsFor: 'visiting' stamp: 'mc 4/14/2023 02:27:26'!
 visitAssignmentNode: anAssignmentNode 
 	 
-	| completeRangesOfassigmentNode completeRangesOfassigmentNodeValue newCodeForNode |
+	| completeRangesOfassigmentNode nodeXXXReplacer resultForValue assigmentValue |
 	"self halt."
 	completeRangesOfassigmentNode := self firstUnseenIntervalFor: anAssignmentNode.
-	completeRangesOfassigmentNodeValue := self firstUnseenIntervalFor: anAssignmentNode value.
+	"completeRangesOfassigmentNodeValue := self firstUnseenIntervalFor: anAssignmentNode value."
 	"intervalToUse := self firstIntervalOn: completeRangesOfassigmentNode."
-	newCodeForNode := compiledMethod sourceCode copyFrom: completeRangesOfassigmentNodeValue first to: completeRangesOfassigmentNodeValue last.
-	self registerInterval: completeRangesOfassigmentNode withModification: ('sourceObject ', anAssignmentNode variable name, ': ', newCodeForNode)! !
+	nodeXXXReplacer := XXXXReplacerForNode 
+					for: compiledMethod
+					rejectingIntervals: intervalsToReject
+					onNode: anAssignmentNode value.
+					
+	resultForValue :=			nodeXXXReplacer apply.
+	(((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ])
+		ifTrue: [assigmentValue := '(', resultForValue, ')'.] 
+		ifFalse: [assigmentValue := resultForValue.].
+	self registerInterval: completeRangesOfassigmentNode withModification: ('sourceObject ', anAssignmentNode variable name, ': ', assigmentValue)! !
 
 !XXXXReplacer methodsFor: 'visiting' stamp: 'mc 4/11/2023 22:55:21'!
 visitInstanceVariableNode: anInstanceVariableNode 
@@ -97,6 +118,84 @@ visitInstanceVariableNode: anInstanceVariableNode
 for: aCompiledMethod 
 	
 	^self new initializeFor: aCompiledMethod ! !
+
+!XXXXReplacerForNode methodsFor: 'initialization' stamp: 'mc 4/14/2023 00:53:43'!
+initializeFor: aCompiledMethod rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode 
+	compiledMethod := aCompiledMethod.
+	intervalsToReject := aFewIntervalsToReject.
+	node := aNodeToGetCode.
+	intervalsToModify := OrderedCollection new! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 02:24:25'!
+apply
+	| newCode newCodeForNode |
+	self initializeNodeInterval.
+	self initializeOffset.
+	node accept: self.
+	intervalsToModify := intervalsToModify collect: [ :anAssociation | (anAssociation key - nodeOffsetInSourceCode) -> anAssociation value ].
+	newCodeForNode := compiledMethod sourceCode copyFrom: nodeInterval first to: nodeInterval last.
+	newCode := newCodeForNode copyReplacing: intervalsToModify.
+	^newCode! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 00:49:47'!
+firstUnseenIntervalFor: aNode 
+	| completeRangesOfassigmentNode |
+	completeRangesOfassigmentNode := self sourceRangesOf: aNode.
+	self removeSeenRanges: completeRangesOfassigmentNode.
+	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 02:24:00'!
+initializeNodeInterval
+
+	| posibleRangesForNode |
+
+	posibleRangesForNode := self sourceRangesOf: node.
+	self removeSeenRanges: posibleRangesForNode.
+	nodeInterval := self firstIntervalOn: posibleRangesForNode.! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 02:19:49'!
+initializeOffset
+
+	^ nodeOffsetInSourceCode := nodeInterval first -1! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 00:53:08'!
+registerInterval: anInterval withModification: sourceCodeForInterval 
+	intervalsToReject add: anInterval.
+	intervalsToModify add: anInterval -> sourceCodeForInterval! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 00:53:08'!
+removeSeenRanges: rangesOfNode 
+	^rangesOfNode removeAllSuchThat: [ :aSourceInterval | intervalsToReject anySatisfy: [ :aSourceIntervalToModify | aSourceIntervalToModify includesAllOf: aSourceInterval ] ]! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 00:51:07'!
+sourceRangesOf: aNode 
+	^compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 02:27:01'!
+visitAssignmentNode: anAssignmentNode 
+	| assigmentValue completeRangesOfassigmentNode nodeXXXReplacer resultForValue |
+	"self halt."
+	completeRangesOfassigmentNode := self firstUnseenIntervalFor: anAssignmentNode.
+	"completeRangesOfassigmentNodeValue := self firstUnseenIntervalFor: anAssignmentNode value."
+	"intervalToUse := self firstIntervalOn: completeRangesOfassigmentNode."
+	nodeXXXReplacer := XXXXReplacerForNode 
+					for: compiledMethod
+					rejectingIntervals: intervalsToReject 
+					onNode: anAssignmentNode value.
+					
+	resultForValue :=			nodeXXXReplacer apply.
+	(((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ])
+		ifTrue: [assigmentValue := '(', resultForValue, ')'.] 
+		ifFalse: [assigmentValue := resultForValue.].
+	self registerInterval: completeRangesOfassigmentNode withModification: ('sourceObject ', anAssignmentNode variable name, ': ', assigmentValue)! !
+
+!XXXXReplacerForNode methodsFor: 'private - visiting' stamp: 'mc 4/14/2023 02:12:28'!
+firstIntervalOn: aCollectionOfIntervals
+	^aCollectionOfIntervals detectMin: [ :anInterval | anInterval first]! !
+
+!XXXXReplacerForNode class methodsFor: 'instance creation' stamp: 'mc 4/14/2023 00:00:15'!
+for: aCompiledMethod rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode 
+	^self new initializeFor: aCompiledMethod rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode ! !
 
 !MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/5/2023 01:50:00'!
 test001MethodShouldExistsOnSourceClass
@@ -293,8 +392,8 @@ test105CanMoveMethodWhenReferencesAnInstanceVariableForWriting
 	self deny: (sourceClass includesSelector: #m1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/13/2023 02:15:36'!
-wiptest106CanMoveMethodWhenReferencesTwoInstanceVariableForWriting
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/13/2023 22:44:31'!
+test106CanMoveMethodWhenReferencesTwoInstanceVariableForWriting
 	
 	| sourceClass targetClass refactoring |
 	
@@ -307,6 +406,23 @@ wiptest106CanMoveMethodWhenReferencesTwoInstanceVariableForWriting
 	refactoring apply.
 	
 	self assert: 'm1: sourceObject sourceObject iv3: (sourceObject iv4: 1).' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
+	self deny: (sourceClass includesSelector: #m1).
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/15/2023 19:10:10'!
+test107CanMoveMethodWhenReferencesAnInstanceVariableAndHasAParameter
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'm1: anObject ^iv2.' .
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1: from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'm1: anObject sourceObject: sourceObject ^sourceObject iv2.' equals: (targetClass compiledMethodAt: #m1:sourceObject:) sourceCode.
 	self deny: (sourceClass includesSelector: #m1).
 	! !
 
