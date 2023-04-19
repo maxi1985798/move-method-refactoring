@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 18 April 2023 at 10:03:01 pm'!
+'From Cuis 6.0 [latest update: #5706] on 18 April 2023 at 10:08:36 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 5!
+!provides: 'MoveMethodRefactoring' 1 6!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -338,7 +338,7 @@ test104CanMoveMethodWhenReferencesTwoInstanceVariableForReading
 	self assert: 'iv3', String newLineString, String tab, '^iv3.' equals: (sourceClass compiledMethodAt: #iv3) sourceCode.
 	self assert: 'iv4', String newLineString, String tab, '^iv4.' equals: (sourceClass compiledMethodAt: #iv4) sourceCode.! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/17/2023 22:53:20'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/18/2023 22:04:44'!
 test105CanMoveMethodWhenReferencesAnInstanceVariableForWriting
 	
 	| sourceClass targetClass refactoring |
@@ -353,10 +353,10 @@ test105CanMoveMethodWhenReferencesAnInstanceVariableForWriting
 	
 	self assert: 'm1: sourceObject ^sourceObject iv3: 1.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
 	self deny: (sourceClass includesSelector: #m1).
-	"self assert: 'iv3: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass compiledMethodAt: #iv3:) sourceCode."
+	self assert: 'iv3: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass compiledMethodAt: #iv3:) sourceCode.
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/13/2023 22:44:31'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/18/2023 22:08:08'!
 test106CanMoveMethodWhenReferencesTwoInstanceVariableForWriting
 	
 	| sourceClass targetClass refactoring |
@@ -371,7 +371,8 @@ test106CanMoveMethodWhenReferencesTwoInstanceVariableForWriting
 	
 	self assert: 'm1: sourceObject sourceObject iv3: (sourceObject iv4: 1).' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
 	self deny: (sourceClass includesSelector: #m1).
-	! !
+	self assert: 'iv3: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass compiledMethodAt: #iv3:) sourceCode.
+	self assert: 'iv4: anObject', String newLineString, String tab, '^iv4 := anObject.' equals: (sourceClass compiledMethodAt: #iv4:) sourceCode.! !
 
 !MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/17/2023 00:52:23'!
 test107CanMoveMethodWhenReferencesTwoInstanceVariableForWritingAndOneForReading
@@ -413,13 +414,14 @@ initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass
 	sourceClass := aSourceClass.
 	targetClass := aTargetClass.! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/18/2023 02:06:38'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/18/2023 22:07:19'!
 apply
 	| compiledMethod xxxxreplacerResult |
 	compiledMethod := sourceClass methodDict at: methodName.
 	xxxxreplacerResult := self codeReplacingInstVarRef: compiledMethod.
 	targetClass compile: xxxxreplacerResult sourceCode.
 	xxxxreplacerResult readAccessOnInstanceVariables do: [ :anInstanceVariable | sourceClass compile: anInstanceVariable, String newLineString, String tab, '^', anInstanceVariable, '.' ].
+	xxxxreplacerResult writeAccessOnInstanceVariables do: [ :anInstanceVariable | sourceClass compile: anInstanceVariable, ': anObject', String newLineString, String tab, '^', anInstanceVariable, ' := anObject.' ].
 	sourceClass removeSelector: methodName ! !
 
 !MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/18/2023 02:03:10'!
