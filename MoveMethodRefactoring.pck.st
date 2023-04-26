@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 18 April 2023 at 10:08:36 pm'!
+'From Cuis 6.0 [latest update: #5706] on 26 April 2023 at 2:44:03 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 6!
+!provides: 'MoveMethodRefactoring' 1 7!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -102,6 +102,29 @@ initializeOffset
 
 	^ nodeOffsetInSourceCode := nodeInterval first -1! !
 
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/26/2023 02:33:42'!
+method: setterCandidate isSetterOf: anInstVarName 
+	| anInstVarIndex varIndexCode scanner |
+	"self halt."
+	anInstVarIndex := compiledMethod methodClass instVarNames indexOf: anInstVarName.
+	"setterCandidate selector = (anInstanceVariable, ':') ifFalse: [ ^false ].
+	"
+	
+	"^setterCandidate isSetterOf: anInstanceVariable at: varIndex."
+	
+	"self isQuick ifTrue: [ ^false ]."
+	setterCandidate selector = (anInstVarName, ':') ifFalse: [ ^false ].
+	
+	"I could have use the AST of the method, but parsing the source code could generate errors
+	that it is why I decided to check the bytecodes - Hernan"
+	varIndexCode := anInstVarIndex - 1.
+	scanner := InstructionStream on: setterCandidate.
+	scanner nextByte = 16r10 ifFalse: [ ^false ].
+	scanner movePcForward.
+	(setterCandidate writesFieldCode: varIndexCode with: scanner nextByte using: scanner) ifFalse: [ ^false ].
+	scanner movePcForward.
+	^scanner nextByte = 16r7C! !
+
 !XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 00:53:08'!
 registerInterval: anInterval withModification: sourceCodeForInterval 
 	intervalsToReject add: anInterval.
@@ -115,9 +138,9 @@ removeSeenRanges: rangesOfNode
 sourceRangesOf: aNode 
 	^compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
 
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/18/2023 00:39:13'!
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/26/2023 02:43:22'!
 visitAssignmentNode: anAssignmentNode 
-	| assigmentValue completeRangesOfassigmentNode nodeXXXReplacer resultForValue |
+	| assigmentValue completeRangesOfassigmentNode nodeXXXReplacer resultForValue setterSelectorAsString |
 	"self halt."
 	completeRangesOfassigmentNode := self firstUnseenIntervalFor: anAssignmentNode.
 	"completeRangesOfassigmentNodeValue := self firstUnseenIntervalFor: anAssignmentNode value."
@@ -131,7 +154,18 @@ visitAssignmentNode: anAssignmentNode
 	(((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ])
 		ifTrue: [assigmentValue := '(', resultForValue sourceCode , ')'.] 
 		ifFalse: [assigmentValue := resultForValue sourceCode .].
-	self registerInterval: completeRangesOfassigmentNode withModification: ('sourceObject ', anAssignmentNode variable name, ': ', assigmentValue).
+	
+	
+	setterSelectorAsString := anAssignmentNode variable name, ':'.
+	compiledMethod methodClass  methodDict 
+					at: setterSelectorAsString asSymbol 
+					ifPresent: [ :setterCandidate | (self method: setterCandidate isSetterOf: anAssignmentNode variable name) 
+												ifFalse: 	[setterSelectorAsString := anAssignmentNode variable name, '_SETTER_CHANGE_ME:'.]
+							]
+					ifAbsent: [].
+
+	
+	self registerInterval: completeRangesOfassigmentNode withModification: ('sourceObject ', setterSelectorAsString, ' ', assigmentValue).
 	readAccessOnInstanceVariables addAll: resultForValue readAccessOnInstanceVariables.
 	writeAccessOnInstanceVariables addAll: resultForValue writeAccessOnInstanceVariables.
 	writeAccessOnInstanceVariables add: anAssignmentNode variable name.! !
@@ -408,20 +442,70 @@ test108CanMoveMethodWhenReferencesAnInstanceVariableAndHasAParameter
 	self deny: (sourceClass includesSelector: #m1).
 	! !
 
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/21/2023 08:12:59'!
+test109AfterMovingMethodWhichReferencesAnInstanceVariableForReadingShouldUseTheExistentGetter
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'iv3 ^iv3.'.
+	sourceClass compile: 'm1 ^iv3 + 1.'.
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'iv3 ^iv3.' equals: (sourceClass compiledMethodAt: #iv3) sourceCode! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/24/2023 00:48:03'!
+test110AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheExistentSetter___wip
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'iv3: anObject ^iv3 := anObject.'.
+	sourceClass compile: 'm1 ^iv3 := 1.'.
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'iv3: anObject ^iv3 := anObject.' equals: (sourceClass compiledMethodAt: #iv3:) sourceCode! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/26/2023 02:35:54'!
+test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheExistentSetter___wip2
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'iv3: anObject iv3 := anObject.'.
+	sourceClass compile: 'm1 ^iv3 := 1.'.
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject iv3_SETTER_CHANGE_ME: 1.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
+	self assert: 'iv3_SETTER_CHANGE_ME: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass compiledMethodAt: #iv3_SETTER_CHANGE_ME:) sourceCode! !
+
 !MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 4/5/2023 01:39:26'!
 initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass 
 	methodName := aMethodName.
 	sourceClass := aSourceClass.
 	targetClass := aTargetClass.! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/18/2023 22:07:19'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/24/2023 23:14:42'!
 apply
 	| compiledMethod xxxxreplacerResult |
 	compiledMethod := sourceClass methodDict at: methodName.
 	xxxxreplacerResult := self codeReplacingInstVarRef: compiledMethod.
+	
+	xxxxreplacerResult readAccessOnInstanceVariables do: [ :anInstanceVariable | self createGetterIfNotExistsFor: anInstanceVariable ].
+	xxxxreplacerResult writeAccessOnInstanceVariables do: [ :anInstanceVariable | self createSetterIfNotExistsFor: anInstanceVariable ].
 	targetClass compile: xxxxreplacerResult sourceCode.
-	xxxxreplacerResult readAccessOnInstanceVariables do: [ :anInstanceVariable | sourceClass compile: anInstanceVariable, String newLineString, String tab, '^', anInstanceVariable, '.' ].
-	xxxxreplacerResult writeAccessOnInstanceVariables do: [ :anInstanceVariable | sourceClass compile: anInstanceVariable, ': anObject', String newLineString, String tab, '^', anInstanceVariable, ' := anObject.' ].
 	sourceClass removeSelector: methodName ! !
 
 !MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/18/2023 02:03:10'!
@@ -431,9 +515,64 @@ codeReplacingInstVarRef: compiledMethod
 	replacer := XXXXReplacerForNode for: compiledMethod.
 	^replacer apply.! !
 
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/20/2023 22:57:24'!
+createGetterFor: anInstanceVariable
+
+	^ sourceClass compile: anInstanceVariable, String newLineString, String tab, '^', anInstanceVariable, '.'! !
+
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/20/2023 23:01:44'!
+createGetterIfNotExistsFor: anInstanceVariable
+	
+	| getterCandidate |
+	getterCandidate := sourceClass methodDict at: anInstanceVariable asSymbol ifAbsent:[^self createGetterFor: anInstanceVariable].
+	(getterCandidate isGetterOf: anInstanceVariable at: (sourceClass instVarNames indexOf: anInstanceVariable)) 
+		ifFalse: 	[self createGetterFor: anInstanceVariable]! !
+
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/24/2023 23:50:24'!
+createSetterChangeMeFor: anInstanceVariable 
+	^ sourceClass compile: anInstanceVariable, '_SETTER_CHANGE_ME: anObject', String newLineString, String tab, '^', anInstanceVariable, ' := anObject.'! !
+
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/21/2023 08:55:38'!
+createSetterFor: anInstanceVariable
+
+	^ sourceClass compile: anInstanceVariable, ': anObject', String newLineString, String tab, '^', anInstanceVariable, ' := anObject.'! !
+
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/24/2023 23:48:56'!
+createSetterIfNotExistsFor: anInstanceVariable
+	
+	| setterCandidate |
+	setterCandidate := sourceClass methodDict at: (anInstanceVariable, ':') asSymbol ifAbsent:[^self createSetterFor: anInstanceVariable].
+	(self method: setterCandidate isSetterOf: anInstanceVariable)
+	"(setterCandidate isSetterOf: anInstanceVariable at: (sourceClass instVarNames indexOf: anInstanceVariable)) "
+		ifFalse: 	[self createSetterChangeMeFor: anInstanceVariable]! !
+
 !MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/8/2023 16:36:28'!
 hasReferencesToInstVars: compiledMethod 
 	^sourceClass instVarNames anySatisfy: [ :anInstanceVariable | compiledMethod accessesInstanceVariable: anInstanceVariable]! !
+
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/24/2023 01:05:36'!
+method: setterCandidate isSetterOf: anInstVarName 
+	
+	| anInstVarIndex varIndexCode scanner |
+	"self halt."
+	anInstVarIndex := sourceClass instVarNames indexOf: anInstVarName.
+	"setterCandidate selector = (anInstanceVariable, ':') ifFalse: [ ^false ].
+	"
+	
+	"^setterCandidate isSetterOf: anInstanceVariable at: varIndex."
+	
+	"self isQuick ifTrue: [ ^false ]."
+	setterCandidate selector = (anInstVarName, ':') ifFalse: [ ^false ].
+	
+	"I could have use the AST of the method, but parsing the source code could generate errors
+	that it is why I decided to check the bytecodes - Hernan"
+	varIndexCode := anInstVarIndex - 1.
+	scanner := InstructionStream on: setterCandidate.
+	scanner nextByte = 16r10 ifFalse: [ ^false ].
+	scanner movePcForward.
+	(setterCandidate writesFieldCode: varIndexCode with: scanner nextByte using: scanner) ifFalse: [ ^false ].
+	scanner movePcForward.
+	^scanner nextByte = 16r7C! !
 
 !MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 4/5/2023 02:15:05'!
 methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable  
