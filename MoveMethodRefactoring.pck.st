@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 26 April 2023 at 2:44:03 am'!
+'From Cuis 6.0 [latest update: #5706] on 28 April 2023 at 1:47:10 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 7!
+!provides: 'MoveMethodRefactoring' 1 8!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -79,6 +79,15 @@ apply
 firstUnseenIntervalFor: aNode 
 	| completeRangesOfassigmentNode |
 	completeRangesOfassigmentNode := self sourceRangesOf: aNode.
+	self removeSeenRanges: completeRangesOfassigmentNode.
+	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/28/2023 01:46:20'!
+firstUnseenIntervalFor: aNode ifAbsent: anAbsentBlock 
+	
+	| completeRangesOfassigmentNode |
+	
+	completeRangesOfassigmentNode := compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: anAbsentBlock.
 	self removeSeenRanges: completeRangesOfassigmentNode.
 	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
 
@@ -178,6 +187,14 @@ visitInstanceVariableNode: anInstanceVariableNode
 	sourceCodeForInterval := 'sourceObject ', anInstanceVariableNode key.
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	readAccessOnInstanceVariables add: anInstanceVariableNode key.! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/28/2023 01:41:33'!
+visitVariableNode: aVariableNode 
+	| anInterval sourceCodeForInterval |
+	anInterval := self firstUnseenIntervalFor: aVariableNode ifAbsent: [^self].
+	sourceCodeForInterval := 'sourceObject'.
+	self registerInterval: anInterval withModification: sourceCodeForInterval.
+	readAccessOnInstanceVariables add: aVariableNode name.! !
 
 !XXXXReplacerForNode methodsFor: 'private - visiting' stamp: 'mc 4/14/2023 02:12:28'!
 firstIntervalOn: aCollectionOfIntervals
@@ -491,19 +508,35 @@ test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheE
 	self assert: 'm1: sourceObject ^sourceObject iv3_SETTER_CHANGE_ME: 1.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
 	self assert: 'iv3_SETTER_CHANGE_ME: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass compiledMethodAt: #iv3_SETTER_CHANGE_ME:) sourceCode! !
 
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/27/2023 01:17:57'!
+test200CanMoveMethodWhenSendsMessageToSelf
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'justOne ^1.'.
+	sourceClass compile: 'm1 ^self justOne.'.
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject justOne.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.! !
+
 !MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 4/5/2023 01:39:26'!
 initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass 
 	methodName := aMethodName.
 	sourceClass := aSourceClass.
 	targetClass := aTargetClass.! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/24/2023 23:14:42'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/28/2023 01:19:26'!
 apply
 	| compiledMethod xxxxreplacerResult |
 	compiledMethod := sourceClass methodDict at: methodName.
 	xxxxreplacerResult := self codeReplacingInstVarRef: compiledMethod.
 	
-	xxxxreplacerResult readAccessOnInstanceVariables do: [ :anInstanceVariable | self createGetterIfNotExistsFor: anInstanceVariable ].
+	xxxxreplacerResult readAccessOnInstanceVariables do: [ :anInstanceVariable | anInstanceVariable = 'self' ifFalse: [self createGetterIfNotExistsFor: anInstanceVariable] ].
 	xxxxreplacerResult writeAccessOnInstanceVariables do: [ :anInstanceVariable | self createSetterIfNotExistsFor: anInstanceVariable ].
 	targetClass compile: xxxxreplacerResult sourceCode.
 	sourceClass removeSelector: methodName ! !
