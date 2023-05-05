@@ -1,12 +1,12 @@
-'From Cuis 6.0 [latest update: #5706] on 28 April 2023 at 1:47:10 am'!
+'From Cuis 6.0 [latest update: #5706] on 5 May 2023 at 2:06:47 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 8!
+!provides: 'MoveMethodRefactoring' 1 9!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
 !classDefinition: #XXXXReplacerForNode category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #XXXXReplacerForNode
-	instanceVariableNames: 'compiledMethod intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables'
+	instanceVariableNames: 'compiledMethod intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables methodHasSuperReferences'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -36,7 +36,7 @@ MoveMethodRefactoring class
 
 !classDefinition: #XXXXReplacerResult category: 'MoveMethodRefactoring'!
 Object subclass: #XXXXReplacerResult
-	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables'
+	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables boolean methodWithSuperReferences'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -45,112 +45,21 @@ XXXXReplacerResult class
 	instanceVariableNames: ''!
 
 
-!XXXXReplacerForNode methodsFor: 'initialization' stamp: 'mc 4/18/2023 02:00:26'!
+!XXXXReplacerForNode methodsFor: 'initialization' stamp: 'mc 5/5/2023 00:09:40'!
 initializeFor: aCompiledMethod rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode 
 	compiledMethod := aCompiledMethod.
 	intervalsToReject := aFewIntervalsToReject.
 	node := aNodeToGetCode.
 	intervalsToModify := OrderedCollection new.
 	readAccessOnInstanceVariables := OrderedCollection new.
-	writeAccessOnInstanceVariables := OrderedCollection new.! !
+	writeAccessOnInstanceVariables := OrderedCollection new.
+	methodHasSuperReferences := false.! !
 
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/18/2023 02:01:48'!
-apply
-	| newCode newCodeForNode result |
-	self initializeNodeInterval.
-	self initializeOffset.
-	node accept: self.
-	intervalsToModify := intervalsToModify collect: [ :anAssociation | (anAssociation key - nodeOffsetInSourceCode) -> anAssociation value ].
-	newCodeForNode := compiledMethod sourceCode copyFrom: nodeInterval first to: nodeInterval last.
-	
-	((node isMethodNode) and: ((readAccessOnInstanceVariables isEmpty not) or: (writeAccessOnInstanceVariables isEmpty not))) ifTrue: [
-		(compiledMethod methodNode selectorAndArgumentsAsString includes: $:) 
-				ifTrue: [intervalsToModify add: (1 to: compiledMethod methodNode selectorLastPosition ) -> (compiledMethod methodNode selectorAndArgumentsAsString, ' sourceObject: sourceObject')]
-				ifFalse: [intervalsToModify add: (1 to: compiledMethod methodNode selectorLastPosition ) -> (compiledMethod methodNode selectorAndArgumentsAsString, ': sourceObject')].
-	].
-	"self halt."
-	intervalsToModify sort: [ :left :right | left key first < right key first ].
-	newCode := newCodeForNode copyReplacing: intervalsToModify.
-	result := XXXXReplacerResult newWith: newCode modifiedReads: readAccessOnInstanceVariables modifiedWrites: writeAccessOnInstanceVariables.
-	^result 
-	"^newCode"! !
-
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 00:49:47'!
-firstUnseenIntervalFor: aNode 
-	| completeRangesOfassigmentNode |
-	completeRangesOfassigmentNode := self sourceRangesOf: aNode.
-	self removeSeenRanges: completeRangesOfassigmentNode.
-	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
-
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/28/2023 01:46:20'!
-firstUnseenIntervalFor: aNode ifAbsent: anAbsentBlock 
-	
-	| completeRangesOfassigmentNode |
-	
-	completeRangesOfassigmentNode := compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: anAbsentBlock.
-	self removeSeenRanges: completeRangesOfassigmentNode.
-	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
-
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/18/2023 01:21:54'!
-initializeNodeInterval
-
-	| posibleRangesForNode |
-
-	node isMethodNode 
-		ifTrue:[ 
-			nodeInterval := 1 to: (compiledMethod sourceCode size).
-			]
-		ifFalse:[ 
-			posibleRangesForNode := self sourceRangesOf: node.
-			self removeSeenRanges: posibleRangesForNode.
-			nodeInterval := self firstIntervalOn: posibleRangesForNode.
-			]! !
-
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 02:19:49'!
-initializeOffset
-
-	^ nodeOffsetInSourceCode := nodeInterval first -1! !
-
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/26/2023 02:33:42'!
-method: setterCandidate isSetterOf: anInstVarName 
-	| anInstVarIndex varIndexCode scanner |
-	"self halt."
-	anInstVarIndex := compiledMethod methodClass instVarNames indexOf: anInstVarName.
-	"setterCandidate selector = (anInstanceVariable, ':') ifFalse: [ ^false ].
-	"
-	
-	"^setterCandidate isSetterOf: anInstanceVariable at: varIndex."
-	
-	"self isQuick ifTrue: [ ^false ]."
-	setterCandidate selector = (anInstVarName, ':') ifFalse: [ ^false ].
-	
-	"I could have use the AST of the method, but parsing the source code could generate errors
-	that it is why I decided to check the bytecodes - Hernan"
-	varIndexCode := anInstVarIndex - 1.
-	scanner := InstructionStream on: setterCandidate.
-	scanner nextByte = 16r10 ifFalse: [ ^false ].
-	scanner movePcForward.
-	(setterCandidate writesFieldCode: varIndexCode with: scanner nextByte using: scanner) ifFalse: [ ^false ].
-	scanner movePcForward.
-	^scanner nextByte = 16r7C! !
-
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 00:53:08'!
-registerInterval: anInterval withModification: sourceCodeForInterval 
-	intervalsToReject add: anInterval.
-	intervalsToModify add: anInterval -> sourceCodeForInterval! !
-
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 00:53:08'!
-removeSeenRanges: rangesOfNode 
-	^rangesOfNode removeAllSuchThat: [ :aSourceInterval | intervalsToReject anySatisfy: [ :aSourceIntervalToModify | aSourceIntervalToModify includesAllOf: aSourceInterval ] ]! !
-
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/14/2023 00:51:07'!
-sourceRangesOf: aNode 
-	^compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
-
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/26/2023 02:43:22'!
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/30/2023 22:13:55'!
 visitAssignmentNode: anAssignmentNode 
 	| assigmentValue completeRangesOfassigmentNode nodeXXXReplacer resultForValue setterSelectorAsString |
 	"self halt."
+	anAssignmentNode variable isTemp ifTrue: [anAssignmentNode value accept: self. ^self].
 	completeRangesOfassigmentNode := self firstUnseenIntervalFor: anAssignmentNode.
 	"completeRangesOfassigmentNodeValue := self firstUnseenIntervalFor: anAssignmentNode value."
 	"intervalToUse := self firstIntervalOn: completeRangesOfassigmentNode."
@@ -188,17 +97,130 @@ visitInstanceVariableNode: anInstanceVariableNode
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	readAccessOnInstanceVariables add: anInstanceVariableNode key.! !
 
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/28/2023 01:41:33'!
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/5/2023 02:05:32'!
+visitMessageNode: aMessageNode 
+	"aMessageNode receiver accept: self.
+	aMessageNode selector accept: self.
+	aMessageNode argumentsInEvaluationOrder do: [:argument| argument accept: self]"
+	| rangeMessageNode |
+	"self halt."
+	aMessageNode receiver name = 'super' 
+		ifTrue:[
+			rangeMessageNode := self firstUnseenIntervalFor: aMessageNode .
+			self registerInterval: rangeMessageNode withModification: ('sourceObject CHANGE_ME_super_', aMessageNode selector key asString).
+			compiledMethod methodClass compile:'CHANGE_ME_super_', aMessageNode selector key asString, String newLineString, String tab, '^super ', aMessageNode selector key asString, '.'.
+			methodHasSuperReferences := true.
+			]
+		ifFalse:[
+			aMessageNode receiver accept: self.
+			aMessageNode selector accept: self.].
+	aMessageNode argumentsInEvaluationOrder do: [:argument| argument accept: self]! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/3/2023 01:55:33'!
 visitVariableNode: aVariableNode 
 	| anInterval sourceCodeForInterval |
+	"self halt."
 	anInterval := self firstUnseenIntervalFor: aVariableNode ifAbsent: [^self].
 	sourceCodeForInterval := 'sourceObject'.
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	readAccessOnInstanceVariables add: aVariableNode name.! !
 
-!XXXXReplacerForNode methodsFor: 'private - visiting' stamp: 'mc 4/14/2023 02:12:28'!
+!XXXXReplacerForNode methodsFor: 'private' stamp: 'mc 4/14/2023 02:12:28'!
 firstIntervalOn: aCollectionOfIntervals
 	^aCollectionOfIntervals detectMin: [ :anInterval | anInterval first]! !
+
+!XXXXReplacerForNode methodsFor: 'private' stamp: 'mc 4/14/2023 00:49:47'!
+firstUnseenIntervalFor: aNode 
+	| completeRangesOfassigmentNode |
+	completeRangesOfassigmentNode := self sourceRangesOf: aNode.
+	self removeSeenRanges: completeRangesOfassigmentNode.
+	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
+
+!XXXXReplacerForNode methodsFor: 'private' stamp: 'mc 4/28/2023 01:46:20'!
+firstUnseenIntervalFor: aNode ifAbsent: anAbsentBlock 
+	
+	| completeRangesOfassigmentNode |
+	
+	completeRangesOfassigmentNode := compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: anAbsentBlock.
+	self removeSeenRanges: completeRangesOfassigmentNode.
+	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
+
+!XXXXReplacerForNode methodsFor: 'private' stamp: 'mc 4/18/2023 01:21:54'!
+initializeNodeInterval
+
+	| posibleRangesForNode |
+
+	node isMethodNode 
+		ifTrue:[ 
+			nodeInterval := 1 to: (compiledMethod sourceCode size).
+			]
+		ifFalse:[ 
+			posibleRangesForNode := self sourceRangesOf: node.
+			self removeSeenRanges: posibleRangesForNode.
+			nodeInterval := self firstIntervalOn: posibleRangesForNode.
+			]! !
+
+!XXXXReplacerForNode methodsFor: 'private' stamp: 'mc 4/14/2023 02:19:49'!
+initializeOffset
+
+	^ nodeOffsetInSourceCode := nodeInterval first -1! !
+
+!XXXXReplacerForNode methodsFor: 'private' stamp: 'mc 4/26/2023 02:33:42'!
+method: setterCandidate isSetterOf: anInstVarName 
+	| anInstVarIndex varIndexCode scanner |
+	"self halt."
+	anInstVarIndex := compiledMethod methodClass instVarNames indexOf: anInstVarName.
+	"setterCandidate selector = (anInstanceVariable, ':') ifFalse: [ ^false ].
+	"
+	
+	"^setterCandidate isSetterOf: anInstanceVariable at: varIndex."
+	
+	"self isQuick ifTrue: [ ^false ]."
+	setterCandidate selector = (anInstVarName, ':') ifFalse: [ ^false ].
+	
+	"I could have use the AST of the method, but parsing the source code could generate errors
+	that it is why I decided to check the bytecodes - Hernan"
+	varIndexCode := anInstVarIndex - 1.
+	scanner := InstructionStream on: setterCandidate.
+	scanner nextByte = 16r10 ifFalse: [ ^false ].
+	scanner movePcForward.
+	(setterCandidate writesFieldCode: varIndexCode with: scanner nextByte using: scanner) ifFalse: [ ^false ].
+	scanner movePcForward.
+	^scanner nextByte = 16r7C! !
+
+!XXXXReplacerForNode methodsFor: 'private' stamp: 'mc 4/14/2023 00:53:08'!
+registerInterval: anInterval withModification: sourceCodeForInterval 
+	intervalsToReject add: anInterval.
+	intervalsToModify add: anInterval -> sourceCodeForInterval! !
+
+!XXXXReplacerForNode methodsFor: 'private' stamp: 'mc 4/14/2023 00:53:08'!
+removeSeenRanges: rangesOfNode 
+	^rangesOfNode removeAllSuchThat: [ :aSourceInterval | intervalsToReject anySatisfy: [ :aSourceIntervalToModify | aSourceIntervalToModify includesAllOf: aSourceInterval ] ]! !
+
+!XXXXReplacerForNode methodsFor: 'private' stamp: 'mc 4/14/2023 00:51:07'!
+sourceRangesOf: aNode 
+	^compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
+
+!XXXXReplacerForNode methodsFor: 'accessing' stamp: 'mc 5/5/2023 02:01:34'!
+apply
+	| newCode newCodeForNode result |
+	self initializeNodeInterval.
+	self initializeOffset.
+	node accept: self.
+	intervalsToModify := intervalsToModify collect: [ :anAssociation | (anAssociation key - nodeOffsetInSourceCode) -> anAssociation value ].
+	newCodeForNode := compiledMethod sourceCode copyFrom: nodeInterval first to: nodeInterval last.
+	
+	((node isMethodNode) and: ((readAccessOnInstanceVariables isEmpty not) or: (writeAccessOnInstanceVariables isEmpty not) or: (methodHasSuperReferences))) ifTrue: [
+		(compiledMethod methodNode selectorAndArgumentsAsString includes: $:) 
+				ifTrue: [intervalsToModify add: (1 to: compiledMethod methodNode selectorLastPosition ) -> (compiledMethod methodNode selectorAndArgumentsAsString, ' sourceObject: sourceObject')]
+				ifFalse: [intervalsToModify add: (1 to: compiledMethod methodNode selectorLastPosition ) -> (compiledMethod methodNode selectorAndArgumentsAsString, ': sourceObject')].
+	].
+	"self halt."
+	intervalsToModify sort: [ :left :right | left key first < right key first ].
+	newCode := newCodeForNode copyReplacing: intervalsToModify.
+	result := XXXXReplacerResult newWith: newCode modifiedReads: readAccessOnInstanceVariables modifiedWrites: writeAccessOnInstanceVariables hasSuperReferences: methodHasSuperReferences.
+	^result 
+	"^newCode"! !
 
 !XXXXReplacerForNode class methodsFor: 'instance creation' stamp: 'mc 4/17/2023 01:19:56'!
 for: aCompiledMethod 
@@ -524,6 +546,39 @@ test200CanMoveMethodWhenSendsMessageToSelf
 	
 	self assert: 'm1: sourceObject ^sourceObject justOne.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.! !
 
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/5/2023 00:07:25'!
+test200CanMoveMethodWhenSendsMessageToSuper
+	
+	| sourceClass targetClass refactoring sourceSuperClass |
+	sourceSuperClass := self createClassNamed: #SourceSuperClass.
+	sourceClass := self createClassNamed: #SourceClass  subclassOf: sourceSuperClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceSuperClass compile: 'justOne ^1.'.
+	sourceClass compile: 'justOne ^2.'.
+	sourceClass compile: 'm1 ^super justOne.'.
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject CHANGE_ME_super_justOne.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
+	self assert: 'CHANGE_ME_super_justOne', String newLineString, String tab, '^super justOne.' equals: (sourceClass compiledMethodAt: #CHANGE_ME_super_justOne) sourceCode! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/30/2023 22:14:20'!
+test201TmpVariablesShoulNotBeAffected
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'm1 |tmp| ^tmp:=1.'.
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'm1 |tmp| ^tmp:=1.' equals: (targetClass compiledMethodAt: #m1) sourceCode.! !
+
 !MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 4/5/2023 01:39:26'!
 initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass 
 	methodName := aMethodName.
@@ -648,12 +703,6 @@ sourceClassShouldNotBeNilErrorMessage
 targetClassShouldNotBeNilErrorMessage
 	^'Target class should not be nil'! !
 
-!XXXXReplacerResult methodsFor: 'nil' stamp: 'mc 4/18/2023 00:13:31'!
-initielizeWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites
-	sourceCode := newCode.
-	readAccessOnInstanceVariables := modifiedReads.
-	writeAccessOnInstanceVariables := modifiedWrites ! !
-
 !XXXXReplacerResult methodsFor: 'nil' stamp: 'mc 4/17/2023 23:02:43'!
 readAccessOnInstanceVariables
 	^readAccessOnInstanceVariables ! !
@@ -666,6 +715,13 @@ sourceCode
 writeAccessOnInstanceVariables
 	^writeAccessOnInstanceVariables! !
 
-!XXXXReplacerResult class methodsFor: 'nil' stamp: 'mc 4/18/2023 00:12:41'!
-newWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites
-	^self new initielizeWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites! !
+!XXXXReplacerResult methodsFor: 'initialization' stamp: 'mc 5/5/2023 01:52:36'!
+initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites hasSuperReferences: aBoolean 
+	sourceCode := newCode.
+	readAccessOnInstanceVariables := modifiedReads.
+	writeAccessOnInstanceVariables := modifiedWrites.
+	methodWithSuperReferences := aBoolean.! !
+
+!XXXXReplacerResult class methodsFor: 'instance creation' stamp: 'mc 5/5/2023 01:50:28'!
+newWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites hasSuperReferences: aBoolean 
+	^self new initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites hasSuperReferences: aBoolean ! !
