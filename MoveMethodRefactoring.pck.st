@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 5 May 2023 at 2:06:47 am'!
+'From Cuis 6.0 [latest update: #5706] on 9 May 2023 at 7:41:00 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 9!
+!provides: 'MoveMethodRefactoring' 1 10!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -97,19 +97,35 @@ visitInstanceVariableNode: anInstanceVariableNode
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	readAccessOnInstanceVariables add: anInstanceVariableNode key.! !
 
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/5/2023 02:05:32'!
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/9/2023 07:32:54'!
 visitMessageNode: aMessageNode 
 	"aMessageNode receiver accept: self.
 	aMessageNode selector accept: self.
 	aMessageNode argumentsInEvaluationOrder do: [:argument| argument accept: self]"
-	| rangeMessageNode |
+	| rangeMessageNode codeForArgument intervalForArgument |
 	"self halt."
 	aMessageNode receiver name = 'super' 
 		ifTrue:[
-			rangeMessageNode := self firstUnseenIntervalFor: aMessageNode .
-			self registerInterval: rangeMessageNode withModification: ('sourceObject CHANGE_ME_super_', aMessageNode selector key asString).
-			compiledMethod methodClass compile:'CHANGE_ME_super_', aMessageNode selector key asString, String newLineString, String tab, '^super ', aMessageNode selector key asString, '.'.
-			methodHasSuperReferences := true.
+			aMessageNode selector key isKeyword 
+				ifTrue: [
+					rangeMessageNode := self firstUnseenIntervalFor: aMessageNode.
+					intervalForArgument := self firstUnseenIntervalFor: aMessageNode arguments first.
+					codeForArgument := compiledMethod sourceCode copyFrom: intervalForArgument first to: intervalForArgument last.
+					self registerInterval: rangeMessageNode withModification: ('sourceObject CHANGE_ME_super_', aMessageNode selector key asString, ' ', codeForArgument).
+					compiledMethod methodClass compile:'CHANGE_ME_super_', aMessageNode selector key asString, ' anObject', String newLineString, String tab, '^super ', aMessageNode selector key asString, ' anObject.'.
+					methodHasSuperReferences := true.
+					]
+				ifFalse: [
+					rangeMessageNode := self firstUnseenIntervalFor: aMessageNode .
+					self registerInterval: rangeMessageNode withModification: ('sourceObject CHANGE_ME_super_', aMessageNode selector key asString).
+					compiledMethod methodClass compile:'CHANGE_ME_super_', aMessageNode selector key asString, String newLineString, String tab, '^super ', aMessageNode selector key asString, '.'.
+					
+					"
+					compiledMethod methodNode completeSourceRangesOf: aMessageNode arguments first ifAbsent: [].
+					"
+					methodHasSuperReferences := true.
+					].
+			
 			]
 		ifFalse:[
 			aMessageNode receiver accept: self.
@@ -563,6 +579,24 @@ test200CanMoveMethodWhenSendsMessageToSuper
 	
 	self assert: 'm1: sourceObject ^sourceObject CHANGE_ME_super_justOne.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
 	self assert: 'CHANGE_ME_super_justOne', String newLineString, String tab, '^super justOne.' equals: (sourceClass compiledMethodAt: #CHANGE_ME_super_justOne) sourceCode! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/9/2023 07:34:39'!
+test201CanMoveMethodWhenSendsMessageToSuperWithColaborators
+	
+	| sourceClass targetClass refactoring sourceSuperClass |
+	sourceSuperClass := self createClassNamed: #SourceSuperClass.
+	sourceClass := self createClassNamed: #SourceClass  subclassOf: sourceSuperClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceSuperClass compile: 'increment: aSmallinteger ^1+aSmallinteger.'.
+	sourceClass compile: 'increment: aSmallinteger ^2+aSmallinteger.'.
+	sourceClass compile: 'm1 ^super increment: 1.'.
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject CHANGE_ME_super_increment: 1.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
+	self assert: 'CHANGE_ME_super_increment: anObject', String newLineString, String tab, '^super increment: anObject.' equals: (sourceClass compiledMethodAt: #CHANGE_ME_super_increment:) sourceCode! !
 
 !MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 4/30/2023 22:14:20'!
 test201TmpVariablesShoulNotBeAffected
