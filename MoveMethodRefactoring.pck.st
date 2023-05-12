@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 11 May 2023 at 2:19:13 am'!
+'From Cuis 6.0 [latest update: #5706] on 12 May 2023 at 1:44:20 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 13!
+!provides: 'MoveMethodRefactoring' 1 14!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -55,14 +55,66 @@ initializeFor: aCompiledMethod rejectingIntervals: aFewIntervalsToReject onNode:
 	writeAccessOnInstanceVariables := OrderedCollection new.
 	methodHasSuperReferences := false.! !
 
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 4/30/2023 22:13:55'!
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/12/2023 00:30:08'!
+codeForArguments: aMessageNode				
+	| argumentsCode indexArgumentsCode |
+	argumentsCode := OrderedCollection new.
+	indexArgumentsCode := 1.
+	aMessageNode selector key keywords do: [ :aKeyword | 
+		
+			"argumentsCode add: (compiledMethod sourceCode 
+				copyFrom: (self firstUnseenIntervalFor: (aMessageNode argumentsInEvaluationOrder at: indexArgumentsCode)) first 
+				to: (self firstUnseenIntervalFor: (aMessageNode argumentsInEvaluationOrder at: indexArgumentsCode)) last)."
+			indexArgumentsCode := indexArgumentsCode +1].
+	^argumentsCode ! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/12/2023 00:29:21'!
+encapsulateSuperColaboration: aMessageNode
+	
+	| colaborationEncapsulated indexSourceCode newSelector newSourceCode |
+	newSelector := self newSelector: aMessageNode .
+	indexSourceCode := 1.
+	newSourceCode := ''.
+	aMessageNode selector key keywords do: [:aKeyword | 
+		newSourceCode := newSourceCode, ' ', aKeyword, ' ', 'arg', indexSourceCode asString. 
+		indexSourceCode := indexSourceCode +1 ].
+	
+	newSourceCode := '^super ', (newSourceCode copyFrom: 2 to: newSourceCode size), '.'.
+	colaborationEncapsulated := newSelector, String newLineString, String tab, newSourceCode.
+	compiledMethod methodClass compile: colaborationEncapsulated.! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/12/2023 00:14:44'!
+newSelector: aMessageNode
+	
+	| indexNewSelector newSelector |
+	newSelector := ''.
+	indexNewSelector := 1.
+	aMessageNode selector key keywords do: [:aKeyword | newSelector := newSelector, ' ', aKeyword, ' ', 'arg', indexNewSelector asString. indexNewSelector := indexNewSelector +1 ].
+	newSelector := 'CHANGE_ME_super_', (newSelector copyFrom: 2 to: newSelector size).
+	^newSelector! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/12/2023 00:50:10'!
+newSenderFor: aMessageNode
+	|  newSend argumentsCode argumentIndex replacer |
+	argumentsCode := OrderedCollection new.
+	argumentIndex := 1.
+	
+	aMessageNode selector key keywords do: [ :aKeyword | 
+		replacer := XXXXReplacerForNode for: compiledMethod rejectingIntervals: intervalsToReject onNode: (aMessageNode argumentsInEvaluationOrder at: argumentIndex).
+		argumentsCode add: replacer apply sourceCode.
+		argumentIndex := argumentIndex +1].
+	argumentIndex := 1.
+	newSend := ''.
+	aMessageNode selector key keywords do: [ :aKeyword | newSend := newSend, ' ', aKeyword, ' ', (argumentsCode at: argumentIndex). argumentIndex := argumentIndex +1].
+	^'sourceObject CHANGE_ME_super_', (newSend copyFrom: 2 to: newSend size).
+! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/11/2023 18:58:41'!
 visitAssignmentNode: anAssignmentNode 
 	| assigmentValue completeRangesOfassigmentNode nodeXXXReplacer resultForValue setterSelectorAsString |
 	"self halt."
 	anAssignmentNode variable isTemp ifTrue: [anAssignmentNode value accept: self. ^self].
 	completeRangesOfassigmentNode := self firstUnseenIntervalFor: anAssignmentNode.
-	"completeRangesOfassigmentNodeValue := self firstUnseenIntervalFor: anAssignmentNode value."
-	"intervalToUse := self firstIntervalOn: completeRangesOfassigmentNode."
 	nodeXXXReplacer := XXXXReplacerForNode 
 					for: compiledMethod
 					rejectingIntervals: intervalsToReject 
@@ -97,60 +149,28 @@ visitInstanceVariableNode: anInstanceVariableNode
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	readAccessOnInstanceVariables add: anInstanceVariableNode key.! !
 
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/11/2023 02:18:16'!
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/12/2023 00:26:36'!
 visitMessageNode: aMessageNode 
 	"aMessageNode receiver accept: self.
 	aMessageNode selector accept: self.
 	aMessageNode argumentsInEvaluationOrder do: [:argument| argument accept: self]"
-	| rangeMessageNode argumentsCode indexNewSend newSend indexNewSelector newSelector indexSourceCode newSourceCode indexArgumentsCode |
+	| rangeMessageNode newSend |
 	"self halt."
 	aMessageNode receiver name = 'super' 
 		ifTrue:[
 			aMessageNode selector key isKeyword 
-				ifTrue: [
+				ifTrue: [ 
+					
+					newSend := self newSenderFor: aMessageNode.
 					rangeMessageNode := self firstUnseenIntervalFor: aMessageNode.
-					"intervalForFirstArgument := self firstUnseenIntervalFor: aMessageNode argumentsInEvaluationOrder first."
-					"intervalForSecondArgument := self firstUnseenIntervalFor: aMessageNode argumentsInEvaluationOrder second ."
-					"codeForFirstArgument := compiledMethod sourceCode 
-						copyFrom: (self firstUnseenIntervalFor: aMessageNode argumentsInEvaluationOrder first) first 
-						to: (self firstUnseenIntervalFor: aMessageNode argumentsInEvaluationOrder first) last.
-					codeForSecondArgument := compiledMethod sourceCode 
-						copyFrom: (self firstUnseenIntervalFor: aMessageNode argumentsInEvaluationOrder second) first 
-						to: (self firstUnseenIntervalFor: aMessageNode argumentsInEvaluationOrder second) last."
-					argumentsCode := OrderedCollection new.
-					indexArgumentsCode := 1.
-					aMessageNode selector key keywords do: [ :aKeyword | 
-							argumentsCode add: (compiledMethod sourceCode 
-								copyFrom: (self firstUnseenIntervalFor: (aMessageNode argumentsInEvaluationOrder at: indexArgumentsCode)) first 
-								to: (self firstUnseenIntervalFor: (aMessageNode argumentsInEvaluationOrder at: indexArgumentsCode)) last).
-							indexArgumentsCode := indexArgumentsCode +1].
-					
-					indexNewSend := 1.
-					newSend := ''.
-					aMessageNode selector key keywords do: [ :aKeyword | newSend := newSend, ' ', aKeyword, ' ', (argumentsCode at: indexNewSend). indexNewSend := indexNewSend +1].
-					newSend := 'sourceObject CHANGE_ME_super_', (newSend copyFrom: 2 to: newSend size).
-					
-					newSelector := ''.
-					indexNewSelector := 1.
-					aMessageNode selector key keywords do: [:aKeyword | newSelector := newSelector, ' ', aKeyword, ' ', 'arg', indexNewSelector asString. indexNewSelector := indexNewSelector +1 ].
-					newSelector := 'CHANGE_ME_super_', (newSelector copyFrom: 2 to: newSelector size).
-					indexSourceCode := 1.
-					newSourceCode := ''.
-					aMessageNode selector key keywords do: [:aKeyword | newSourceCode := newSourceCode, ' ', aKeyword, ' ', 'arg', indexSourceCode asString. indexSourceCode := indexSourceCode +1 ].
-					newSourceCode := '^super ', (newSourceCode copyFrom: 2 to: newSourceCode size), '.'.
-					
 					self registerInterval: rangeMessageNode withModification: newSend.
-					compiledMethod methodClass compile: newSelector, String newLineString, String tab, newSourceCode.
+					self encapsulateSuperColaboration: aMessageNode.
 					methodHasSuperReferences := true.
 					]
 				ifFalse: [
 					rangeMessageNode := self firstUnseenIntervalFor: aMessageNode .
 					self registerInterval: rangeMessageNode withModification: ('sourceObject CHANGE_ME_super_', aMessageNode selector key asString).
 					compiledMethod methodClass compile:'CHANGE_ME_super_', aMessageNode selector key asString, String newLineString, String tab, '^super ', aMessageNode selector key asString, '.'.
-					
-					"
-					compiledMethod methodNode completeSourceRangesOf: aMessageNode arguments first ifAbsent: [].
-					"
 					methodHasSuperReferences := true.
 					].
 			
@@ -605,8 +625,8 @@ test200CanMoveMethodWhenSendsMessageToSelf
 	
 	self assert: 'm1: sourceObject ^sourceObject justOne.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/5/2023 00:07:25'!
-test200CanMoveMethodWhenSendsMessageToSuper
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/12/2023 00:51:14'!
+test200CanMoveMethodWhenSendsUnaryMessageToSuper
 	
 	| sourceClass targetClass refactoring sourceSuperClass |
 	sourceSuperClass := self createClassNamed: #SourceSuperClass.
@@ -623,8 +643,8 @@ test200CanMoveMethodWhenSendsMessageToSuper
 	self assert: 'm1: sourceObject ^sourceObject CHANGE_ME_super_justOne.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
 	self assert: 'CHANGE_ME_super_justOne', String newLineString, String tab, '^super justOne.' equals: (sourceClass compiledMethodAt: #CHANGE_ME_super_justOne) sourceCode! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/11/2023 02:15:51'!
-test201CanMoveMethodWhenSendsMessageToSuperWithOneColaborators
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/12/2023 00:51:34'!
+test201CanMoveMethodWhenSendsKeywordMessageToSuperWithOneColaborators
 	
 	| sourceClass targetClass refactoring sourceSuperClass |
 	sourceSuperClass := self createClassNamed: #SourceSuperClass.
@@ -641,8 +661,8 @@ test201CanMoveMethodWhenSendsMessageToSuperWithOneColaborators
 	self assert: 'm1: sourceObject ^sourceObject CHANGE_ME_super_increment: 1.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
 	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass compiledMethodAt: #CHANGE_ME_super_increment:) sourceCode! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/11/2023 01:58:54'!
-test202CanMoveMethodWhenSendsMessageToSuperWithTwoColaborators
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/12/2023 00:51:51'!
+test202CanMoveMethodWhenSendsKeywordMessageToSuperWithTwoColaborators
 	
 	| sourceClass targetClass refactoring sourceSuperClass |
 	sourceSuperClass := self createClassNamed: #SourceSuperClass.
@@ -665,23 +685,16 @@ initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass
 	sourceClass := aSourceClass.
 	targetClass := aTargetClass.! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/28/2023 01:19:26'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 5/11/2023 18:57:50'!
 apply
 	| compiledMethod xxxxreplacerResult |
 	compiledMethod := sourceClass methodDict at: methodName.
-	xxxxreplacerResult := self codeReplacingInstVarRef: compiledMethod.
+	xxxxreplacerResult := self replaceDependenciesFromSource: compiledMethod.
 	
 	xxxxreplacerResult readAccessOnInstanceVariables do: [ :anInstanceVariable | anInstanceVariable = 'self' ifFalse: [self createGetterIfNotExistsFor: anInstanceVariable] ].
 	xxxxreplacerResult writeAccessOnInstanceVariables do: [ :anInstanceVariable | self createSetterIfNotExistsFor: anInstanceVariable ].
 	targetClass compile: xxxxreplacerResult sourceCode.
 	sourceClass removeSelector: methodName ! !
-
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/18/2023 02:03:10'!
-codeReplacingInstVarRef: compiledMethod
-	| replacer |
-	"replacer := XXXXReplacer for: compiledMethod."
-	replacer := XXXXReplacerForNode for: compiledMethod.
-	^replacer apply.! !
 
 !MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/20/2023 22:57:24'!
 createGetterFor: anInstanceVariable
@@ -741,6 +754,13 @@ method: setterCandidate isSetterOf: anInstVarName
 	(setterCandidate writesFieldCode: varIndexCode with: scanner nextByte using: scanner) ifFalse: [ ^false ].
 	scanner movePcForward.
 	^scanner nextByte = 16r7C! !
+
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 5/11/2023 18:57:50'!
+replaceDependenciesFromSource: compiledMethod
+	| replacer |
+	"replacer := XXXXReplacer for: compiledMethod."
+	replacer := XXXXReplacerForNode for: compiledMethod.
+	^replacer apply.! !
 
 !MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 4/5/2023 02:15:05'!
 methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable  
