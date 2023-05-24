@@ -1,12 +1,12 @@
-'From Cuis 6.0 [latest update: #5706] on 16 May 2023 at 7:28:54 pm'!
+'From Cuis 6.0 [latest update: #5706] on 24 May 2023 at 5:58:16 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 15!
+!provides: 'MoveMethodRefactoring' 1 16!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
 !classDefinition: #XXXXReplacerForNode category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #XXXXReplacerForNode
-	instanceVariableNames: 'compiledMethod intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables methodHasSuperReferences'
+	instanceVariableNames: 'compiledMethod intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables methodHasSuperReferences readAccessOnClassVariables'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -36,7 +36,7 @@ MoveMethodRefactoring class
 
 !classDefinition: #XXXXReplacerResult category: 'MoveMethodRefactoring'!
 Object subclass: #XXXXReplacerResult
-	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables methodWithSuperReferences'
+	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables methodWithSuperReferences unicodeString set set3 readAccessOnClassVariables'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -45,7 +45,7 @@ XXXXReplacerResult class
 	instanceVariableNames: ''!
 
 
-!XXXXReplacerForNode methodsFor: 'initialization' stamp: 'mc 5/15/2023 23:37:05'!
+!XXXXReplacerForNode methodsFor: 'initialization' stamp: 'mc 5/24/2023 16:34:08'!
 initializeFor: aCompiledMethod rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode 
 	compiledMethod := aCompiledMethod.
 	intervalsToReject := aFewIntervalsToReject.
@@ -53,7 +53,8 @@ initializeFor: aCompiledMethod rejectingIntervals: aFewIntervalsToReject onNode:
 	intervalsToModify := OrderedCollection new.
 	readAccessOnInstanceVariables := Set new.
 	writeAccessOnInstanceVariables := Set new.
-	methodHasSuperReferences := false.! !
+	methodHasSuperReferences := false.
+	readAccessOnClassVariables := Set new.! !
 
 !XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/12/2023 00:30:08'!
 codeForArguments: aMessageNode				
@@ -93,12 +94,12 @@ newSelector: aMessageNode
 	newSelector := 'CHANGE_ME_super_', (newSelector copyFrom: 2 to: newSelector size).
 	^newSelector! !
 
-!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/15/2023 22:49:08'!
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/21/2023 18:37:57'!
 newSenderFor: aMessageNode
 	|  newSend argumentsCode argumentIndex replacer replacerResult argumentNode |
 	argumentsCode := OrderedCollection new.
 	argumentIndex := 1.
-	
+	"self halt."
 	aMessageNode selector key keywords do: [ :aKeyword | 
 		argumentNode := aMessageNode argumentsInEvaluationOrder at: argumentIndex.
 		replacer := XXXXReplacerForNode for: compiledMethod rejectingIntervals: intervalsToReject onNode: argumentNode.
@@ -154,6 +155,15 @@ visitInstanceVariableNode: anInstanceVariableNode
 	sourceCodeForInterval := 'sourceObject ', anInstanceVariableNode key.
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	readAccessOnInstanceVariables add: anInstanceVariableNode key.! !
+
+!XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/24/2023 17:48:59'!
+visitLiteralVariableNode: aLiteralVariableNode 
+	| sourceCodeForInterval anInterval |
+	"self halt."
+	anInterval := self firstUnseenIntervalFor: aLiteralVariableNode.
+	sourceCodeForInterval := 'sourceObject ', aLiteralVariableNode name uncapitalized.
+	self registerInterval: anInterval withModification: sourceCodeForInterval.
+	readAccessOnClassVariables add: aLiteralVariableNode name.! !
 
 !XXXXReplacerForNode methodsFor: 'visiting' stamp: 'mc 5/15/2023 23:03:39'!
 visitMessageNode: aMessageNode 
@@ -273,7 +283,7 @@ shouldAddParenthesis: argumentNode
 sourceRangesOf: aNode 
 	^compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
 
-!XXXXReplacerForNode methodsFor: 'accessing' stamp: 'mc 5/12/2023 22:56:37'!
+!XXXXReplacerForNode methodsFor: 'accessing' stamp: 'mc 5/24/2023 17:36:32'!
 apply
 	| newCode newCodeForNode result |
 	"self halt."
@@ -283,7 +293,15 @@ apply
 	intervalsToModify := intervalsToModify collect: [ :anAssociation | (anAssociation key - nodeOffsetInSourceCode) -> anAssociation value ].
 	newCodeForNode := compiledMethod sourceCode copyFrom: nodeInterval first to: nodeInterval last.
 	
-	((node isMethodNode) and: ((readAccessOnInstanceVariables isEmpty not) or: (writeAccessOnInstanceVariables isEmpty not) or: (methodHasSuperReferences))) ifTrue: [
+	(
+	(node isMethodNode) 
+	and: (
+		(readAccessOnInstanceVariables isEmpty not) 
+		or: (writeAccessOnInstanceVariables isEmpty not) 
+		or: (methodHasSuperReferences)
+		or: (readAccessOnClassVariables isEmpty not) 
+		)
+	) ifTrue: [
 		(compiledMethod methodNode selectorAndArgumentsAsString includes: $:) 
 				ifTrue: [intervalsToModify add: (1 to: compiledMethod methodNode selectorLastPosition ) -> (compiledMethod methodNode selectorAndArgumentsAsString, ' sourceObject: sourceObject')]
 				ifFalse: [intervalsToModify add: (1 to: compiledMethod methodNode selectorLastPosition ) -> (compiledMethod methodNode selectorAndArgumentsAsString, ': sourceObject')].
@@ -291,9 +309,8 @@ apply
 	"self halt."
 	intervalsToModify sort: [ :left :right | left key first < right key first ].
 	newCode := newCodeForNode copyReplacing: intervalsToModify.
-	result := XXXXReplacerResult newWith: newCode modifiedReads: readAccessOnInstanceVariables modifiedWrites: writeAccessOnInstanceVariables hasSuperReferences: methodHasSuperReferences.
-	^result 
-	"^newCode"! !
+	result := XXXXReplacerResult newWith: newCode modifiedReads: readAccessOnInstanceVariables modifiedWrites: writeAccessOnInstanceVariables hasSuperReferences: methodHasSuperReferences modifiedClassReads: readAccessOnClassVariables .
+	^result! !
 
 !XXXXReplacerForNode class methodsFor: 'instance creation' stamp: 'mc 4/17/2023 01:19:56'!
 for: aCompiledMethod 
@@ -603,6 +620,22 @@ test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheE
 	self assert: 'm1: sourceObject ^sourceObject iv3_SETTER_CHANGE_ME: 1.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
 	self assert: 'iv3_SETTER_CHANGE_ME: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass compiledMethodAt: #iv3_SETTER_CHANGE_ME:) sourceCode! !
 
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/24/2023 17:25:17'!
+test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGetter
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass  subclassOf: Object instanceVariableNames: 'iv1' classVariableNames: 'Icv1' poolDictionaries: '' category: self class classCategoryOfTestData.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'm1 ^Icv1.'.
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject icv1.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
+	self assert: 'icv1', String newLineString, String tab, '^Icv1.' equals: (sourceClass compiledMethodAt: #icv1) sourceCode.! !
+
 !MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/9/2023 07:58:34'!
 test199TmpVariablesShoulNotBeAffected
 	
@@ -725,13 +758,50 @@ test204CanMoveMethodWhenSendsKeywordMessageToSuperWithOneInstVarAsColaborators
 	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass compiledMethodAt: #CHANGE_ME_super_increment:) sourceCode.
 	self assert: 'iv2: anObject', String newLineString, String tab, '^iv2 := anObject.' equals: (sourceClass compiledMethodAt: #iv2:) sourceCode! !
 
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/21/2023 19:07:49'!
+test205CanMoveMethodWhenSendsKeywordMessageToSuperWithOneTmpVarAsColaborators
+	
+	| sourceClass targetClass refactoring sourceSuperClass |
+	sourceSuperClass := self createClassNamed: #SourceSuperClass.
+	sourceClass := self createClassNamed: #SourceClass  subclassOf: sourceSuperClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceSuperClass compile: 'increment: aSmallinteger ^1+aSmallinteger.'.
+	sourceClass compile: 'increment: aSmallinteger ^2+aSmallinteger.'.
+	sourceClass compile: 'm1 |asd| ^super increment: asd.'.
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject |asd| ^sourceObject CHANGE_ME_super_increment: asd.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
+	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass compiledMethodAt: #CHANGE_ME_super_increment:) sourceCode! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/24/2023 17:57:41'!
+wip_test206CanMoveMethodWhenSendsKeywordMessageToSuperWithOneInstVarAsColaborators
+	
+	| sourceClass targetClass refactoring sourceSuperClass |
+	sourceSuperClass := self createClassNamed: #SourceSuperClass.
+	sourceClass := self createClassNamed: #SourceClass  subclassOf: sourceSuperClass instanceVariableNames: 'iv1' classVariableNames: 'Icv1' poolDictionaries: '' category: self class classCategoryOfTestData.
+	
+	targetClass := self createClassNamed: #TargetClass.
+	sourceSuperClass compile: 'increment: aSmallinteger ^1+aSmallinteger.'.
+	sourceClass compile: 'increment: aSmallinteger ^2+aSmallinteger.'.
+	sourceClass compile: 'm1 ^super increment: Icv1.'.
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1'.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject CHANGE_ME_super_increment: sourceObject iv2.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
+	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass compiledMethodAt: #CHANGE_ME_super_increment:) sourceCode! !
+
 !MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 4/5/2023 01:39:26'!
 initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass 
 	methodName := aMethodName.
 	sourceClass := aSourceClass.
 	targetClass := aTargetClass.! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 5/11/2023 18:57:50'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 5/24/2023 17:44:49'!
 apply
 	| compiledMethod xxxxreplacerResult |
 	compiledMethod := sourceClass methodDict at: methodName.
@@ -739,8 +809,13 @@ apply
 	
 	xxxxreplacerResult readAccessOnInstanceVariables do: [ :anInstanceVariable | anInstanceVariable = 'self' ifFalse: [self createGetterIfNotExistsFor: anInstanceVariable] ].
 	xxxxreplacerResult writeAccessOnInstanceVariables do: [ :anInstanceVariable | self createSetterIfNotExistsFor: anInstanceVariable ].
+	xxxxreplacerResult readAccessOnClassVariables do: [ :aClassVariable | self createClassVariableGetterIfNotExistsFor: aClassVariable ].
 	targetClass compile: xxxxreplacerResult sourceCode.
 	sourceClass removeSelector: methodName ! !
+
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 5/24/2023 17:56:17'!
+createClassVariableGetterIfNotExistsFor: aClassVariable 
+	^ sourceClass compile: aClassVariable uncapitalized, String newLineString, String tab, '^', aClassVariable capitalized, '.'! !
 
 !MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/20/2023 22:57:24'!
 createGetterFor: anInstanceVariable
@@ -849,7 +924,11 @@ sourceClassShouldNotBeNilErrorMessage
 targetClassShouldNotBeNilErrorMessage
 	^'Target class should not be nil'! !
 
-!XXXXReplacerResult methodsFor: 'nil' stamp: 'mc 4/17/2023 23:02:43'!
+!XXXXReplacerResult methodsFor: 'as yet unclassified' stamp: 'mc 5/24/2023 17:43:48'!
+readAccessOnClassVariables
+	^readAccessOnClassVariables ! !
+
+!XXXXReplacerResult methodsFor: 'as yet unclassified' stamp: 'mc 4/17/2023 23:02:43'!
 readAccessOnInstanceVariables
 	^readAccessOnInstanceVariables ! !
 
@@ -861,13 +940,14 @@ sourceCode
 writeAccessOnInstanceVariables
 	^writeAccessOnInstanceVariables! !
 
-!XXXXReplacerResult methodsFor: 'initialization' stamp: 'mc 5/5/2023 01:52:36'!
-initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites hasSuperReferences: aBoolean 
+!XXXXReplacerResult methodsFor: 'initialization' stamp: 'mc 5/24/2023 17:39:48'!
+initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites hasSuperReferences: aBoolean  modifiedClassReads: modifiedClassReads 
 	sourceCode := newCode.
 	readAccessOnInstanceVariables := modifiedReads.
 	writeAccessOnInstanceVariables := modifiedWrites.
-	methodWithSuperReferences := aBoolean.! !
+	methodWithSuperReferences := aBoolean.
+	readAccessOnClassVariables := modifiedClassReads .! !
 
-!XXXXReplacerResult class methodsFor: 'instance creation' stamp: 'mc 5/5/2023 01:50:28'!
-newWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites hasSuperReferences: aBoolean 
-	^self new initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites hasSuperReferences: aBoolean ! !
+!XXXXReplacerResult class methodsFor: 'instance creation' stamp: 'mc 5/24/2023 17:41:31'!
+newWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites hasSuperReferences: aBoolean modifiedClassReads: modifiedClassReads 
+	^self new initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites hasSuperReferences: aBoolean modifiedClassReads: modifiedClassReads ! !
