@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 31 May 2023 at 5:57:00 am'!
+'From Cuis 6.0 [latest update: #5706] on 31 May 2023 at 6:40:48 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 18!
+!provides: 'MoveMethodRefactoring' 1 19!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -46,7 +46,7 @@ MoveMethodRefactoring class
 
 !classDefinition: #XXXXReplacerResult category: 'MoveMethodRefactoring'!
 Object subclass: #XXXXReplacerResult
-	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables methodWithSuperReferences unicodeString set set3 readAccessOnClassVariables writeAccessOnClassVariables'
+	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables methodWithSuperReferences readAccessOnClassVariables writeAccessOnClassVariables'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -872,7 +872,7 @@ test205CanMoveMethodWhenSendsKeywordMessageToSuperWithOneTmpVarAsColaborators
 	self assert: 'm1: sourceObject |asd| ^sourceObject CHANGE_ME_super_increment: asd.' equals: (targetClass compiledMethodAt: #m1:) sourceCode.
 	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass compiledMethodAt: #CHANGE_ME_super_increment:) sourceCode! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/31/2023 05:53:32'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/31/2023 06:40:29'!
 test300MoveMethodShouldChangeSenders
 	
 	| sourceClass targetClass refactoring sendersToChange |
@@ -880,7 +880,7 @@ test300MoveMethodShouldChangeSenders
 	targetClass := self createClassNamed: #TargetClass.
 	sourceClass compile: 'senderToChange ^self m1.'.
 	sourceClass compile: 'm1 ^1.'.
-	sendersToChange := Set new.
+	sendersToChange := OrderedCollection new.
 	sendersToChange add: sourceClass >> #senderToChange.
 	
 	
@@ -888,8 +888,28 @@ test300MoveMethodShouldChangeSenders
 	refactoring apply.
 	
 	self assert: 'm1 ^1.' equals: (targetClass >> #m1) sourceCode.
-	self assert: 'senderToChange ^iv1 m1.' equals: (sourceClass >> #senderToChange) sourceCode.
+	self assert: 'senderToChange ^iv1 m1.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/31/2023 06:40:13'!
+test301MoveMethodShouldChangeSenders
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange1 ^self m1.'.
+	sourceClass compile: 'senderToChange2 ^self m1.'.
+	sourceClass compile: 'm1 ^1.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: sourceClass >> #senderToChange1.
+	sendersToChange add: sourceClass >> #senderToChange2.
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1 ^1.' equals: (targetClass >> #m1) sourceCode.
+	self assert: 'senderToChange1 ^iv1 m1.' equals: (sourceClass sourceCodeAt: #senderToChange1).
+	self assert: 'senderToChange2 ^iv1 m1.' equals: (sourceClass sourceCodeAt: #senderToChange2).	! !
 
 !MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 5/30/2023 02:52:27'!
 initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: anInstanceVariable  changingSenders: aCollectionOfSendersToChange
