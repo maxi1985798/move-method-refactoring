@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 31 May 2023 at 6:40:48 am'!
+'From Cuis 6.0 [latest update: #5706] on 31 May 2023 at 10:10:05 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 19!
+!provides: 'MoveMethodRefactoring' 1 20!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -16,7 +16,7 @@ XXXXReplacerForNode class
 
 !classDefinition: #XXXXSenderReplacer category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #XXXXSenderReplacer
-	instanceVariableNames: 'selector compiledMethod instanceVariableName intervalsToModify'
+	instanceVariableNames: 'selector compiledMethod instanceVariableName intervalsToModify intervalsToReject'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -348,12 +348,13 @@ initializeOf: aSelector in: aCompiledMethod
 	selector := aSelector.
 	compiledMethod := aCompiledMethod.! !
 
-!XXXXSenderReplacer methodsFor: 'initialization' stamp: 'mc 5/31/2023 05:07:24'!
+!XXXXSenderReplacer methodsFor: 'initialization' stamp: 'mc 5/31/2023 22:06:35'!
 initializeOf: aSelector in: aCompiledMethod withReceiver: anInstanceVariableName 
 	selector := aSelector.
 	compiledMethod := aCompiledMethod.
 	instanceVariableName := anInstanceVariableName.
-	intervalsToModify := OrderedCollection new.! !
+	intervalsToModify := OrderedCollection new.
+	intervalsToReject := OrderedCollection new.! !
 
 !XXXXSenderReplacer methodsFor: 'as yet unclassified' stamp: 'mc 5/31/2023 05:13:39'!
 firstUnseenIntervalFor: aNode 
@@ -372,26 +373,31 @@ value
 	
 	^newCodeForNode copyReplacing: intervalsToModify.! !
 
-!XXXXSenderReplacer methodsFor: 'visiting' stamp: 'mc 5/31/2023 05:15:11'!
+!XXXXSenderReplacer methodsFor: 'visiting' stamp: 'mc 5/31/2023 22:09:20'!
 visitVariableNode: aVariableNode 
 	| anInterval sourceCodeForInterval |
+	"self halt."
 	anInterval := self firstUnseenIntervalFor: aVariableNode ifAbsent: [^self].
 	sourceCodeForInterval := instanceVariableName .
 	self registerInterval: anInterval withModification: sourceCodeForInterval.! !
 
-!XXXXSenderReplacer methodsFor: 'private' stamp: 'mc 5/31/2023 05:16:11'!
+!XXXXSenderReplacer methodsFor: 'private' stamp: 'mc 5/31/2023 22:04:31'!
 firstUnseenIntervalFor: aNode ifAbsent: anAbsentBlock 
 	
 	| completeRangesOfassigmentNode |
 	
 	completeRangesOfassigmentNode := compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: anAbsentBlock.
-	"self removeSeenRanges: completeRangesOfassigmentNode."
+	self removeSeenRanges: completeRangesOfassigmentNode.
 	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
 
-!XXXXSenderReplacer methodsFor: 'private' stamp: 'mc 5/31/2023 05:17:17'!
+!XXXXSenderReplacer methodsFor: 'private' stamp: 'mc 5/31/2023 22:07:07'!
 registerInterval: anInterval withModification: sourceCodeForInterval 
-	"intervalsToReject add: anInterval."
+	intervalsToReject add: anInterval.
 	intervalsToModify add: anInterval -> sourceCodeForInterval! !
+
+!XXXXSenderReplacer methodsFor: 'private' stamp: 'mc 5/31/2023 22:05:06'!
+removeSeenRanges: rangesOfNode 
+	^rangesOfNode removeAllSuchThat: [ :aSourceInterval | intervalsToReject anySatisfy: [ :aSourceIntervalToModify | aSourceIntervalToModify includesAllOf: aSourceInterval ] ]! !
 
 !XXXXSenderReplacer class methodsFor: 'instance creation' stamp: 'mc 5/31/2023 04:38:36'!
 of: aSelector in: aCompiledMethod 
@@ -910,6 +916,25 @@ test301MoveMethodShouldChangeSenders
 	self assert: 'm1 ^1.' equals: (targetClass >> #m1) sourceCode.
 	self assert: 'senderToChange1 ^iv1 m1.' equals: (sourceClass sourceCodeAt: #senderToChange1).
 	self assert: 'senderToChange2 ^iv1 m1.' equals: (sourceClass sourceCodeAt: #senderToChange2).	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/31/2023 22:08:40'!
+test302MoveMethodShouldChangeSendersTwoSends
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange self m1.^self m1.'.
+	sourceClass compile: 'm1 ^1.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: sourceClass >> #senderToChange.
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1 ^1.' equals: (targetClass >> #m1) sourceCode.
+	self assert: 'senderToChange iv1 m1.^iv1 m1.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	! !
 
 !MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 5/30/2023 02:52:27'!
 initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: anInstanceVariable  changingSenders: aCollectionOfSendersToChange
