@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 4 June 2023 at 3:38:10 am'!
+'From Cuis 6.0 [latest update: #5706] on 5 June 2023 at 1:38:35 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 21!
+!provides: 'MoveMethodRefactoring' 1 22!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -16,7 +16,7 @@ XXXXReplacerForNode class
 
 !classDefinition: #XXXXSenderReplacer category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #XXXXSenderReplacer
-	instanceVariableNames: 'selector compiledMethod instanceVariableName intervalsToModify intervalsToReject xXXXReplacerResult'
+	instanceVariableNames: 'selector compiledMethod instanceVariableName intervalsToModify intervalsToReject xXXXReplacerResult node nodeInterval nodeOffsetInSourceCode'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -52,6 +52,16 @@ Object subclass: #XXXXReplacerResult
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'XXXXReplacerResult class' category: 'MoveMethodRefactoring'!
 XXXXReplacerResult class
+	instanceVariableNames: ''!
+
+!classDefinition: #XXXXSenderReplacerResult category: 'MoveMethodRefactoring'!
+Object subclass: #XXXXSenderReplacerResult
+	instanceVariableNames: 'sourceCode'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'XXXXSenderReplacerResult class' category: 'MoveMethodRefactoring'!
+XXXXSenderReplacerResult class
 	instanceVariableNames: ''!
 
 
@@ -332,15 +342,19 @@ for: aCompiledMethod
 for: aCompiledMethod rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode 
 	^self new initializeFor: aCompiledMethod rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode ! !
 
-!XXXXSenderReplacer methodsFor: 'initialization' stamp: 'mc 6/4/2023 03:07:45'!
-initializeOf: aSelector in: aCompiledMethod withReceiver: anInstanceVariableName andResult: aXXXXReplacerResult 
-	
+!XXXXSenderReplacer methodsFor: 'initialization' stamp: 'mc 6/4/2023 19:08:29'!
+initializeOf: aSelector in: aCompiledMethod withReceiver: anInstanceVariableName andResult: aXXXXReplacerResult onNode: aNode
+	node := aNode .
 	selector := aSelector.
 	compiledMethod := aCompiledMethod.
 	instanceVariableName := anInstanceVariableName.
 	xXXXReplacerResult := aXXXXReplacerResult.
 	intervalsToModify := OrderedCollection new.
 	intervalsToReject := OrderedCollection new.! !
+
+!XXXXSenderReplacer methodsFor: 'as yet unclassified' stamp: 'mc 6/4/2023 22:30:26'!
+firstIntervalOn: aCollectionOfIntervals
+	^aCollectionOfIntervals detectMin: [ :anInterval | anInterval first]! !
 
 !XXXXSenderReplacer methodsFor: 'as yet unclassified' stamp: 'mc 5/31/2023 05:13:39'!
 firstUnseenIntervalFor: aNode 
@@ -349,30 +363,68 @@ firstUnseenIntervalFor: aNode
 	"self removeSeenRanges: completeRangesOfassigmentNode."
 	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
 
-!XXXXSenderReplacer methodsFor: 'as yet unclassified' stamp: 'mc 5/31/2023 05:56:25'!
+!XXXXSenderReplacer methodsFor: 'as yet unclassified' stamp: 'mc 6/4/2023 14:56:10'!
+initializeNodeInterval
+
+	| posibleRangesForNode |
+
+	node isMethodNode 
+		ifTrue:[ 
+			nodeInterval := 1 to: (compiledMethod sourceCode size).
+			]
+		ifFalse:[ 
+			posibleRangesForNode := self sourceRangesOf: node.
+			self removeSeenRanges: posibleRangesForNode.
+			nodeInterval := self firstIntervalOn: posibleRangesForNode.
+			]! !
+
+!XXXXSenderReplacer methodsFor: 'as yet unclassified' stamp: 'mc 6/4/2023 14:57:59'!
+initializeOffset
+
+	^ nodeOffsetInSourceCode := nodeInterval first -1! !
+
+!XXXXSenderReplacer methodsFor: 'as yet unclassified' stamp: 'mc 6/5/2023 01:30:36'!
 value
-	| newCodeForNode |
+	| newCodeForNode newSourceCode |
 	"self halt."
-	compiledMethod methodNode accept: self.
-	newCodeForNode := compiledMethod sourceCode.
+	self initializeNodeInterval.
+	self initializeOffset.
+	node accept: self.
+	intervalsToModify := intervalsToModify collect: [ :anAssociation | (anAssociation key - nodeOffsetInSourceCode) -> anAssociation value ].
+	newCodeForNode := compiledMethod sourceCode copyFrom: nodeInterval first to: nodeInterval last.
 	intervalsToModify sort: [ :left :right | left key first < right key first ].
 	
-	^newCodeForNode copyReplacing: intervalsToModify.! !
+	newSourceCode := newCodeForNode copyReplacing: intervalsToModify.
+	^XXXXSenderReplacerResult newWith: newSourceCode
+	! !
 
-!XXXXSenderReplacer methodsFor: 'visiting' stamp: 'mc 6/4/2023 03:17:46'!
+!XXXXSenderReplacer methodsFor: 'visiting' stamp: 'mc 6/5/2023 01:37:46'!
 visitMessageNode: aMessageNode 
-	| newSend range |
-	xXXXReplacerResult methodWithSelfReferences 
-		ifFalse:[
-			aMessageNode receiver accept: self.
-			aMessageNode selector accept: self.
-			aMessageNode argumentsInEvaluationOrder do: [:argument| argument accept: self]
-		]
+	| newSend range replacer result |
+	"self halt."
+	
+	(aMessageNode selector key = selector and: (xXXXReplacerResult methodWithSelfReferences ))
 		ifTrue: [
 			range := self firstUnseenIntervalFor: aMessageNode ifAbsent: [].
 			newSend := instanceVariableName, ' ', aMessageNode selector key asString, ': ', 'self' .
 			self registerInterval: range withModification: newSend.
 			]
+		ifFalse: [
+			(aMessageNode receiver isMessageNode 
+			and: [(aMessageNode receiver selector key = selector) 
+			and: (xXXXReplacerResult methodWithSelfReferences )])
+				ifFalse: [
+					aMessageNode receiver accept: self.
+					aMessageNode selector accept: self.
+					aMessageNode argumentsInEvaluationOrder do: [:argument| argument accept: self]
+					]
+				ifTrue: [
+					replacer := XXXXSenderReplacer of: selector in: compiledMethod withReceiver: instanceVariableName andResult: xXXXReplacerResult onNode: aMessageNode receiver.
+					result := replacer value.
+					range := self firstUnseenIntervalFor: aMessageNode receiver ifAbsent: [].
+					self registerInterval: range withModification: '(', result sourceCode, ')' .
+					]
+		]
 		
 	! !
 
@@ -406,9 +458,17 @@ registerInterval: anInterval withModification: sourceCodeForInterval
 removeSeenRanges: rangesOfNode 
 	^rangesOfNode removeAllSuchThat: [ :aSourceInterval | intervalsToReject anySatisfy: [ :aSourceIntervalToModify | aSourceIntervalToModify includesAllOf: aSourceInterval ] ]! !
 
-!XXXXSenderReplacer class methodsFor: 'instance creation' stamp: 'mc 6/3/2023 02:27:07'!
+!XXXXSenderReplacer methodsFor: 'private' stamp: 'mc 6/4/2023 22:29:39'!
+sourceRangesOf: aNode 
+	^compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
+
+!XXXXSenderReplacer class methodsFor: 'instance creation' stamp: 'mc 6/4/2023 19:07:52'!
 of: aSelector in: aCompiledMethod withReceiver: anInstanceVariableName andResult: aXXXXReplacerResult 
-	^self new initializeOf: aSelector in: aCompiledMethod withReceiver: anInstanceVariableName  andResult: aXXXXReplacerResult ! !
+	^self of: aSelector in: aCompiledMethod withReceiver: anInstanceVariableName  andResult: aXXXXReplacerResult onNode: aCompiledMethod methodNode ! !
+
+!XXXXSenderReplacer class methodsFor: 'instance creation' stamp: 'mc 6/4/2023 19:08:01'!
+of: aSelector in: aCompiledMethod withReceiver: anInstanceVariableName andResult: aXXXXReplacerResult onNode: aNode
+	^self new initializeOf: aSelector in: aCompiledMethod withReceiver: anInstanceVariableName  andResult: aXXXXReplacerResult onNode: aNode! !
 
 !MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 5/30/2023 02:47:15'!
 test001MethodShouldExistsOnSourceClass
@@ -977,6 +1037,25 @@ test304MoveMethodShouldChangeSendersAndPassSelf
 	self assert: 'senderToChange ^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	! !
 
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/4/2023 03:53:54'!
+test305MoveMethodShouldChangeSendersAndPassSelfAndAddOne
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange ^self m1 + 1.'.
+	sourceClass compile: 'm1 ^self.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: sourceClass >> #senderToChange.
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject.' equals: (targetClass >> #m1:) sourceCode.
+	self assert: 'senderToChange ^(iv1 m1: self) + 1.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	! !
+
 !MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 5/30/2023 02:52:27'!
 initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: anInstanceVariable  changingSenders: aCollectionOfSendersToChange
 	methodName := aMethodName.
@@ -1078,12 +1157,12 @@ replaceMessageSends: aCompiledMethod
 	aCompiledMethod methodClass compile: newCode
 	! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 6/3/2023 02:26:03'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 6/4/2023 14:49:42'!
 replaceMessageSends: aCompiledMethod withResult: xxxxreplacerResult 
 	| replacer newCode |
 	replacer := XXXXSenderReplacer of: methodName in: aCompiledMethod withReceiver: instanceVariable andResult: xxxxreplacerResult.
 	newCode := replacer value.
-	aCompiledMethod methodClass compile: newCode! !
+	aCompiledMethod methodClass compile: newCode sourceCode! !
 
 !MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 5/30/2023 02:50:36'!
 methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable changingSenders: aCollectionOfSendersToChange   
@@ -1170,3 +1249,15 @@ initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modified
 !XXXXReplacerResult class methodsFor: 'instance creation' stamp: 'mc 6/3/2023 00:33:17'!
 newWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites hasSuperReferences: aBoolean hasSelfReferences: aBoolean2 modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites 
 	^self new initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites hasSuperReferences: aBoolean hasSelfReferences: aBoolean2 modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites ! !
+
+!XXXXSenderReplacerResult methodsFor: 'initialization' stamp: 'mc 6/4/2023 14:49:20'!
+initializeNewWith: aSourceCode 
+	sourceCode := aSourceCode.! !
+
+!XXXXSenderReplacerResult methodsFor: 'public' stamp: 'mc 6/4/2023 14:50:19'!
+sourceCode
+	^sourceCode! !
+
+!XXXXSenderReplacerResult class methodsFor: 'instance creation' stamp: 'mc 6/4/2023 14:48:58'!
+newWith: aSourceCode 
+	^self new initializeNewWith: aSourceCode  ! !
