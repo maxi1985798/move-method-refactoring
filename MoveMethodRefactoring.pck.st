@@ -1,12 +1,12 @@
-'From Cuis 6.0 [latest update: #5706] on 8 June 2023 at 1:36:12 am'!
+'From Cuis 6.0 [latest update: #5706] on 8 June 2023 at 2:12:56 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 23!
+!provides: 'MoveMethodRefactoring' 1 24!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
 !classDefinition: #XXXXMethodChanger category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #XXXXMethodChanger
-	instanceVariableNames: 'methodReference collectionOfMessageNodesToChange instanceVariable orderedCollection compiledMethod collectionOfNodesToChange xXXXReplacerResult shouldAddParenthesis'
+	instanceVariableNames: 'methodReference collectionOfMessageNodesToChange instanceVariable orderedCollection compiledMethod collectionOfNodesToChange xXXXReplacerResult shouldAddParenthesis referenceToReplace'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -83,10 +83,6 @@ initializeMethod: aMethodReference nodesToChange: aCollectionOfMessageNodesToCha
 	xXXXReplacerResult := aXXXXReplacerResult.
 	shouldAddParenthesis := false! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 01:18:14'!
-fatherOf: aMessageNodeReference 
-	compiledMethod methodNode accept: self.! !
-
 !XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/7/2023 02:26:28'!
 firstUnseenIntervalFor: aNode 
 	| completeRangesOfassigmentNode |
@@ -94,13 +90,12 @@ firstUnseenIntervalFor: aNode
 	"self removeSeenRanges: completeRangesOfassigmentNode."
 	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 01:10:00'!
-newCodeFor: aMessageNodeReference 
-	 | aMessageNode argumentsCode indexArgumentsCode indexNewSend newSend methodNode fatherNode |
-	aMessageNode := aMessageNodeReference messageNode .
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 01:51:29'!
+newCodeForReferenceToReplace
+	 | aMessageNode argumentsCode indexArgumentsCode indexNewSend newSend |
+	aMessageNode := referenceToReplace messageNode .
 	"methodNode := aMessageNodeReference compiledMethod methodNode.
 	methodNode nodesDo: [ :aNode | aNode ]."
-	fatherNode := self fatherOf: aMessageNodeReference.
 	aMessageNode isKeywordMessageSend 
 		ifFalse: [ 
 			xXXXReplacerResult methodWithSelfReferences 
@@ -127,34 +122,36 @@ newCodeFor: aMessageNodeReference
 			]
 	! !
 
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 02:01:23'!
+shouldAddParenthesis 
+	compiledMethod methodNode accept: self.
+	^shouldAddParenthesis! !
+
 !XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/7/2023 02:13:54'!
 sourceRangesOf: aNode 
 	
 	^compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 01:33:37'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 02:03:17'!
 value
-	| methodNode codeForSenders sourceCode newCodeForMessage |
+	| codeForSenders sourceCode newCodeForMessage |
 	compiledMethod := methodReference compiledMethod.
-	methodNode := 	compiledMethod methodNode.
 	codeForSenders := collectionOfMessageNodesToChange collect: [ :aMessageNodeReference | 
-		newCodeForMessage := self newCodeFor: aMessageNodeReference.
-		shouldAddParenthesis ifTrue: [ newCodeForMessage := '(', newCodeForMessage, ')'].
+		referenceToReplace := aMessageNodeReference.
+		newCodeForMessage := self newCodeForReferenceToReplace.
+		self shouldAddParenthesis ifTrue: [ newCodeForMessage := '(', newCodeForMessage, ')'].
 		aMessageNodeReference completeSourceRange  -> newCodeForMessage
 		].
-		
-		
-		"aMessageNodeReference completeSourceRange  -> (instanceVariable, ' m1')]."
+
 	sourceCode := methodReference compiledMethod sourceCode.
 	methodReference actualClass compile: (sourceCode copyReplacing: codeForSenders).
-	"self halt.
-	methodNode accept: self."
-	
 	! !
 
-!XXXXMethodChanger methodsFor: 'visiting' stamp: 'mc 6/8/2023 01:30:22'!
+!XXXXMethodChanger methodsFor: 'visiting' stamp: 'mc 6/8/2023 02:12:19'!
 visitMessageNode: aMessageNode 
-	shouldAddParenthesis := (aMessageNode receiver equivalentTo: collectionOfMessageNodesToChange first messageNode)
+	shouldAddParenthesis := 
+		(aMessageNode receiver equivalentTo: referenceToReplace messageNode)
+		or: [aMessageNode argumentsInEvaluationOrder first equivalentTo: referenceToReplace messageNode]
 	! !
 
 !XXXXMethodChanger class methodsFor: 'instance creation' stamp: 'mc 6/7/2023 02:39:48'!
@@ -1207,6 +1204,25 @@ test305MoveMethodShouldChangeSendersAndPassSelfAndAddOne
 	self assert: 'senderToChange ^(iv1 m1: self) + 1.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	! !
 
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 02:08:19'!
+test306MoveMethodShouldChangeSendersAndPassSelfAndAddOne
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange ^1 + (self m1).'.
+	sourceClass compile: 'm1 ^self.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 21).
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject.' equals: (targetClass >> #m1:) sourceCode.
+	self assert: 'senderToChange ^1 + (iv1 m1: self).' equals: (sourceClass sourceCodeAt: #senderToChange).
+	! !
+
 !MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 5/30/2023 02:52:27'!
 initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: anInstanceVariable  changingSenders: aCollectionOfSendersToChange
 	methodName := aMethodName.
@@ -1295,32 +1311,11 @@ method: setterCandidate isSetterOf: anInstVarName
 	scanner movePcForward.
 	^scanner nextByte = 16r7C! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 6/6/2023 12:55:24'!
-replace: aCollectionOfMessageNodeToReplace on: aCompiledMethod withResult: xxxxreplacerResult
-	| replacer newCode |
-	replacer := XXXXSenderReplacer of: methodName in: aCompiledMethod withReceiver: instanceVariable andResult: xxxxreplacerResult nodesToBeRepalced: aCollectionOfMessageNodeToReplace.
-	newCode := replacer value.
-	aCompiledMethod methodClass compile: newCode sourceCode! !
-
 !MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 6/3/2023 00:28:23'!
 replaceDependenciesFromSource: compiledMethod
 	| replacer |
 	replacer := XXXXReplacerForNode for: compiledMethod.
 	^replacer apply.! !
-
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 6/6/2023 13:26:01'!
-replaceMessageSend: aMessageNodeReference withResult: xxxxreplacerResult 
-	| replacer newCode |
-	replacer := XXXXSenderReplacer of: methodName in: aMessageNodeReference compiledMethod withReceiver: instanceVariable andResult: xxxxreplacerResult.
-	newCode := replacer value.
-	aMessageNodeReference compiledMethod methodClass compile: newCode sourceCode! !
-
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 6/4/2023 14:49:42'!
-replaceMessageSends: aCompiledMethod withResult: xxxxreplacerResult 
-	| replacer newCode |
-	replacer := XXXXSenderReplacer of: methodName in: aCompiledMethod withReceiver: instanceVariable andResult: xxxxreplacerResult.
-	newCode := replacer value.
-	aCompiledMethod methodClass compile: newCode sourceCode! !
 
 !MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 6/7/2023 02:38:30'!
 replaceSendersWithResult: xxxxreplacerResult 
