@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 8 June 2023 at 2:12:56 am'!
+'From Cuis 6.0 [latest update: #5706] on 8 June 2023 at 2:39:38 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 24!
+!provides: 'MoveMethodRefactoring' 1 25!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -132,9 +132,10 @@ sourceRangesOf: aNode
 	
 	^compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 02:03:17'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 02:36:46'!
 value
 	| codeForSenders sourceCode newCodeForMessage |
+	
 	compiledMethod := methodReference compiledMethod.
 	codeForSenders := collectionOfMessageNodesToChange collect: [ :aMessageNodeReference | 
 		referenceToReplace := aMessageNodeReference.
@@ -147,12 +148,13 @@ value
 	methodReference actualClass compile: (sourceCode copyReplacing: codeForSenders).
 	! !
 
-!XXXXMethodChanger methodsFor: 'visiting' stamp: 'mc 6/8/2023 02:12:19'!
+!XXXXMethodChanger methodsFor: 'visiting' stamp: 'mc 6/8/2023 02:35:27'!
 visitMessageNode: aMessageNode 
+"self halt."
 	shouldAddParenthesis := 
 		(aMessageNode receiver equivalentTo: referenceToReplace messageNode)
-		or: [aMessageNode argumentsInEvaluationOrder first equivalentTo: referenceToReplace messageNode]
-	! !
+		or: [aMessageNode argumentsInEvaluationOrder anySatisfy: [ :anArgument | anArgument equivalentTo: referenceToReplace messageNode] ].
+		! !
 
 !XXXXMethodChanger class methodsFor: 'instance creation' stamp: 'mc 6/7/2023 02:39:48'!
 method: aMethodReference nodesToChange: aCollectionOfNodesToChange instanceVariable: anInstanceVariable withResult: aXXXXReplacerResult 
