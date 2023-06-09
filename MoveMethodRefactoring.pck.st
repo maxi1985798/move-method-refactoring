@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 8 June 2023 at 2:39:38 am'!
+'From Cuis 6.0 [latest update: #5706] on 8 June 2023 at 10:20:30 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 25!
+!provides: 'MoveMethodRefactoring' 1 26!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -90,7 +90,7 @@ firstUnseenIntervalFor: aNode
 	"self removeSeenRanges: completeRangesOfassigmentNode."
 	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 01:51:29'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 22:17:58'!
 newCodeForReferenceToReplace
 	 | aMessageNode argumentsCode indexArgumentsCode indexNewSend newSend |
 	aMessageNode := referenceToReplace messageNode .
@@ -118,7 +118,11 @@ newCodeForReferenceToReplace
 			indexNewSend := 1.
 			newSend := ''.
 			aMessageNode selector key keywords do: [ :aKeyword | newSend := newSend, ' ', aKeyword, ' ', (argumentsCode at: indexNewSend). indexNewSend := indexNewSend +1].
-			^instanceVariable, newSend.		
+			newSend := instanceVariable, newSend.		
+			xXXXReplacerResult methodWithSelfReferences 
+				ifTrue: [
+					newSend := newSend, ' sourceObject: self'].
+			^newSend.
 			]
 	! !
 
@@ -1212,6 +1216,46 @@ test306MoveMethodShouldChangeSendersAndPassSelfAndAddOne
 	| sourceClass targetClass refactoring sendersToChange |
 	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
 	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange ^1 + (self m1).'.
+	sourceClass compile: 'm1 ^self.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 21).
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject.' equals: (targetClass >> #m1:) sourceCode.
+	self assert: 'senderToChange ^1 + (iv1 m1: self).' equals: (sourceClass sourceCodeAt: #senderToChange).
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 22:19:42'!
+test307MoveMethodShouldChangeSendersAndPassSelfAndMoreParameters
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange ^self m1: 1.'.
+	sourceClass compile: 'm1: anObject ^self+anObject.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 21).
+	
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1: from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: anObject sourceObject: sourceObject ^sourceObject+anObject.' equals: (targetClass >> #m1:sourceObject:) sourceCode.
+	self assert: 'senderToChange ^iv1 m1: 1 sourceObject: self.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 21:58:50'!
+wip_test400MoveMethodShouldChangeSendersOnDiferentClasses
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	
 	sourceClass compile: 'senderToChange ^1 + (self m1).'.
 	sourceClass compile: 'm1 ^self.'.
 	sendersToChange := OrderedCollection new.
