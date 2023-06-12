@@ -1,12 +1,12 @@
-'From Cuis 6.0 [latest update: #5706] on 12 June 2023 at 3:02:15 am'!
+'From Cuis 6.0 [latest update: #5706] on 12 June 2023 at 3:26:19 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 27!
+!provides: 'MoveMethodRefactoring' 1 28!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
 !classDefinition: #XXXXMethodChanger category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #XXXXMethodChanger
-	instanceVariableNames: 'methodReference collectionOfMessageNodesToChange instanceVariable orderedCollection compiledMethod collectionOfNodesToChange xXXXReplacerResult shouldAddParenthesis referenceToReplace'
+	instanceVariableNames: 'methodReference collectionOfMessageNodesToChange instanceVariable compiledMethod xXXXReplacerResult shouldAddParenthesis referenceToReplace'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -83,7 +83,7 @@ initializeMethod: aMethodReference nodesToChange: aCollectionOfMessageNodesToCha
 	xXXXReplacerResult := aXXXXReplacerResult.
 	shouldAddParenthesis := false! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/12/2023 02:42:52'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/12/2023 03:11:58'!
 codeForArgument: argumentNodeToGetCode
 			| argumentNode argumentsCode indexArgumentsCode indexNewSend newSend |
 	argumentsCode := OrderedCollection new.
@@ -91,7 +91,7 @@ codeForArgument: argumentNodeToGetCode
 			argumentNodeToGetCode selector key keywords do: [ :aKeyword | 
 				argumentNode := argumentNodeToGetCode argumentsInEvaluationOrder at: indexArgumentsCode.
 				( argumentNode isMessageNode and: (self isAMessageNodeToReplace: argumentNode)) 
-					ifTrue: [ argumentsCode add: (self codeForArgument: argumentNode) ]
+					ifTrue: [ argumentsCode add: '(', (self codeForArgument: argumentNode), ')' ]
 					ifFalse: [
 						argumentsCode add: (compiledMethod sourceCode 
 							copyFrom: (self firstUnseenIntervalFor: argumentNode) first 
@@ -125,7 +125,7 @@ is: aMessageNodeReference childOfAnyOne: aCollectionOfMessageNodesToChange
 isAMessageNodeToReplace: argumentNode 
 	^collectionOfMessageNodesToChange anySatisfy: [ :aMessageNodeReference | aMessageNodeReference messageNode equivalentTo: argumentNode ]! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/12/2023 02:59:10'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/12/2023 03:21:57'!
 newCodeForReferenceToReplace
 	 | aMessageNode argumentsCode indexArgumentsCode indexNewSend newSend argumentNode |
 	aMessageNode := referenceToReplace messageNode .
@@ -142,27 +142,7 @@ newCodeForReferenceToReplace
 					]
 			 ]
 		ifTrue: [
-			argumentsCode := OrderedCollection new.
-			indexArgumentsCode := 1.
-			aMessageNode selector key keywords do: [ :aKeyword | 
-				argumentNode := aMessageNode argumentsInEvaluationOrder at: indexArgumentsCode.
-				( argumentNode isMessageNode and: (self isAMessageNodeToReplace: argumentNode)) 
-					ifTrue: [ argumentsCode add: '(', (self codeForArgument: argumentNode), ')' ]
-					ifFalse: [
-						argumentsCode add: (compiledMethod sourceCode 
-							copyFrom: (self firstUnseenIntervalFor: argumentNode) first 
-							to: (self firstUnseenIntervalFor: argumentNode) last).
-						].
-				indexArgumentsCode := indexArgumentsCode +1].
-			
-			indexNewSend := 1.
-			newSend := ''.
-			aMessageNode selector key keywords do: [ :aKeyword | newSend := newSend, ' ', aKeyword, ' ', (argumentsCode at: indexNewSend). indexNewSend := indexNewSend +1].
-			newSend := instanceVariable, newSend.		
-			xXXXReplacerResult methodWithSelfReferences 
-				ifTrue: [
-					newSend := newSend, ' sourceObject: self'].
-			^newSend.
+			^self codeForArgument: aMessageNode
 			]
 	! !
 
@@ -1315,6 +1295,27 @@ test308MoveMethodShouldChangeSendersAndRecursions
 	
 	self assert: 'm1: anInt ^1+anInt.' equals: (targetClass >> #m1:) sourceCode.
 	self assert: 'senderToChange ^iv1 m1: (iv1 m1: 1).' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/12/2023 03:19:34'!
+test309MoveMethodShouldChangeSendersAndRecursions
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange ^self m1: (self m1: (self m1: 1)).'.
+	sourceClass compile: 'm1: anInt ^1+anInt.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 22).
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 32).
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 42).
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1: from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: anInt ^1+anInt.' equals: (targetClass >> #m1:) sourceCode.
+	self assert: 'senderToChange ^iv1 m1: (iv1 m1: (iv1 m1: 1)).' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
