@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 8 June 2023 at 10:20:30 pm'!
+'From Cuis 6.0 [latest update: #5706] on 12 June 2023 at 3:02:15 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 26!
+!provides: 'MoveMethodRefactoring' 1 27!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -83,6 +83,31 @@ initializeMethod: aMethodReference nodesToChange: aCollectionOfMessageNodesToCha
 	xXXXReplacerResult := aXXXXReplacerResult.
 	shouldAddParenthesis := false! !
 
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/12/2023 02:42:52'!
+codeForArgument: argumentNodeToGetCode
+			| argumentNode argumentsCode indexArgumentsCode indexNewSend newSend |
+	argumentsCode := OrderedCollection new.
+			indexArgumentsCode := 1.
+			argumentNodeToGetCode selector key keywords do: [ :aKeyword | 
+				argumentNode := argumentNodeToGetCode argumentsInEvaluationOrder at: indexArgumentsCode.
+				( argumentNode isMessageNode and: (self isAMessageNodeToReplace: argumentNode)) 
+					ifTrue: [ argumentsCode add: (self codeForArgument: argumentNode) ]
+					ifFalse: [
+						argumentsCode add: (compiledMethod sourceCode 
+							copyFrom: (self firstUnseenIntervalFor: argumentNode) first 
+							to: (self firstUnseenIntervalFor: argumentNode) last).
+						].
+				indexArgumentsCode := indexArgumentsCode +1].
+			
+			indexNewSend := 1.
+			newSend := ''.
+			argumentNodeToGetCode selector key keywords do: [ :aKeyword | newSend := newSend, ' ', aKeyword, ' ', (argumentsCode at: indexNewSend). indexNewSend := indexNewSend +1].
+			newSend := instanceVariable, newSend.		
+			xXXXReplacerResult methodWithSelfReferences 
+				ifTrue: [
+					newSend := newSend, ' sourceObject: self'].
+			^newSend.! !
+
 !XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/7/2023 02:26:28'!
 firstUnseenIntervalFor: aNode 
 	| completeRangesOfassigmentNode |
@@ -90,9 +115,19 @@ firstUnseenIntervalFor: aNode
 	"self removeSeenRanges: completeRangesOfassigmentNode."
 	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 22:17:58'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/11/2023 01:26:10'!
+is: aMessageNodeReference childOfAnyOne: aCollectionOfMessageNodesToChange 
+	^aCollectionOfMessageNodesToChange anySatisfy: [ :aPosibleFather |
+			(aPosibleFather completeSourceRange includesAllOf: aMessageNodeReference completeSourceRange)
+			and: (aPosibleFather ~= aMessageNodeReference) ]! !
+
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/12/2023 02:39:49'!
+isAMessageNodeToReplace: argumentNode 
+	^collectionOfMessageNodesToChange anySatisfy: [ :aMessageNodeReference | aMessageNodeReference messageNode equivalentTo: argumentNode ]! !
+
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/12/2023 02:59:10'!
 newCodeForReferenceToReplace
-	 | aMessageNode argumentsCode indexArgumentsCode indexNewSend newSend |
+	 | aMessageNode argumentsCode indexArgumentsCode indexNewSend newSend argumentNode |
 	aMessageNode := referenceToReplace messageNode .
 	"methodNode := aMessageNodeReference compiledMethod methodNode.
 	methodNode nodesDo: [ :aNode | aNode ]."
@@ -110,10 +145,15 @@ newCodeForReferenceToReplace
 			argumentsCode := OrderedCollection new.
 			indexArgumentsCode := 1.
 			aMessageNode selector key keywords do: [ :aKeyword | 
-					argumentsCode add: (compiledMethod sourceCode 
-						copyFrom: (self firstUnseenIntervalFor: (aMessageNode argumentsInEvaluationOrder at: indexArgumentsCode)) first 
-						to: (self firstUnseenIntervalFor: (aMessageNode argumentsInEvaluationOrder at: indexArgumentsCode)) last).
-					indexArgumentsCode := indexArgumentsCode +1].
+				argumentNode := aMessageNode argumentsInEvaluationOrder at: indexArgumentsCode.
+				( argumentNode isMessageNode and: (self isAMessageNodeToReplace: argumentNode)) 
+					ifTrue: [ argumentsCode add: '(', (self codeForArgument: argumentNode), ')' ]
+					ifFalse: [
+						argumentsCode add: (compiledMethod sourceCode 
+							copyFrom: (self firstUnseenIntervalFor: argumentNode) first 
+							to: (self firstUnseenIntervalFor: argumentNode) last).
+						].
+				indexArgumentsCode := indexArgumentsCode +1].
 			
 			indexNewSend := 1.
 			newSend := ''.
@@ -136,12 +176,21 @@ sourceRangesOf: aNode
 	
 	^compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 02:36:46'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/12/2023 02:59:57'!
 value
-	| codeForSenders sourceCode newCodeForMessage |
+	| codeForSenders sourceCode newCodeForMessage messageNodesFathers |
 	
 	compiledMethod := methodReference compiledMethod.
-	codeForSenders := collectionOfMessageNodesToChange collect: [ :aMessageNodeReference | 
+	"deberia quitar nodos que incluyen nodos???"
+	"collectionOfMessageNodesToChange := collectionOfMessageNodesToChange 
+						removeAllSuchThat: [ :aMessageNodeReferenceToRemove | collectionOfMessageNodesToChange 
+							anySatisfy: [ :aMessageNodeReferenceWhichIncludesOther | (aMessageNodeReferenceWhichIncludesOther completeSourceRange
+								includesAllOf: aMessageNodeReferenceToRemove completeSourceRange)
+								and: aMessageNodeReferenceWhichIncludesOther ~= aMessageNodeReferenceToRemove ]  ]."
+	
+	messageNodesFathers := collectionOfMessageNodesToChange reject: [ :aMessageNodeReference | self is: aMessageNodeReference childOfAnyOne: collectionOfMessageNodesToChange].
+	codeForSenders := messageNodesFathers collect: [ :aMessageNodeReference | 
+		"self halt."
 		referenceToReplace := aMessageNodeReference.
 		newCodeForMessage := self newCodeForReferenceToReplace.
 		self shouldAddParenthesis ifTrue: [ newCodeForMessage := '(', newCodeForMessage, ')'].
@@ -1246,6 +1295,26 @@ test307MoveMethodShouldChangeSendersAndPassSelfAndMoreParameters
 	
 	self assert: 'm1: anObject sourceObject: sourceObject ^sourceObject+anObject.' equals: (targetClass >> #m1:sourceObject:) sourceCode.
 	self assert: 'senderToChange ^iv1 m1: 1 sourceObject: self.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/9/2023 02:08:02'!
+test308MoveMethodShouldChangeSendersAndRecursions
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange ^self m1: (self m1: 1).'.
+	sourceClass compile: 'm1: anInt ^1+anInt.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 22).
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 32).
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1: from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: anInt ^1+anInt.' equals: (targetClass >> #m1:) sourceCode.
+	self assert: 'senderToChange ^iv1 m1: (iv1 m1: 1).' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
