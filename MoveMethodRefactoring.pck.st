@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 13 June 2023 at 6:46:20 pm'!
+'From Cuis 6.0 [latest update: #5706] on 13 June 2023 at 7:48:25 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 30!
+!provides: 'MoveMethodRefactoring' 1 31!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -128,7 +128,7 @@ is: aMessageNodeReference childOfAnyOne: aCollectionOfMessageNodesToChange
 isAMessageNodeToReplace: argumentNode 
 	^collectionOfMessageNodesToChange anySatisfy: [ :aMessageNodeReference | aMessageNodeReference messageNode equivalentTo: argumentNode ]! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/13/2023 02:39:55'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/13/2023 19:47:29'!
 newCodeForReferenceToReplace
 	 | aMessageNode |
 	aMessageNode := referenceToReplace messageNode .
@@ -138,7 +138,15 @@ newCodeForReferenceToReplace
 		ifFalse: [ 
 			xXXXReplacerResult methodWithSelfReferences 
 				ifTrue: [
-					^instanceVariable, ' ', aMessageNode selector key asString, ': ', 'self' .
+					aMessageNode receiver isTemp 
+						ifTrue: [
+							xXXXReplacerResult readAccessOnInstanceVariables add: instanceVariable.
+							^aMessageNode receiver key, ' ', instanceVariable, ' ', aMessageNode selector key asString, ': ', aMessageNode receiver key .
+							]
+						ifFalse: [
+							^instanceVariable, ' ', aMessageNode selector key asString, ': ', 'self' .
+							].
+					
 					]
 				ifFalse: [
 					aMessageNode receiver isTemp 
@@ -1361,6 +1369,26 @@ test311MoveMethodShouldChangeSendersWithTmpVarAsReceiver
 	self assert: 'm1: anInt ^1+anInt.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
 	self assert: 'senderToChange |tmp| ^tmp iv1 m1: 1.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/13/2023 19:34:36'!
+test312MoveMethodShouldChangeSendersWithTmpVarAsReceiver
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange |tmp| ^tmp m1.'.
+	sourceClass compile: 'm1 ^self.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 27).
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject.' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
+	self assert: 'senderToChange |tmp| ^tmp iv1 m1: tmp.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
