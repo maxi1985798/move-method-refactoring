@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 13 June 2023 at 2:43:04 am'!
+'From Cuis 6.0 [latest update: #5706] on 13 June 2023 at 6:46:20 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 29!
+!provides: 'MoveMethodRefactoring' 1 30!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -83,7 +83,7 @@ initializeMethod: aMethodReference nodesToChange: aCollectionOfMessageNodesToCha
 	xXXXReplacerResult := aXXXXReplacerResult.
 	shouldAddParenthesis := false! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/13/2023 01:51:21'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/13/2023 18:45:17'!
 codeForArgument: argumentNodeToGetCode
 	| argumentsCode indexNewSend newSend |
 	argumentsCode := OrderedCollection new.
@@ -100,7 +100,12 @@ codeForArgument: argumentNodeToGetCode
 	indexNewSend := 1.
 	newSend := ''.
 	argumentNodeToGetCode selectorSymbol keywords do: [ :aKeyword | newSend := newSend, ' ', aKeyword, ' ', (argumentsCode at: indexNewSend). indexNewSend := indexNewSend +1].
-	newSend := instanceVariable, newSend.		
+	argumentNodeToGetCode receiver isTemp 
+		ifTrue: [
+			xXXXReplacerResult readAccessOnInstanceVariables add: instanceVariable.
+			newSend := argumentNodeToGetCode receiver key, ' ', instanceVariable, newSend.		]
+		ifFalse: [ newSend := instanceVariable, newSend.		].
+	
 	xXXXReplacerResult methodWithSelfReferences 
 		ifTrue: [
 			newSend := newSend, ' sourceObject: self'].
@@ -162,17 +167,11 @@ sourceRangesOf: aNode
 	
 	^compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/12/2023 02:59:57'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/13/2023 02:49:12'!
 value
 	| codeForSenders sourceCode newCodeForMessage messageNodesFathers |
 	
 	compiledMethod := methodReference compiledMethod.
-	"deberia quitar nodos que incluyen nodos???"
-	"collectionOfMessageNodesToChange := collectionOfMessageNodesToChange 
-						removeAllSuchThat: [ :aMessageNodeReferenceToRemove | collectionOfMessageNodesToChange 
-							anySatisfy: [ :aMessageNodeReferenceWhichIncludesOther | (aMessageNodeReferenceWhichIncludesOther completeSourceRange
-								includesAllOf: aMessageNodeReferenceToRemove completeSourceRange)
-								and: aMessageNodeReferenceWhichIncludesOther ~= aMessageNodeReferenceToRemove ]  ]."
 	
 	messageNodesFathers := collectionOfMessageNodesToChange reject: [ :aMessageNodeReference | self is: aMessageNodeReference childOfAnyOne: collectionOfMessageNodesToChange].
 	codeForSenders := messageNodesFathers collect: [ :aMessageNodeReference | 
@@ -1325,8 +1324,8 @@ test309MoveMethodShouldChangeSendersAndRecursions
 	
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/12/2023 22:27:28'!
-test310MoveMethodShouldChangeSendersAndRecursions
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/13/2023 03:19:05'!
+test310MoveMethodShouldChangeSendersWithTmpVarAsReceiver
 	
 	| sourceClass targetClass refactoring sendersToChange |
 	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
@@ -1342,6 +1341,26 @@ test310MoveMethodShouldChangeSendersAndRecursions
 	self assert: 'm1 ^1.' equals: (targetClass sourceCodeAt: #m1).
 	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
 	self assert: 'senderToChange |tmp| ^tmp iv1 m1.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/13/2023 03:20:29'!
+test311MoveMethodShouldChangeSendersWithTmpVarAsReceiver
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange |tmp| ^tmp m1: 1.'.
+	sourceClass compile: 'm1: anInt ^1+anInt.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 27).
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1: from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: anInt ^1+anInt.' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
+	self assert: 'senderToChange |tmp| ^tmp iv1 m1: 1.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
@@ -1374,14 +1393,15 @@ initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessing
 	collectionOfSendersToChange := aCollectionOfSendersToChange
 	! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 6/13/2023 02:29:45'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 6/13/2023 02:50:08'!
 apply
 	| compiledMethodToMove xxxxreplacerResult |
 	compiledMethodToMove := sourceClass methodDict at: methodName.
 	xxxxreplacerResult := self replaceDependenciesFromSource: compiledMethodToMove.
 	
-	targetClass compile: xxxxreplacerResult sourceCode.
 	self replaceSendersWithResult: xxxxreplacerResult.
+	
+	targetClass compile: xxxxreplacerResult sourceCode.
 	xxxxreplacerResult readAccessOnInstanceVariables do: [ :anInstanceVariable | self createGetterIfNotExistsFor: anInstanceVariable ].
 	xxxxreplacerResult writeAccessOnInstanceVariables do: [ :anInstanceVariable | self createSetterIfNotExistsFor: anInstanceVariable ].
 	xxxxreplacerResult readAccessOnClassVariables do: [ :aClassVariable | self createClassVariableGetterIfNotExistsFor: aClassVariable on: sourceClass ].
