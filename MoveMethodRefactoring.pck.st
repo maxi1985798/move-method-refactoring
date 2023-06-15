@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 13 June 2023 at 7:48:25 pm'!
+'From Cuis 6.0 [latest update: #5706] on 15 June 2023 at 2:46:40 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 31!
+!provides: 'MoveMethodRefactoring' 1 32!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -83,9 +83,15 @@ initializeMethod: aMethodReference nodesToChange: aCollectionOfMessageNodesToCha
 	xXXXReplacerResult := aXXXXReplacerResult.
 	shouldAddParenthesis := false! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/13/2023 18:45:17'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/14/2023 01:50:23'!
 codeForArgument: argumentNodeToGetCode
-	| argumentsCode indexNewSend newSend |
+	| argumentsCode indexNewSend newSend newReceiver |
+	argumentNodeToGetCode receiver isTemp 
+		ifTrue: [
+			xXXXReplacerResult readAccessOnInstanceVariables add: instanceVariable.
+			newReceiver := argumentNodeToGetCode receiver key, ' ', instanceVariable.]
+		ifFalse: [ newReceiver := instanceVariable.		].
+	
 	argumentsCode := OrderedCollection new.
 	argumentNodeToGetCode argumentsInEvaluationOrder do: [ :anArgumentNode |
 		( anArgumentNode isMessageNode and: (self isAMessageNodeToReplace: anArgumentNode)) 
@@ -100,12 +106,8 @@ codeForArgument: argumentNodeToGetCode
 	indexNewSend := 1.
 	newSend := ''.
 	argumentNodeToGetCode selectorSymbol keywords do: [ :aKeyword | newSend := newSend, ' ', aKeyword, ' ', (argumentsCode at: indexNewSend). indexNewSend := indexNewSend +1].
-	argumentNodeToGetCode receiver isTemp 
-		ifTrue: [
-			xXXXReplacerResult readAccessOnInstanceVariables add: instanceVariable.
-			newSend := argumentNodeToGetCode receiver key, ' ', instanceVariable, newSend.		]
-		ifFalse: [ newSend := instanceVariable, newSend.		].
 	
+	newSend := newReceiver, newSend.
 	xXXXReplacerResult methodWithSelfReferences 
 		ifTrue: [
 			newSend := newSend, ' sourceObject: self'].
@@ -128,12 +130,10 @@ is: aMessageNodeReference childOfAnyOne: aCollectionOfMessageNodesToChange
 isAMessageNodeToReplace: argumentNode 
 	^collectionOfMessageNodesToChange anySatisfy: [ :aMessageNodeReference | aMessageNodeReference messageNode equivalentTo: argumentNode ]! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/13/2023 19:47:29'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/15/2023 02:45:38'!
 newCodeForReferenceToReplace
-	 | aMessageNode |
+	 | aMessageNode codeForReceiver rangeForReceiver |
 	aMessageNode := referenceToReplace messageNode .
-	"methodNode := aMessageNodeReference compiledMethod methodNode.
-	methodNode nodesDo: [ :aNode | aNode ]."
 	aMessageNode isKeywordMessageSend 
 		ifFalse: [ 
 			xXXXReplacerResult methodWithSelfReferences 
@@ -153,6 +153,15 @@ newCodeForReferenceToReplace
 						ifTrue: [
 							xXXXReplacerResult readAccessOnInstanceVariables add: instanceVariable.
 							^aMessageNode receiver key, ' ', instanceVariable, ' ', aMessageNode selector key.
+							].
+					aMessageNode receiver isMessageNode 
+						ifTrue: [
+							xXXXReplacerResult readAccessOnInstanceVariables add: instanceVariable.
+							rangeForReceiver := self firstUnseenIntervalFor: aMessageNode receiver.
+							codeForReceiver := compiledMethod sourceCode 
+								copyFrom: rangeForReceiver first 
+								to: rangeForReceiver last.
+							^codeForReceiver, ' ', instanceVariable, ' ', aMessageNode selector key.
 							]
 						ifFalse: [
 							^instanceVariable, ' ', aMessageNode selector key
@@ -1389,6 +1398,26 @@ test312MoveMethodShouldChangeSendersWithTmpVarAsReceiver
 	self assert: 'm1: sourceObject ^sourceObject.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
 	self assert: 'senderToChange |tmp| ^tmp iv1 m1: tmp.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/14/2023 02:16:54'!
+test313MoveMethodShouldChangeSendersWithMessageNodeAsReceiver
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange ^self m2 m1.'.
+	sourceClass compile: 'm1 ^1.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 25).
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1 ^1.' equals: (targetClass sourceCodeAt: #m1).
+	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
+	self assert: 'senderToChange ^self m2 iv1 m1.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
