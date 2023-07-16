@@ -1,12 +1,12 @@
-'From Cuis 6.0 [latest update: #5706] on 27 June 2023 at 1:39:01 am'!
+'From Cuis 6.0 [latest update: #5706] on 16 July 2023 at 2:54:45 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 35!
+!provides: 'MoveMethodRefactoring' 1 36!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
 !classDefinition: #XXXXMessageNodeReferenceChanger category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #XXXXMessageNodeReferenceChanger
-	instanceVariableNames: 'methodReference instanceVariable collectionOfMessageNodesToChange xXXXReplacerResult messageNodeReferenceFather newCodeForFather currentNodeToChange intervalsToModify nodeOffsetInSourceCode currentNodeInterval'
+	instanceVariableNames: 'methodReference instanceVariable collectionOfMessageNodesToChange xXXXReplacerResult messageNodeReferenceFather newCodeForFather currentNodeToChange intervalsToModify nodeOffsetInSourceCode currentNodeInterval readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -16,12 +16,32 @@ XXXXMessageNodeReferenceChanger class
 
 !classDefinition: #XXXXMessageNodeReferenceChangerForReceiver category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #XXXXMessageNodeReferenceChangerForReceiver
-	instanceVariableNames: 'methodReference instanceVariable collectionOfMessageNodesToChange xXXXReplacerResult messageNodeReferenceFather newCodeForFather currentNodeToChange intervalsToModify nodeOffsetInSourceCode currentNodeInterval'
+	instanceVariableNames: 'methodReference instanceVariable collectionOfMessageNodesToChange xXXXReplacerResult messageNodeReferenceFather newCodeForFather currentNodeToChange intervalsToModify nodeOffsetInSourceCode currentNodeInterval readAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'XXXXMessageNodeReferenceChangerForReceiver class' category: 'MoveMethodRefactoring'!
 XXXXMessageNodeReferenceChangerForReceiver class
+	instanceVariableNames: ''!
+
+!classDefinition: #XXXXMessageNodeReferenceChangerForReceiverResult category: 'MoveMethodRefactoring'!
+ParseNodeVisitor subclass: #XXXXMessageNodeReferenceChangerForReceiverResult
+	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables newCode_CHANGE_ME instanceVariablesToRead_CHANGE_ME classVariablesToRead_CHANGE_ME'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'XXXXMessageNodeReferenceChangerForReceiverResult class' category: 'MoveMethodRefactoring'!
+XXXXMessageNodeReferenceChangerForReceiverResult class
+	instanceVariableNames: ''!
+
+!classDefinition: #XXXXMessageNodeReferenceChangerResult category: 'MoveMethodRefactoring'!
+ParseNodeVisitor subclass: #XXXXMessageNodeReferenceChangerResult
+	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables unicodeString'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'XXXXMessageNodeReferenceChangerResult class' category: 'MoveMethodRefactoring'!
+XXXXMessageNodeReferenceChangerResult class
 	instanceVariableNames: ''!
 
 !classDefinition: #XXXXMethodChanger category: 'MoveMethodRefactoring'!
@@ -74,6 +94,26 @@ Refactoring subclass: #MoveMethodRefactoring
 MoveMethodRefactoring class
 	instanceVariableNames: ''!
 
+!classDefinition: #MoveInstanceMethodApplier category: 'MoveMethodRefactoring'!
+MoveMethodApplier subclass: #MoveInstanceMethodApplier
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'MoveInstanceMethodApplier class' category: 'MoveMethodRefactoring'!
+MoveInstanceMethodApplier class
+	instanceVariableNames: ''!
+
+!classDefinition: #TesisMoveMethodRefactoringMenu category: 'MoveMethodRefactoring'!
+Object subclass: #TesisMoveMethodRefactoringMenu
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'TesisMoveMethodRefactoringMenu class' category: 'MoveMethodRefactoring'!
+TesisMoveMethodRefactoringMenu class
+	instanceVariableNames: ''!
+
 !classDefinition: #XXXXReplacerResult category: 'MoveMethodRefactoring'!
 Object subclass: #XXXXReplacerResult
 	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables methodWithSuperReferences readAccessOnClassVariables writeAccessOnClassVariables methodWithSelfReferences'
@@ -95,7 +135,7 @@ XXXXSenderReplacerResult class
 	instanceVariableNames: ''!
 
 
-!XXXXMessageNodeReferenceChanger methodsFor: 'initialization' stamp: 'mc 6/20/2023 18:36:42'!
+!XXXXMessageNodeReferenceChanger methodsFor: 'initialization' stamp: 'mc 7/15/2023 19:24:26'!
 initializeNewWith: aMethodReference andWith: anInstanceVariableName andWith: aCollectionOfMessageNodesToChange andWith: aXXXXReplacerResult andWith: aMessageNodeReferenceFather andWith: someCurrentNodeToGetCode
 	
 	methodReference := aMethodReference.
@@ -104,13 +144,16 @@ initializeNewWith: aMethodReference andWith: anInstanceVariableName andWith: aCo
 	xXXXReplacerResult := aXXXXReplacerResult..
 	messageNodeReferenceFather := aMessageNodeReferenceFather.
 	currentNodeToChange := someCurrentNodeToGetCode.
-	intervalsToModify := OrderedCollection new.! !
+	intervalsToModify := OrderedCollection new.
+	readAccessOnInstanceVariables := Set new.
+	writeAccessOnInstanceVariables := Set new.
+	readAccessOnClassVariables := Set new.! !
 
 !XXXXMessageNodeReferenceChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/20/2023 18:36:03'!
 registerInterval: anInterval withModification: sourceCodeForInterval 
 	intervalsToModify add: anInterval -> sourceCodeForInterval! !
 
-!XXXXMessageNodeReferenceChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/20/2023 18:47:14'!
+!XXXXMessageNodeReferenceChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/15/2023 19:29:04'!
 value
 	
 	
@@ -124,7 +167,8 @@ value
 	
 	
 	newCode := newCodeForCurrentNode copyReplacing: intervalsToModify.
-	^newCode
+	^XXXXMessageNodeReferenceChangerResult with: newCode with: readAccessOnInstanceVariables with: readAccessOnClassVariables.
+	
 	! !
 
 !XXXXMessageNodeReferenceChanger methodsFor: 'private' stamp: 'mc 6/16/2023 19:37:25'!
@@ -195,19 +239,12 @@ sourceRangesOf: aNode
 	
 	^methodReference compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
 
-!XXXXMessageNodeReferenceChanger methodsFor: 'visiting' stamp: 'mc 6/24/2023 23:45:26'!
+!XXXXMessageNodeReferenceChanger methodsFor: 'visiting' stamp: 'mc 7/15/2023 19:27:44'!
 visitMessageNode: aMessageNode 
-	| codeForReceiver rangeForReceiver newCodeForReceiver newSend rangeMessageNode codeForMessage argumentsCode newCodeForArgument indexNewSend |
+	| newCodeForReceiver newSend rangeMessageNode codeForMessage argumentsCode newCodeForArgument indexNewSend newCodeForReceiverResult |
 	(self isNodeToChange: aMessageNode)
 		ifTrue: [
-			
-			newCodeForReceiver := (XXXXMessageNodeReferenceChangerForReceiver 
-				newWith:  methodReference
-				andWith:  instanceVariable
-				andWith:  collectionOfMessageNodesToChange
-				andWith:  xXXXReplacerResult
-				andWith: messageNodeReferenceFather
-				currentNode: aMessageNode receiver) value.
+
 			
 			
 			codeForMessage := aMessageNode selector key.
@@ -221,7 +258,7 @@ visitMessageNode: aMessageNode
 							andWith:  collectionOfMessageNodesToChange
 							andWith:  xXXXReplacerResult
 							andWith: messageNodeReferenceFather
-							currentNode: anArgumentNode) value.
+							currentNode: anArgumentNode) value sourceCode.
 						
 						
 						( anArgumentNode isMessageNode and: (self isAMessageNodeToReplace: anArgumentNode)) 
@@ -238,26 +275,43 @@ visitMessageNode: aMessageNode
 					aMessageNode selectorSymbol keywords do: [ :aKeyword | newSend := newSend, ' ', aKeyword, ' ', (argumentsCode at: indexNewSend). indexNewSend := indexNewSend +1].
 					codeForMessage := newSend copyFrom: 2 to: newSend size.
 					].
-					xXXXReplacerResult methodWithSelfReferences 
+			xXXXReplacerResult methodWithSelfReferences 
+				ifTrue: [
+					aMessageNode isKeywordMessageSend 
 						ifTrue: [
-							aMessageNode isKeywordMessageSend 
-								ifTrue: [
-									codeForMessage := codeForMessage, ' sourceObject: self'.
-									] 
-								ifFalse: [
-									codeForMessage := codeForMessage, ': ', aMessageNode receiver key.
-									]
-							
-							]
+							codeForMessage := codeForMessage, ' sourceObject: self'.
+							] 
 						ifFalse: [
-							xXXXReplacerResult methodWithSelfReferences 
-								ifTrue: [
-									codeForMessage := codeForMessage, ': self'.
-									]
-							].
+							codeForMessage := codeForMessage, ': ', aMessageNode receiver key.
+							]
+					
+					]
+				ifFalse: [
+					xXXXReplacerResult readAccessOnInstanceVariables isEmpty
+						ifFalse: [
+							codeForMessage := codeForMessage, ': ', aMessageNode receiver key.
+							]
+					].
+			
+			
+			
+			"code for receiver"
+			newCodeForReceiverResult := (XXXXMessageNodeReferenceChangerForReceiver 
+				newWith:  methodReference
+				andWith:  instanceVariable
+				andWith:  collectionOfMessageNodesToChange
+				andWith:  xXXXReplacerResult
+				andWith: messageNodeReferenceFather
+				currentNode: aMessageNode receiver) value.
+			
+			newCodeForReceiver := newCodeForReceiverResult sourceCode.
+			
+			"TODO: devolver un dao aca tambien y quitar esto"
+			"xXXXReplacerResult readAccessOnInstanceVariables addAll: newCodeForReceiverResult readAccessOnInstanceVariables."
 			
 			newSend := newCodeForReceiver, ' ', codeForMessage.
-			
+			readAccessOnInstanceVariables addAll: newCodeForReceiverResult readAccessOnInstanceVariables.
+			readAccessOnClassVariables addAll: newCodeForReceiverResult readAccessOnClassVariables.
 			rangeMessageNode := self firstUnseenIntervalFor: aMessageNode.
 			self registerInterval: rangeMessageNode withModification: newSend.
 			]
@@ -300,17 +354,6 @@ firstUnseenIntervalFor: aNode
 	"self removeSeenRanges: completeRangesOfassigmentNode."
 	^completeRangesOfassigmentNode detectMin: [ :anInterval | anInterval first]! !
 
-!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'as yet unclassified' stamp: 'mc 6/23/2023 01:13:48'!
-initializeNewWith: aMethodReference andWith: anInstanceVariableName andWith: aCollectionOfMessageNodesToChange andWith: aXXXXReplacerResult andWith: aMessageNodeReferenceFather andWith: someCurrentNodeToGetCode
-	
-	methodReference := aMethodReference.
-	instanceVariable := anInstanceVariableName.
-	collectionOfMessageNodesToChange := aCollectionOfMessageNodesToChange.
-	xXXXReplacerResult := aXXXXReplacerResult..
-	messageNodeReferenceFather := aMessageNodeReferenceFather.
-	currentNodeToChange := someCurrentNodeToGetCode.
-	intervalsToModify := OrderedCollection new.! !
-
 !XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'as yet unclassified' stamp: 'mc 6/23/2023 02:18:17'!
 registerInterval: anInterval withModification: sourceCodeForInterval 
 	intervalsToModify add: anInterval -> sourceCodeForInterval! !
@@ -320,7 +363,7 @@ sourceRangesOf: aNode
 	
 	^methodReference compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
 
-!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'as yet unclassified' stamp: 'mc 6/23/2023 02:21:30'!
+!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'as yet unclassified' stamp: 'mc 7/13/2023 23:47:49'!
 value
 	
 	
@@ -335,8 +378,23 @@ value
 	
 	
 	newCode := newCodeForCurrentNode copyReplacing: intervalsToModify.
-	^newCode
+	^XXXXMessageNodeReferenceChangerForReceiverResult with: newCode with: readAccessOnInstanceVariables with: readAccessOnClassVariables. 
+	"^newCode"
 	! !
+
+!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'initialization' stamp: 'mc 7/13/2023 22:49:53'!
+initializeNewWith: aMethodReference andWith: anInstanceVariableName andWith: aCollectionOfMessageNodesToChange andWith: aXXXXReplacerResult andWith: aMessageNodeReferenceFather andWith: someCurrentNodeToGetCode
+	
+	methodReference := aMethodReference.
+	instanceVariable := anInstanceVariableName.
+	collectionOfMessageNodesToChange := aCollectionOfMessageNodesToChange.
+	xXXXReplacerResult := aXXXXReplacerResult..
+	messageNodeReferenceFather := aMessageNodeReferenceFather.
+	currentNodeToChange := someCurrentNodeToGetCode.
+	intervalsToModify := OrderedCollection new.
+	readAccessOnClassVariables := Set new.
+	writeAccessOnClassVariables := Set new.
+	readAccessOnInstanceVariables := Set new.! !
 
 !XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'initialization' stamp: 'mc 6/23/2023 01:15:14'!
 initializeNodeInterval
@@ -349,16 +407,16 @@ initializeNodeInterval
 initializeOffset
 	^ nodeOffsetInSourceCode := currentNodeInterval first -1! !
 
-!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'visiting' stamp: 'mc 6/25/2023 18:59:21'!
+!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'visiting' stamp: 'mc 7/16/2023 02:15:39'!
 visitInstanceVariableNode: anInstanceVariableNode 
 	| newCode ranges |
 	
 	ranges := self firstUnseenIntervalFor: anInstanceVariableNode.
 	newCode := anInstanceVariableNode key, ' ', instanceVariable.
-	xXXXReplacerResult readAccessOnInstanceVariables add: instanceVariable.
+	"readAccessOnInstanceVariables add: instanceVariable."
 	self registerInterval: ranges withModification: newCode.! !
 
-!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'visiting' stamp: 'mc 6/24/2023 22:53:06'!
+!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'visiting' stamp: 'mc 7/16/2023 02:15:46'!
 visitLiteralNode: aLiteralNode 
 
 	| newCode ranges currentCode |
@@ -366,44 +424,44 @@ visitLiteralNode: aLiteralNode
 	ranges := self firstUnseenIntervalFor: aLiteralNode.
 	currentCode := methodReference compiledMethod sourceCode copyFrom: ranges first to: ranges last.
 	newCode := currentCode, ' ', instanceVariable.
-	xXXXReplacerResult readAccessOnInstanceVariables add: instanceVariable.
+	"readAccessOnInstanceVariables add: instanceVariable."
 	self registerInterval: ranges withModification: newCode.! !
 
-!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'visiting' stamp: 'mc 6/25/2023 16:02:50'!
+!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'visiting' stamp: 'mc 7/16/2023 02:15:51'!
 visitLiteralVariableNode: aLiteralVariableNode 
 
 	| newCode ranges |
 	
 	ranges := self firstUnseenIntervalFor: aLiteralVariableNode.
 	newCode := aLiteralVariableNode name, ' ', instanceVariable.
-	xXXXReplacerResult readAccessOnInstanceVariables add: instanceVariable.
+	"readAccessOnInstanceVariables add: instanceVariable."
 	self registerInterval: ranges withModification: newCode.! !
 
-!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'visiting' stamp: 'mc 6/25/2023 05:16:09'!
+!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'visiting' stamp: 'mc 7/16/2023 02:15:57'!
 visitMessageNode: aMessageNode 
 	| rangeMessageNode currentCode |
 	rangeMessageNode := self firstUnseenIntervalFor: aMessageNode.
 	currentCode := methodReference compiledMethod sourceCode copyFrom: rangeMessageNode first to: rangeMessageNode last.
-	xXXXReplacerResult readAccessOnInstanceVariables add: instanceVariable.
+	"readAccessOnInstanceVariables add: instanceVariable."
 	self registerInterval: rangeMessageNode withModification: currentCode, ' ', instanceVariable .! !
 
-!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'visiting' stamp: 'mc 6/25/2023 05:14:25'!
+!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'visiting' stamp: 'mc 7/16/2023 02:16:02'!
 visitTempVariableNode: aTempVariableNode 
 
 	| newCode ranges |
 	
 	ranges := self firstUnseenIntervalFor: aTempVariableNode.
 	newCode := aTempVariableNode key, ' ', instanceVariable.
-	xXXXReplacerResult readAccessOnInstanceVariables add: instanceVariable.
+	"readAccessOnInstanceVariables add: instanceVariable."
 	self registerInterval: ranges withModification: newCode.! !
 
-!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'visiting' stamp: 'mc 6/25/2023 22:23:54'!
+!XXXXMessageNodeReferenceChangerForReceiver methodsFor: 'visiting' stamp: 'mc 7/16/2023 02:16:07'!
 visitVariableNode: aVariableNode 
 	| newCode ranges |
 	
 	ranges := self firstUnseenIntervalFor: aVariableNode.
 	newCode := aVariableNode name, ' ', instanceVariable.
-	xXXXReplacerResult readAccessOnInstanceVariables add: instanceVariable.
+	"readAccessOnInstanceVariables add: instanceVariable."
 	self registerInterval: ranges withModification: newCode.! !
 
 !XXXXMessageNodeReferenceChangerForReceiver class methodsFor: 'instance creation' stamp: 'mc 6/23/2023 01:12:56'!
@@ -415,6 +473,54 @@ newWith: methodReference andWith: anInstanceVariable andWith: collectionOfMessag
 		andWith: xXXXReplacerResult 
 		andWith: messageNodeReferenceFather
 		andWith: currentNodeToGenerateCode! !
+
+!XXXXMessageNodeReferenceChangerForReceiverResult methodsFor: 'initialization' stamp: 'mc 7/13/2023 23:50:47'!
+initializeWith: newCode with: instanceVariablesToRead with: classVariablesToRead 
+	sourceCode := newCode.
+	readAccessOnInstanceVariables := instanceVariablesToRead.
+	readAccessOnClassVariables := classVariablesToRead.! !
+
+!XXXXMessageNodeReferenceChangerForReceiverResult methodsFor: 'initialization' stamp: 'mc 7/14/2023 01:04:34'!
+readAccessOnInstanceVariables
+	^readAccessOnInstanceVariables ! !
+
+!XXXXMessageNodeReferenceChangerForReceiverResult methodsFor: 'initialization' stamp: 'mc 7/13/2023 23:52:27'!
+sourceCode
+	^sourceCode ! !
+
+!XXXXMessageNodeReferenceChangerForReceiverResult methodsFor: 'accessing' stamp: 'mc 7/15/2023 19:30:48'!
+readAccessOnClassVariables
+	^readAccessOnClassVariables! !
+
+!XXXXMessageNodeReferenceChangerForReceiverResult class methodsFor: 'instance creation' stamp: 'mc 7/13/2023 23:49:39'!
+with: newCode with: instanceVariablesToRead with: classVariablesToRead 
+	^self new initializeWith: newCode with: instanceVariablesToRead with: classVariablesToRead ! !
+
+!XXXXMessageNodeReferenceChangerResult methodsFor: 'as yet unclassified' stamp: 'mc 7/14/2023 01:35:16'!
+initializeWith: newCode with: instanceVariablesToRead with: classVariablesToRead 
+	sourceCode := newCode.
+	readAccessOnInstanceVariables := instanceVariablesToRead.
+	readAccessOnClassVariables := classVariablesToRead.! !
+
+!XXXXMessageNodeReferenceChangerResult methodsFor: 'as yet unclassified' stamp: 'mc 7/14/2023 01:35:26'!
+readAccessOnInstanceVariables
+	^readAccessOnInstanceVariables ! !
+
+!XXXXMessageNodeReferenceChangerResult methodsFor: 'as yet unclassified' stamp: 'mc 7/14/2023 01:35:33'!
+sourceCode
+	^sourceCode ! !
+
+!XXXXMessageNodeReferenceChangerResult methodsFor: 'initialization' stamp: 'mc 7/14/2023 01:39:11'!
+initializeWith: aUnicodeString 
+	sourceCode := aUnicodeString ! !
+
+!XXXXMessageNodeReferenceChangerResult class methodsFor: 'as yet unclassified' stamp: 'mc 7/14/2023 01:35:46'!
+with: newCode with: instanceVariablesToRead with: classVariablesToRead 
+	^self new initializeWith: newCode with: instanceVariablesToRead with: classVariablesToRead ! !
+
+!XXXXMessageNodeReferenceChangerResult class methodsFor: 'instance creation' stamp: 'mc 7/14/2023 01:38:47'!
+with: aUnicodeString 
+	^self new initializeWith: aUnicodeString ! !
 
 !XXXXMethodChanger methodsFor: 'initialization' stamp: 'mc 6/8/2023 01:34:02'!
 initializeMethod: aMethodReference nodesToChange: aCollectionOfMessageNodesToChange instanceVariable: anInstanceVariable withResult: aXXXXReplacerResult 
@@ -435,12 +541,38 @@ shouldAddParenthesis
 	compiledMethod methodNode accept: self.
 	^shouldAddParenthesis! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/16/2023 19:35:16'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/16/2023 02:43:05'!
 value
-	| codeForSenders sourceCode newCodeForMessage messageNodesFathers nodeReplacer |
+	| codeForSenders sourceCode newCodeForMessage messageNodesFathers nodeReplacer methodWhichReferencesToRefactor numberOfSends messageToMove newMessageNodeReference nodeReplacerResult |
 	
 	compiledMethod := methodReference compiledMethod.
+	"self halt."
 	
+	methodWhichReferencesToRefactor := compiledMethod asMethodReference.
+	messageToMove := collectionOfMessageNodesToChange first.
+	(messageToMove messageNode receiver isMessageNode and: [ xXXXReplacerResult methodMovedHasExternalDependencies ])
+		ifTrue: [
+			(ExtractToTemporary 
+				named: 'asdasd' 
+				at: (compiledMethod methodNode completeSourceRangesOf: messageToMove messageNode receiver ifAbsent: []) anyOne
+				from: compiledMethod) apply.
+			compiledMethod := methodWhichReferencesToRefactor compiledMethod.
+			numberOfSends := 0.
+			"compiledMethod methodNode accept: (ParseNodeEnumerator 
+											ofBlock: [ :node | (node isMessageNode and: [ node selector equivalentTo: messageToMove ]) ifTrue: [numberOfSends := numberOfSends +1] ] )."
+			compiledMethod methodNode accept: (ParseNodeEnumerator 
+											ofBlock: [ :node | (node isMessageNode and: [ node selector equivalentTo: messageToMove messageNode selector]) ifTrue: [
+														newMessageNodeReference := MessageNodeReference 
+															messageNode: node
+															selector: compiledMethod selector
+															class: compiledMethod methodClass 
+															completeSourceRange: (compiledMethod methodNode completeSourceRangesOf: node ifAbsent: []) anyOne.
+														collectionOfMessageNodesToChange := OrderedCollection new.
+														collectionOfMessageNodesToChange add: newMessageNodeReference
+														] ] ).
+			"select: [:node| node isMessageNode and: [ node selector = methodToRefactor selector ]]"
+					
+			].
 	messageNodesFathers := collectionOfMessageNodesToChange reject: [ :aMessageNodeReference | self is: aMessageNodeReference childOfAnyOne: collectionOfMessageNodesToChange].
 	codeForSenders := messageNodesFathers collect: [ :aMessageNodeReference | 
 		"self halt."
@@ -451,8 +583,9 @@ value
 			andWith: collectionOfMessageNodesToChange
 			andWith: xXXXReplacerResult
 			andWith: aMessageNodeReference.
-		newCodeForMessage := nodeReplacer value.
-		
+		nodeReplacerResult := nodeReplacer value.
+		newCodeForMessage := nodeReplacerResult sourceCode.
+		xXXXReplacerResult readAccessOnInstanceVariables addAll: nodeReplacerResult readAccessOnInstanceVariables.
 		
 		"newCodeForMessage := self newCodeForReferenceToReplace."
 		self shouldAddParenthesis ifTrue: [ newCodeForMessage := '(', newCodeForMessage, ')'].
@@ -1502,6 +1635,27 @@ test304MoveMethodShouldChangeSendersAndPassSelf
 	self assert: 'senderToChange ^self iv1 m1: self.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	! !
 
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/28/2023 23:20:20'!
+test304MoveMethodShouldChangeSendersWithMessageNodeKeywordsAsReceiver2
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange ^self m1 m1.'.
+	sourceClass compile: 'm1 ^self.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 22).
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 25).
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: anObject ^anObject.' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
+	self assert: 'senderToChange ^(self iv1 m1: self) iv1 m1: (self iv1 m1: self).' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
 !MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/26/2023 01:14:31'!
 test305MoveMethodShouldChangeSendersAndPassSelfAndAddOne
 	
@@ -1721,6 +1875,29 @@ test314MoveMethodShouldChangeSendersWithMessageNodeKeywordsAsReceiver
 	
 	! !
 
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/13/2023 01:22:13'!
+test314MoveMethodShouldChangeSendersWithMessageNodeUnaryAsReceiver2
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange ^self m2 m1.'.
+	sourceClass compile: 'm1 ^iv2.'.
+	sourceClass compile: 'm2 Transcript show: ', (Character asciiValue: 39) asString, 'Hello World!!', (Character asciiValue: 39) asString.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 25).
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject iv2.' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
+	self assert: 'senderToChange | asdasd |
+	asdasd := self m2.
+	^asdasd iv1 m1: asdasd.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
 !MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/24/2023 22:41:50'!
 test315MoveMethodShouldChangeSendersWithLiteralNodeAsReceiver
 	
@@ -1810,7 +1987,7 @@ initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessing
 	collectionOfSendersToChange := aCollectionOfSendersToChange
 	! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 6/13/2023 02:50:08'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 7/16/2023 02:29:45'!
 apply
 	| compiledMethodToMove xxxxreplacerResult |
 	compiledMethodToMove := sourceClass methodDict at: methodName.
@@ -1819,6 +1996,7 @@ apply
 	self replaceSendersWithResult: xxxxreplacerResult.
 	
 	targetClass compile: xxxxreplacerResult sourceCode.
+	self createGetterIfNotExistsFor: instanceVariable.
 	xxxxreplacerResult readAccessOnInstanceVariables do: [ :anInstanceVariable | self createGetterIfNotExistsFor: anInstanceVariable ].
 	xxxxreplacerResult writeAccessOnInstanceVariables do: [ :anInstanceVariable | self createSetterIfNotExistsFor: anInstanceVariable ].
 	xxxxreplacerResult readAccessOnClassVariables do: [ :aClassVariable | self createClassVariableGetterIfNotExistsFor: aClassVariable on: sourceClass ].
@@ -1951,6 +2129,38 @@ sourceClassShouldNotBeNilErrorMessage
 targetClassShouldNotBeNilErrorMessage
 	^'Target class should not be nil'! !
 
+!MoveInstanceMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/6/2023 23:09:15'!
+createAndValueHandlingExceptionsOn: aModel forMethod: aMethodReference 
+	self createAndValueHandlingExceptions: [ self initializeOn: aModel forMethod: aMethodReference ].! !
+
+!TesisMoveMethodRefactoringMenu class methodsFor: 'as yet unclassified' stamp: 'mc 7/6/2023 23:02:19'!
+smalltalkEditorCmdShortcutsSpec
+	"
+	SmalltalkEditor initializeCmdShortcuts
+	"
+	^#(
+		#($5	#contextualMoveMethod: 'Move Method what is under cursor')
+	)! !
+
+!XXXXReplacerResult methodsFor: 'as yet unclassified' stamp: 'mc 7/16/2023 02:46:47'!
+methodMovedHasExternalDependencies
+	^readAccessOnInstanceVariables isEmpty not 
+		or: [
+			writeAccessOnInstanceVariables isEmpty not 
+			or: [
+				readAccessOnClassVariables isEmpty not 
+				or: [
+					writeAccessOnClassVariables isEmpty not
+					or: [
+						methodWithSelfReferences 
+						or: [
+							methodWithSuperReferences 
+							]
+						]
+					]
+				]
+			]! !
+
 !XXXXReplacerResult methodsFor: 'as yet unclassified' stamp: 'mc 6/3/2023 23:57:49'!
 methodWithSelfReferences
 	^methodWithSelfReferences! !
@@ -2007,3 +2217,65 @@ sourceCode
 !XXXXSenderReplacerResult class methodsFor: 'instance creation' stamp: 'mc 6/4/2023 14:48:58'!
 newWith: aSourceCode 
 	^self new initializeNewWith: aSourceCode  ! !
+
+!SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/4/2023 23:01:32'!
+contextualMoveMethod
+	self halt.
+	self isEditingClassDefinition ifTrue: [ ^morph flash ].
+	self ifSourceCodeRefactoringCanBeAppliedDo: [
+		self
+			withMethodNodeAndClassDo: [ :methodNode :selectedClass | self contextualMoveMethodOf: methodNode in: selectedClass ]
+			ifErrorsParsing: [ :anError | morph flash ]	]	
+	! !
+
+!SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/6/2023 23:00:26'!
+contextualMoveMethod: aKeyboardEvent
+	self contextualMoveMethod.
+	^true
+	! !
+
+!SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/5/2023 19:32:51'!
+contextualMoveMethodOf: aMethodNode in: aSelectedClass
+	RefactoringApplier moveMethodApplier
+					createAndValueHandlingExceptionsOn: model textProvider
+					forMethod: (MethodReference class: aSelectedClass selector: aMethodNode selector).
+"
+	aMethodNode
+		withParseNodeIncluding: self startIndex
+		do: [ :nodeUnderCursor |
+			nodeUnderCursor isMessageNode ifFalse: [^morph flash].
+
+			((aMethodNode completeSourceRangesOf: nodeUnderCursor ifAbsent: [self shouldNotHappen])
+				detect: [ :aSourceRange | aSourceRange includes: self startIndex]
+					ifFound: [ :aSourceRange | | messageNodeReference |
+						messageNodeReference := MessageNodeReference
+							messageNode: nodeUnderCursor
+							selector: aMethodNode selector
+							class: aSelectedClass
+							completeSourceRange: aSourceRange.
+						self inlineMethodInUsage: messageNodeReference.	]
+					ifNone: [self shouldNotHappen ])]
+		ifAbsent: [
+			self startIndex <= aMethodNode selectorLastPosition ifFalse: [ ^ morph flash ].
+
+			RefactoringApplier moveMethodApplier
+				createAndValueHandlingExceptionsOn: model textProvider
+				forMethod: (MethodReference class: aSelectedClass selector: aMethodNode selector)]
+
+"! !
+
+!SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/4/2023 00:17:55'!
+ifSourceCodeRefactoringCanBeAppliedDo: aBlock
+
+	^(self hasUnacceptedEdits or: [morph hasEditingConflicts ])
+		ifTrue: [ self inform: 'This refactoring can not be applied when there are unsaved changes' ]
+		ifFalse: aBlock! !
+
+!RefactoringApplier class methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/6/2023 23:04:42'!
+moveInstanceMethodApplierId
+	^#moveInstanceMethodApplier! !
+
+!RefactoringApplier class methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/6/2023 23:03:38'!
+moveMethodApplier
+
+	^self applierAt: self moveInstanceMethodApplierId ifAbsent: [ MoveInstanceMethodApplier ]! !
