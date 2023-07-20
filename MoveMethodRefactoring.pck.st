@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5706] on 17 July 2023 at 1:38:33 am'!
+'From Cuis 6.0 [latest update: #5921] on 19 July 2023 at 11:47:48 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 37!
+!provides: 'MoveMethodRefactoring' 1 39!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -94,16 +94,6 @@ Refactoring subclass: #MoveMethodRefactoring
 MoveMethodRefactoring class
 	instanceVariableNames: ''!
 
-!classDefinition: #MoveInstanceMethodApplier category: 'MoveMethodRefactoring'!
-MoveMethodApplier subclass: #MoveInstanceMethodApplier
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'MoveMethodRefactoring'!
-!classDefinition: 'MoveInstanceMethodApplier class' category: 'MoveMethodRefactoring'!
-MoveInstanceMethodApplier class
-	instanceVariableNames: ''!
-
 !classDefinition: #TesisMoveMethodRefactoringMenu category: 'MoveMethodRefactoring'!
 Object subclass: #TesisMoveMethodRefactoringMenu
 	instanceVariableNames: ''
@@ -132,6 +122,16 @@ Object subclass: #XXXXSenderReplacerResult
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'XXXXSenderReplacerResult class' category: 'MoveMethodRefactoring'!
 XXXXSenderReplacerResult class
+	instanceVariableNames: ''!
+
+!classDefinition: #MoveMethodApplier category: 'MoveMethodRefactoring'!
+ProtoObject subclass: #MoveMethodApplier
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'MoveMethodApplier class' category: 'MoveMethodRefactoring'!
+MoveMethodApplier class
 	instanceVariableNames: ''!
 
 
@@ -537,49 +537,63 @@ initializeMethod: aMethodReference nodesToChange: aCollectionOfMessageNodesToCha
 	xXXXReplacerResult := aXXXXReplacerResult.
 	shouldAddParenthesis := false! !
 
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/19/2023 01:54:26'!
+applyExtractIfItIsNeeded
+	| methodWhichReferencesToRefactor numberOfSends messageToMove newMessageNodeReference  referenceToExtract receiverNumber |
+	
+	methodWhichReferencesToRefactor := compiledMethod asMethodReference.
+	"---------------------------------------------------"
+	receiverNumber := 0.
+	"self halt."
+	[ xXXXReplacerResult methodMovedHasExternalDependencies  and: [collectionOfMessageNodesToChange anySatisfy: [ :aMessageNodeReference | aMessageNodeReference messageNode receiver isMessageNode] ]  ] whileTrue: [
+		referenceToExtract := (collectionOfMessageNodesToChange select: [:aMessageNodeReference | aMessageNodeReference messageNode receiver isMessageNode]) first.
+		
+		(ExtractToTemporary 
+			named: 'receiver', receiverNumber asString
+			at: (compiledMethod methodNode completeSourceRangesOf: referenceToExtract messageNode receiver ifAbsent: []) anyOne
+			from: compiledMethod) apply.
+		
+		receiverNumber := receiverNumber+1.
+		compiledMethod := methodWhichReferencesToRefactor compiledMethod .
+		collectionOfMessageNodesToChange := OrderedCollection new.
+		compiledMethod methodNode accept: (ParseNodeEnumerator 
+								ofBlock: [ :node | (node isMessageNode and: [ node selector equivalentTo: referenceToExtract messageNode selector]) ifTrue: [
+											newMessageNodeReference := MessageNodeReference 
+												messageNode: node
+												selector: compiledMethod selector
+												class: compiledMethod methodClass 
+												completeSourceRange: (compiledMethod methodNode completeSourceRangesOf: node ifAbsent: []) anyOne.
+											
+											collectionOfMessageNodesToChange add: newMessageNodeReference
+											] ] ).
+
+		].
+	! !
+
 !XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/11/2023 01:26:10'!
 is: aMessageNodeReference childOfAnyOne: aCollectionOfMessageNodesToChange 
 	^aCollectionOfMessageNodesToChange anySatisfy: [ :aPosibleFather |
 			(aPosibleFather completeSourceRange includesAllOf: aMessageNodeReference completeSourceRange)
 			and: (aPosibleFather ~= aMessageNodeReference) ]! !
 
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/19/2023 00:34:45'!
+isThereRefecenceWhichNeedsRefactor
+	^collectionOfMessageNodesToChange first messageNode receiver isMessageNode and: [ xXXXReplacerResult methodMovedHasExternalDependencies ]! !
+
 !XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 6/8/2023 02:01:23'!
 shouldAddParenthesis 
 	compiledMethod methodNode accept: self.
 	^shouldAddParenthesis! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/16/2023 02:43:05'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/19/2023 00:41:47'!
 value
-	| codeForSenders sourceCode newCodeForMessage messageNodesFathers nodeReplacer methodWhichReferencesToRefactor numberOfSends messageToMove newMessageNodeReference nodeReplacerResult |
+	| codeForSenders sourceCode newCodeForMessage messageNodesFathers nodeReplacer methodWhichReferencesToRefactor nodeReplacerResult |
 	
 	compiledMethod := methodReference compiledMethod.
 	"self halt."
 	
-	methodWhichReferencesToRefactor := compiledMethod asMethodReference.
-	messageToMove := collectionOfMessageNodesToChange first.
-	(messageToMove messageNode receiver isMessageNode and: [ xXXXReplacerResult methodMovedHasExternalDependencies ])
-		ifTrue: [
-			(ExtractToTemporary 
-				named: 'asdasd' 
-				at: (compiledMethod methodNode completeSourceRangesOf: messageToMove messageNode receiver ifAbsent: []) anyOne
-				from: compiledMethod) apply.
-			compiledMethod := methodWhichReferencesToRefactor compiledMethod.
-			numberOfSends := 0.
-			"compiledMethod methodNode accept: (ParseNodeEnumerator 
-											ofBlock: [ :node | (node isMessageNode and: [ node selector equivalentTo: messageToMove ]) ifTrue: [numberOfSends := numberOfSends +1] ] )."
-			compiledMethod methodNode accept: (ParseNodeEnumerator 
-											ofBlock: [ :node | (node isMessageNode and: [ node selector equivalentTo: messageToMove messageNode selector]) ifTrue: [
-														newMessageNodeReference := MessageNodeReference 
-															messageNode: node
-															selector: compiledMethod selector
-															class: compiledMethod methodClass 
-															completeSourceRange: (compiledMethod methodNode completeSourceRangesOf: node ifAbsent: []) anyOne.
-														collectionOfMessageNodesToChange := OrderedCollection new.
-														collectionOfMessageNodesToChange add: newMessageNodeReference
-														] ] ).
-			"select: [:node| node isMessageNode and: [ node selector = methodToRefactor selector ]]"
-					
-			].
+	self applyExtractIfItIsNeeded.
+	"---------------------------------------------------"
 	messageNodesFathers := collectionOfMessageNodesToChange reject: [ :aMessageNodeReference | self is: aMessageNodeReference childOfAnyOne: collectionOfMessageNodesToChange].
 	codeForSenders := messageNodesFathers collect: [ :aMessageNodeReference | 
 		"self halt."
@@ -1921,7 +1935,7 @@ test317MoveMethodShouldChangeSendersWithInstanceVariableNodeAsReceiver
 	
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/16/2023 19:41:05'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/19/2023 23:43:59'!
 test318MoveMethodShouldChangeSendersWithExtractVariable
 	
 	| sourceClass targetClass refactoring sendersToChange |
@@ -1938,13 +1952,13 @@ test318MoveMethodShouldChangeSendersWithExtractVariable
 	
 	self assert: 'm1: sourceObject ^sourceObject iv2.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
-	self assert: 'senderToChange | asdasd |
-	asdasd := self m2.
-	^asdasd iv1 m1: asdasd.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	self assert: 'senderToChange | receiver0 |
+	receiver0 := self m2.
+	^receiver0 iv1 m1: receiver0.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/17/2023 01:19:02'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/19/2023 23:46:14'!
 test318MoveMethodShouldChangeSendersWithExtractVariable2
 	
 	| sourceClass targetClass refactoring sendersToChange |
@@ -1961,9 +1975,41 @@ test318MoveMethodShouldChangeSendersWithExtractVariable2
 	
 	self assert: 'm1: anInt sourceObject: sourceObject ^sourceObject iv2 + anInt.' equals: (targetClass sourceCodeAt: #m1:sourceObject:).
 	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
-	self assert: 'senderToChange | asdasd |
-	asdasd := self m2.
-	^asdasd iv1 m1: 1 sourceObject: asdasd.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	self assert: 'senderToChange | receiver0 |
+	receiver0 := self m2.
+	^receiver0 iv1 m1: 1 sourceObject: receiver0.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/19/2023 01:53:44'!
+test318MoveMethodShouldChangeSendersWithExtractVariable3
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange
+	self m3 m1: 1.
+	^self m2 m1: 1.
+	'.
+	sourceClass compile: 'm1: anInt ^iv2 + anInt.'.
+	sourceClass compile: 'm2 Transcript show: ', (Character asciiValue: 39) asString, 'Hello World!!', (Character asciiValue: 39) asString.
+	sourceClass compile: 'm3 ^self.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 24).
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 41).
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1: from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: anInt sourceObject: sourceObject ^sourceObject iv2 + anInt.' equals: (targetClass sourceCodeAt: #m1:sourceObject:).
+	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
+	self assert: 'senderToChange
+	| receiver0 receiver1 |
+	receiver0 := self m3.
+	receiver0 iv1 m1: 1 sourceObject: receiver0.
+	receiver1 := self m2.
+	^receiver1 iv1 m1: 1 sourceObject: receiver1.
+	' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
@@ -1987,6 +2033,32 @@ test318MoveMethodShouldChangeSendersWithExtractVariable_problemsWithExtract
 	self assert: 'senderToChange | asdasd |
 	asdasd := self m2.
 	^asdasd iv1 m1: asdasd.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/18/2023 00:08:09'!
+test319MoveMethodShouldChangeSendersWithExtractVariable2_problemsWithExtract
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange 
+	self m2 m1: 1.
+	^self m2 m1: 1.'.
+	sourceClass compile: 'm1: anInt ^iv2 + anInt.'.
+	sourceClass compile: 'm2 Transcript show: ', (Character asciiValue: 39) asString, 'Hello World!!', (Character asciiValue: 39) asString.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 26).
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 43).
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1: from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: anInt sourceObject: sourceObject ^sourceObject iv2 + anInt.' equals: (targetClass sourceCodeAt: #m1:sourceObject:).
+	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
+	self assert: 'senderToChange | asdasd |
+	asdasd := self m2.
+	^asdasd iv1 m1: 1 sourceObject: asdasd.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
@@ -2182,10 +2254,6 @@ sourceClassShouldNotBeNilErrorMessage
 targetClassShouldNotBeNilErrorMessage
 	^'Target class should not be nil'! !
 
-!MoveInstanceMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/6/2023 23:09:15'!
-createAndValueHandlingExceptionsOn: aModel forMethod: aMethodReference 
-	self createAndValueHandlingExceptions: [ self initializeOn: aModel forMethod: aMethodReference ].! !
-
 !TesisMoveMethodRefactoringMenu class methodsFor: 'as yet unclassified' stamp: 'mc 7/6/2023 23:02:19'!
 smalltalkEditorCmdShortcutsSpec
 	"
@@ -2271,6 +2339,10 @@ sourceCode
 newWith: aSourceCode 
 	^self new initializeNewWith: aSourceCode  ! !
 
+!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/6/2023 23:09:15'!
+createAndValueHandlingExceptionsOn: aModel forMethod: aMethodReference 
+	self createAndValueHandlingExceptions: [ self initializeOn: aModel forMethod: aMethodReference ].! !
+
 !SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/4/2023 23:01:32'!
 contextualMoveMethod
 	self halt.
@@ -2328,7 +2400,7 @@ ifSourceCodeRefactoringCanBeAppliedDo: aBlock
 moveInstanceMethodApplierId
 	^#moveInstanceMethodApplier! !
 
-!RefactoringApplier class methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/6/2023 23:03:38'!
+!RefactoringApplier class methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/18/2023 00:17:40'!
 moveMethodApplier
 
-	^self applierAt: self moveInstanceMethodApplierId ifAbsent: [ MoveInstanceMethodApplier ]! !
+	^self applierAt: self moveInstanceMethodApplierId ifAbsent: [ MoveMethodApplier ]! !
