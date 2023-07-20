@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5921] on 19 July 2023 at 11:47:48 pm'!
+'From Cuis 6.0 [latest update: #5921] on 20 July 2023 at 12:23:56 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 39!
+!provides: 'MoveMethodRefactoring' 1 40!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -537,13 +537,13 @@ initializeMethod: aMethodReference nodesToChange: aCollectionOfMessageNodesToCha
 	xXXXReplacerResult := aXXXXReplacerResult.
 	shouldAddParenthesis := false! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/19/2023 01:54:26'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/20/2023 00:05:44'!
 applyExtractIfItIsNeeded
 	| methodWhichReferencesToRefactor numberOfSends messageToMove newMessageNodeReference  referenceToExtract receiverNumber |
 	
 	methodWhichReferencesToRefactor := compiledMethod asMethodReference.
 	"---------------------------------------------------"
-	receiverNumber := 0.
+	receiverNumber := 1.
 	"self halt."
 	[ xXXXReplacerResult methodMovedHasExternalDependencies  and: [collectionOfMessageNodesToChange anySatisfy: [ :aMessageNodeReference | aMessageNodeReference messageNode receiver isMessageNode] ]  ] whileTrue: [
 		referenceToExtract := (collectionOfMessageNodesToChange select: [:aMessageNodeReference | aMessageNodeReference messageNode receiver isMessageNode]) first.
@@ -1935,7 +1935,7 @@ test317MoveMethodShouldChangeSendersWithInstanceVariableNodeAsReceiver
 	
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/19/2023 23:43:59'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/20/2023 00:17:27'!
 test318MoveMethodShouldChangeSendersWithExtractVariable
 	
 	| sourceClass targetClass refactoring sendersToChange |
@@ -1952,13 +1952,13 @@ test318MoveMethodShouldChangeSendersWithExtractVariable
 	
 	self assert: 'm1: sourceObject ^sourceObject iv2.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
-	self assert: 'senderToChange | receiver0 |
-	receiver0 := self m2.
-	^receiver0 iv1 m1: receiver0.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	self assert: 'senderToChange | receiver1 |
+	receiver1 := self m2.
+	^receiver1 iv1 m1: receiver1.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/19/2023 23:46:14'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/20/2023 00:17:46'!
 test318MoveMethodShouldChangeSendersWithExtractVariable2
 	
 	| sourceClass targetClass refactoring sendersToChange |
@@ -1975,13 +1975,13 @@ test318MoveMethodShouldChangeSendersWithExtractVariable2
 	
 	self assert: 'm1: anInt sourceObject: sourceObject ^sourceObject iv2 + anInt.' equals: (targetClass sourceCodeAt: #m1:sourceObject:).
 	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
-	self assert: 'senderToChange | receiver0 |
-	receiver0 := self m2.
-	^receiver0 iv1 m1: 1 sourceObject: receiver0.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	self assert: 'senderToChange | receiver1 |
+	receiver1 := self m2.
+	^receiver1 iv1 m1: 1 sourceObject: receiver1.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/19/2023 01:53:44'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/20/2023 00:18:17'!
 test318MoveMethodShouldChangeSendersWithExtractVariable3
 	
 	| sourceClass targetClass refactoring sendersToChange |
@@ -2004,22 +2004,22 @@ test318MoveMethodShouldChangeSendersWithExtractVariable3
 	self assert: 'm1: anInt sourceObject: sourceObject ^sourceObject iv2 + anInt.' equals: (targetClass sourceCodeAt: #m1:sourceObject:).
 	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
 	self assert: 'senderToChange
-	| receiver0 receiver1 |
-	receiver0 := self m3.
-	receiver0 iv1 m1: 1 sourceObject: receiver0.
-	receiver1 := self m2.
-	^receiver1 iv1 m1: 1 sourceObject: receiver1.
+	| receiver1 receiver2 |
+	receiver1 := self m3.
+	receiver1 iv1 m1: 1 sourceObject: receiver1.
+	receiver2 := self m2.
+	^receiver2 iv1 m1: 1 sourceObject: receiver2.
 	' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/17/2023 01:15:03'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/19/2023 23:51:36'!
 test318MoveMethodShouldChangeSendersWithExtractVariable_problemsWithExtract
 	
 	| sourceClass targetClass refactoring sendersToChange |
 	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2'.
 	targetClass := self createClassNamed: #TargetClass.
-	sourceClass compile: 'senderToChange ^((self m2) + (self m2)) m1.'.
+	sourceClass compile: 'senderToChange ^((self m2) + (self m3)) m1.'.
 	sourceClass compile: 'm1 ^iv2.'.
 	sourceClass compile: 'm2 Transcript show: ', (Character asciiValue: 39) asString, 'Hello World!!', (Character asciiValue: 39) asString.
 	sendersToChange := OrderedCollection new.
