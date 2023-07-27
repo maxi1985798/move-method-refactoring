@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5921] on 27 July 2023 at 12:30:33 am'!
+'From Cuis 6.0 [latest update: #5946] on 27 July 2023 at 1:19:02 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 41!
+!provides: 'MoveMethodRefactoring' 1 42!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -537,18 +537,21 @@ initializeMethod: aMethodReference nodesToChange: aCollectionOfMessageNodesToCha
 	xXXXReplacerResult := aXXXXReplacerResult.
 	shouldAddParenthesis := false! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/27/2023 00:29:02'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/27/2023 01:17:51'!
 applyExtractIfItIsNeeded
 	| methodWhichReferencesToRefactor numberOfSends messageToMove newMessageNodeReference  referenceToExtract receiverNumber messageNodeIndexCollection messageNodeIndex |
 	
 	methodWhichReferencesToRefactor := compiledMethod asMethodReference.
 	"---------------------------------------------------"
-	messageNodeIndexCollection := OrderedCollection new.
-	messageNodeIndex := 0.
+	
+	
 	receiverNumber := 1.
-	"self halt."
+	
 	[ xXXXReplacerResult methodMovedHasExternalDependencies  and: [collectionOfMessageNodesToChange anySatisfy: [ :aMessageNodeReference | aMessageNodeReference messageNode receiver isMessageNode] ]  ] whileTrue: [
 		referenceToExtract := (collectionOfMessageNodesToChange select: [:aMessageNodeReference | aMessageNodeReference messageNode receiver isMessageNode]) first.
+		messageNodeIndexCollection := OrderedCollection new.
+		messageNodeIndex := 0.
+		"self halt."
 		compiledMethod methodNode accept: (ParseNodeEnumerator 
 								ofBlock: [ :node | 
 									(node isMessageNode 
@@ -564,7 +567,7 @@ applyExtractIfItIsNeeded
 		
 		(ExtractToTemporary 
 			named: 'receiver', receiverNumber asString
-			at: (compiledMethod methodNode completeSourceRangesOf: referenceToExtract messageNode receiver ifAbsent: []) anyOne
+			at: ((compiledMethod methodNode completeSourceRangesOf: referenceToExtract messageNode receiver ifAbsent: []) select: [ :anInterval | referenceToExtract completeSourceRange includesAllOf: anInterval ]) anyOne
 			from: compiledMethod) apply.
 		messageNodeIndex := 0.
 		receiverNumber := receiverNumber+1.
@@ -2030,7 +2033,7 @@ test318MoveMethodShouldChangeSendersWithExtractVariable3
 	
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/19/2023 23:51:36'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/27/2023 00:36:06'!
 test318MoveMethodShouldChangeSendersWithExtractVariable_problemsWithExtract
 	
 	| sourceClass targetClass refactoring sendersToChange |
@@ -2047,13 +2050,13 @@ test318MoveMethodShouldChangeSendersWithExtractVariable_problemsWithExtract
 	
 	self assert: 'm1: sourceObject ^sourceObject iv2.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
-	self assert: 'senderToChange | asdasd |
-	asdasd := self m2.
-	^asdasd iv1 m1: asdasd.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	self assert: 'senderToChange | receiver1 |
+	receiver1 := (self m2) + (self m3).
+	^receiver1 iv1 m1: receiver1.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/18/2023 00:08:09'!
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/27/2023 01:17:13'!
 test319MoveMethodShouldChangeSendersWithExtractVariable2_problemsWithExtract
 	
 	| sourceClass targetClass refactoring sendersToChange |
@@ -2073,9 +2076,12 @@ test319MoveMethodShouldChangeSendersWithExtractVariable2_problemsWithExtract
 	
 	self assert: 'm1: anInt sourceObject: sourceObject ^sourceObject iv2 + anInt.' equals: (targetClass sourceCodeAt: #m1:sourceObject:).
 	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
-	self assert: 'senderToChange | asdasd |
-	asdasd := self m2.
-	^asdasd iv1 m1: 1 sourceObject: asdasd.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	self assert: 'senderToChange 
+	| receiver1 receiver2 |
+	receiver1 := self m2.
+	receiver1 iv1 m1: 1 sourceObject: receiver1.
+	receiver2 := self m2.
+	^receiver2 iv1 m1: 1 sourceObject: receiver2.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
