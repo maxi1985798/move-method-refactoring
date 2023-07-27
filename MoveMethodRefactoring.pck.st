@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5921] on 20 July 2023 at 12:23:56 pm'!
+'From Cuis 6.0 [latest update: #5921] on 27 July 2023 at 12:30:33 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 40!
+!provides: 'MoveMethodRefactoring' 1 41!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -537,34 +537,51 @@ initializeMethod: aMethodReference nodesToChange: aCollectionOfMessageNodesToCha
 	xXXXReplacerResult := aXXXXReplacerResult.
 	shouldAddParenthesis := false! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/20/2023 00:05:44'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/27/2023 00:29:02'!
 applyExtractIfItIsNeeded
-	| methodWhichReferencesToRefactor numberOfSends messageToMove newMessageNodeReference  referenceToExtract receiverNumber |
+	| methodWhichReferencesToRefactor numberOfSends messageToMove newMessageNodeReference  referenceToExtract receiverNumber messageNodeIndexCollection messageNodeIndex |
 	
 	methodWhichReferencesToRefactor := compiledMethod asMethodReference.
 	"---------------------------------------------------"
+	messageNodeIndexCollection := OrderedCollection new.
+	messageNodeIndex := 0.
 	receiverNumber := 1.
 	"self halt."
 	[ xXXXReplacerResult methodMovedHasExternalDependencies  and: [collectionOfMessageNodesToChange anySatisfy: [ :aMessageNodeReference | aMessageNodeReference messageNode receiver isMessageNode] ]  ] whileTrue: [
 		referenceToExtract := (collectionOfMessageNodesToChange select: [:aMessageNodeReference | aMessageNodeReference messageNode receiver isMessageNode]) first.
+		compiledMethod methodNode accept: (ParseNodeEnumerator 
+								ofBlock: [ :node | 
+									(node isMessageNode 
+									and: [ (node selector equivalentTo: referenceToExtract messageNode selector) 
+									and: [ collectionOfMessageNodesToChange anySatisfy: [ :aMessageNodeReference | ((compiledMethod methodNode completeSourceRangesOf: node ifAbsent: []) anyOne ) = aMessageNodeReference completeSourceRange]
+										 ]]) 
+										ifTrue: [
+												messageNodeIndexCollection add: messageNodeIndex.
+												messageNodeIndex := messageNodeIndex +1.
+											   ] 
+									     ] ).
+		
 		
 		(ExtractToTemporary 
 			named: 'receiver', receiverNumber asString
 			at: (compiledMethod methodNode completeSourceRangesOf: referenceToExtract messageNode receiver ifAbsent: []) anyOne
 			from: compiledMethod) apply.
-		
+		messageNodeIndex := 0.
 		receiverNumber := receiverNumber+1.
 		compiledMethod := methodWhichReferencesToRefactor compiledMethod .
 		collectionOfMessageNodesToChange := OrderedCollection new.
 		compiledMethod methodNode accept: (ParseNodeEnumerator 
 								ofBlock: [ :node | (node isMessageNode and: [ node selector equivalentTo: referenceToExtract messageNode selector]) ifTrue: [
-											newMessageNodeReference := MessageNodeReference 
-												messageNode: node
-												selector: compiledMethod selector
-												class: compiledMethod methodClass 
-												completeSourceRange: (compiledMethod methodNode completeSourceRangesOf: node ifAbsent: []) anyOne.
-											
-											collectionOfMessageNodesToChange add: newMessageNodeReference
+											(messageNodeIndexCollection includes: messageNodeIndex) ifTrue: [
+												newMessageNodeReference := MessageNodeReference 
+													messageNode: node
+													selector: compiledMethod selector
+													class: compiledMethod methodClass 
+													completeSourceRange: (compiledMethod methodNode completeSourceRangesOf: node ifAbsent: []) anyOne.
+												
+												collectionOfMessageNodesToChange add: newMessageNodeReference
+												].
+											messageNodeIndex := messageNodeIndex +1.
 											] ] ).
 
 		].
@@ -2059,6 +2076,36 @@ test319MoveMethodShouldChangeSendersWithExtractVariable2_problemsWithExtract
 	self assert: 'senderToChange | asdasd |
 	asdasd := self m2.
 	^asdasd iv1 m1: 1 sourceObject: asdasd.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/25/2023 01:44:35'!
+test320MoveMethodShouldChangeSendersWithExtractVariable4
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange
+	self m3 m1: 1.
+	^self m2 m1: 1.
+	'.
+	sourceClass compile: 'm1: anInt ^iv2 + anInt.'.
+	sourceClass compile: 'm2 Transcript show: ', (Character asciiValue: 39) asString, 'Hello World!!', (Character asciiValue: 39) asString.
+	sourceClass compile: 'm3 ^self.'.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 24).
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1: from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: anInt sourceObject: sourceObject ^sourceObject iv2 + anInt.' equals: (targetClass sourceCodeAt: #m1:sourceObject:).
+	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
+	self assert: 'senderToChange
+	| receiver1 |
+	receiver1 := self m3.
+	receiver1 iv1 m1: 1 sourceObject: receiver1.
+	^self m2 m1: 1.
+	' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
