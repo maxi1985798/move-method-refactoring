@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5946] on 29 July 2023 at 5:10:32 pm'!
+'From Cuis 6.0 [latest update: #5962] on 2 August 2023 at 12:17:57 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 43!
+!provides: 'MoveMethodRefactoring' 1 44!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -538,9 +538,9 @@ initializeMethod: aMethodReference nodesToChange: aCollectionOfMessageNodesToCha
 	shouldAddParenthesis := false.
 	intervalsToReject := OrderedCollection new.! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/28/2023 09:14:19'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 8/2/2023 00:16:43'!
 applyExtractIfItIsNeeded
-	| methodWhichReferencesToRefactor numberOfSends messageToMove newMessageNodeReference  referenceToExtract receiverNumber messageNodeIndexCollection messageNodeIndex |
+	| methodWhichReferencesToRefactor numberOfSends messageToMove newMessageNodeReference  referenceToExtract receiverNumber messageNodeIndexCollection messageNodeIndex receiverVarName |
 	
 	methodWhichReferencesToRefactor := compiledMethod asMethodReference.
 	"---------------------------------------------------"
@@ -568,9 +568,13 @@ applyExtractIfItIsNeeded
 											] 
 									     ] ).
 		
+		receiverVarName := 'receiver', receiverNumber asString.
+		[self existsVarNamed: receiverVarName] whileTrue: [ 
+			receiverNumber := receiverNumber +1.
+			receiverVarName := 'receiver', receiverNumber asString. ].
 		
 		(ExtractToTemporary 
-			named: 'receiver', receiverNumber asString
+			named: receiverVarName
 			at: ((compiledMethod methodNode completeSourceRangesOf: referenceToExtract messageNode receiver ifAbsent: []) select: [ :anInterval | referenceToExtract completeSourceRange includesAllOf: anInterval ]) anyOne
 			from: compiledMethod) apply.
 		messageNodeIndex := 0.
@@ -592,6 +596,14 @@ applyExtractIfItIsNeeded
 											] ] ).
 
 		].
+	! !
+
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 8/2/2023 00:09:45'!
+existsVarNamed: tmpVarNamed 
+	| counter |
+	counter := TemporaryVariableDeclarationCounter for: tmpVarNamed.
+	compiledMethod methodNode accept: counter.
+	^counter count ~= 0
 	! !
 
 !XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/28/2023 01:26:16'!
@@ -2181,6 +2193,64 @@ test322MoveMethodShouldChangeSendersWithMessageNodeKeywordsAsReceiver2
 	self assert: 'senderToChange | receiver1 |
 	receiver1 := self iv1 m1: self.
 	^receiver1 iv1 m1: receiver1.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 8/2/2023 00:11:49'!
+test323MoveMethodShouldChangeSendersWithExtractVariableIfReceiverVarExistsItShouldDoesntMatter
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange
+	| receiver1 |
+	receiver1 := 1.
+	^self m2 m1: 1.'.
+	sourceClass compile: 'm1: anInt ^iv2 + anInt.'.
+	sourceClass compile: 'm2 Transcript show: ', (Character asciiValue: 39) asString, 'Hello World!!', (Character asciiValue: 39) asString.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 58).
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1: from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: anInt sourceObject: sourceObject ^sourceObject iv2 + anInt.' equals: (targetClass sourceCodeAt: #m1:sourceObject:).
+	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
+	self assert: 'senderToChange
+	| receiver1 receiver2 |
+	receiver1 := 1.
+	receiver2 := self m2.
+	^receiver2 iv1 m1: 1 sourceObject: receiver2.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 8/2/2023 00:14:59'!
+test324MoveMethodShouldChangeSendersWithExtractVariableIfReceiverVarExistsItShouldDoesntMatter
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange
+	| receiver1 receiver2 |
+	receiver1 := 1.
+	receiver2 := 1.
+	^self m2 m1: 1.'.
+	sourceClass compile: 'm1: anInt ^iv2 + anInt.'.
+	sourceClass compile: 'm2 Transcript show: ', (Character asciiValue: 39) asString, 'Hello World!!', (Character asciiValue: 39) asString.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 85).
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1: from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: anInt sourceObject: sourceObject ^sourceObject iv2 + anInt.' equals: (targetClass sourceCodeAt: #m1:sourceObject:).
+	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
+	self assert: 'senderToChange
+	| receiver1 receiver2 receiver3 |
+	receiver1 := 1.
+	receiver2 := 1.
+	receiver3 := self m2.
+	^receiver3 iv1 m1: 1 sourceObject: receiver3.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
