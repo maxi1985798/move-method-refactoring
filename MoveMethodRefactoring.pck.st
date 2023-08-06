@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5962] on 2 August 2023 at 12:17:57 am'!
+'From Cuis 6.0 [latest update: #5962] on 6 August 2023 at 10:09:12 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 44!
+!provides: 'MoveMethodRefactoring' 1 45!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -239,7 +239,7 @@ sourceRangesOf: aNode
 	
 	^methodReference compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: []! !
 
-!XXXXMessageNodeReferenceChanger methodsFor: 'visiting' stamp: 'mc 7/17/2023 01:38:00'!
+!XXXXMessageNodeReferenceChanger methodsFor: 'visiting' stamp: 'mc 8/4/2023 09:31:27'!
 visitMessageNode: aMessageNode 
 	| newCodeForReceiver newSend rangeMessageNode codeForMessage argumentsCode newCodeForArgument indexNewSend newCodeForReceiverResult |
 	(self isNodeToChange: aMessageNode)
@@ -291,7 +291,7 @@ visitMessageNode: aMessageNode
 						ifFalse: [
 							aMessageNode isKeywordMessageSend 
 							ifTrue:  [
-								codeForMessage := codeForMessage, ' sourceObject: ', aMessageNode receiver key.
+								codeForMessage := codeForMessage, ' sourceObject: ', aMessageNode originalReceiver key.
 								]
 							ifFalse: [
 								codeForMessage := codeForMessage, ': ', aMessageNode receiver key.
@@ -303,22 +303,32 @@ visitMessageNode: aMessageNode
 			
 			
 			"code for receiver"
-			newCodeForReceiverResult := (XXXXMessageNodeReferenceChangerForReceiver 
-				newWith:  methodReference
-				andWith:  instanceVariable
-				andWith:  collectionOfMessageNodesToChange
-				andWith:  xXXXReplacerResult
-				andWith: messageNodeReferenceFather
-				currentNode: aMessageNode receiver) value.
+			newCodeForReceiver := ''.
+			aMessageNode receiver 
+				ifNil: [
+					newSend := codeForMessage.
+					] 
+				ifNotNil: [
+					newCodeForReceiverResult := (XXXXMessageNodeReferenceChangerForReceiver 
+					newWith:  methodReference
+					andWith:  instanceVariable
+					andWith:  collectionOfMessageNodesToChange
+					andWith:  xXXXReplacerResult
+					andWith: messageNodeReferenceFather
+					currentNode: aMessageNode receiver ) value.
+				
+					newCodeForReceiver := newCodeForReceiverResult sourceCode.
+					readAccessOnInstanceVariables addAll: newCodeForReceiverResult readAccessOnInstanceVariables.
+					readAccessOnClassVariables addAll: newCodeForReceiverResult readAccessOnClassVariables.
+					newSend := newCodeForReceiver, ' ', codeForMessage.
+					].
 			
-			newCodeForReceiver := newCodeForReceiverResult sourceCode.
+			
 			
 			"TODO: devolver un dao aca tambien y quitar esto"
 			"xXXXReplacerResult readAccessOnInstanceVariables addAll: newCodeForReceiverResult readAccessOnInstanceVariables."
 			
-			newSend := newCodeForReceiver, ' ', codeForMessage.
-			readAccessOnInstanceVariables addAll: newCodeForReceiverResult readAccessOnInstanceVariables.
-			readAccessOnClassVariables addAll: newCodeForReceiverResult readAccessOnClassVariables.
+			"newSend := newCodeForReceiver, ' ', codeForMessage."
 			rangeMessageNode := self firstUnseenIntervalFor: aMessageNode.
 			self registerInterval: rangeMessageNode withModification: newSend.
 			]
@@ -538,7 +548,7 @@ initializeMethod: aMethodReference nodesToChange: aCollectionOfMessageNodesToCha
 	shouldAddParenthesis := false.
 	intervalsToReject := OrderedCollection new.! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 8/2/2023 00:16:43'!
+!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 8/3/2023 23:32:34'!
 applyExtractIfItIsNeeded
 	| methodWhichReferencesToRefactor numberOfSends messageToMove newMessageNodeReference  referenceToExtract receiverNumber messageNodeIndexCollection messageNodeIndex receiverVarName |
 	
@@ -548,7 +558,7 @@ applyExtractIfItIsNeeded
 	
 	receiverNumber := 1.
 	
-	[ xXXXReplacerResult methodMovedHasExternalDependencies  and: [collectionOfMessageNodesToChange anySatisfy: [ :aMessageNodeReference | aMessageNodeReference messageNode receiver isMessageNode] ]  ] whileTrue: [
+	[ xXXXReplacerResult methodMovedHasExternalDependencies  and: [collectionOfMessageNodesToChange anySatisfy: [ :aMessageNodeReference | aMessageNodeReference messageNode originalReceiver isMessageNode] ]  ] whileTrue: [
 		referenceToExtract := (collectionOfMessageNodesToChange select: [:aMessageNodeReference | aMessageNodeReference messageNode receiver isMessageNode]) first.
 		messageNodeIndexCollection := OrderedCollection new.
 		messageNodeIndex := 0.
@@ -2254,24 +2264,50 @@ test324MoveMethodShouldChangeSendersWithExtractVariableIfReceiverVarExistsItShou
 	
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 7/16/2023 19:31:17'!
-wip_test304MoveMethodShouldChangeSendersWithMessageNodeKeywordsAsReceiver2
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 8/3/2023 23:54:42'!
+test325MoveMethodShouldChangeSendersWithSemicolon
 	
 	| sourceClass targetClass refactoring sendersToChange |
-	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2'.
 	targetClass := self createClassNamed: #TargetClass.
-	sourceClass compile: 'senderToChange ^self m1 m1.'.
-	sourceClass compile: 'm1 ^self.'.
+	sourceClass compile: 'senderToChange
+	^self m2; m1: 1.'.
+	sourceClass compile: 'm1: anInt ^iv2 + anInt.'.
+	sourceClass compile: 'm2 Transcript show: ', (Character asciiValue: 39) asString, 'Hello World!!', (Character asciiValue: 39) asString.
 	sendersToChange := OrderedCollection new.
-	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 22).
-	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 25).
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 27).
 	
-	refactoring := MoveMethodRefactoring methodNamed: #m1 from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring := MoveMethodRefactoring methodNamed: #m1: from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
 	refactoring apply.
 	
-	self assert: 'm1: anObject ^anObject.' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'm1: anInt sourceObject: sourceObject ^sourceObject iv2 + anInt.' equals: (targetClass sourceCodeAt: #m1:sourceObject:).
 	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
-	self assert: 'senderToChange ^(self iv1 m1: self) iv1 m1: (self iv1 m1: self).' equals: (sourceClass sourceCodeAt: #senderToChange).
+	self assert: 'senderToChange
+	^self m2; m1: 1 sourceObject: self.' equals: (sourceClass sourceCodeAt: #senderToChange).
+	
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 8/4/2023 09:58:22'!
+test326MoveMethodShouldChangeSendersWithSemicolon
+	
+	| sourceClass targetClass refactoring sendersToChange |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'senderToChange
+	^self m2; m1: 1; m1: 1.'.
+	sourceClass compile: 'm1: anInt ^iv2 + anInt.'.
+	sourceClass compile: 'm2 Transcript show: ', (Character asciiValue: 39) asString, 'Hello World!!', (Character asciiValue: 39) asString.
+	sendersToChange := OrderedCollection new.
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 27).
+	sendersToChange add: (self messageNodeReferenceOf: sourceClass inMethod: #senderToChange atIndex: 34).
+	
+	refactoring := MoveMethodRefactoring methodNamed: #m1: from: sourceClass to: targetClass accessingThrough: 'iv1' changingSenders: sendersToChange.
+	refactoring apply.
+	
+	self assert: 'm1: anInt sourceObject: sourceObject ^sourceObject iv2 + anInt.' equals: (targetClass sourceCodeAt: #m1:sourceObject:).
+	self assert: 'iv1', String newLineString, String tab, '^iv1.' equals: (sourceClass sourceCodeAt: #iv1).
+	self assert: 'senderToChange
+	^self m2; m1: 1 sourceObject: self; m1: 1 sourceObject: self.' equals: (sourceClass sourceCodeAt: #senderToChange).
 	
 	! !
 
