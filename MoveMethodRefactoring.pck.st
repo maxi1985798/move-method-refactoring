@@ -1,8 +1,18 @@
-'From Cuis 6.0 [latest update: #5962] on 6 August 2023 at 10:09:12 am'!
+'From Cuis 6.0 [latest update: #5962] on 9 August 2023 at 11:44:12 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 45!
+!provides: 'MoveMethodRefactoring' 1 46!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
+
+!classDefinition: #MoveMethodMessageSendsSet category: 'MoveMethodRefactoring'!
+MessageSet subclass: #MoveMethodMessageSendsSet
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'MoveMethodMessageSendsSet class' category: 'MoveMethodRefactoring'!
+MoveMethodMessageSendsSet class
+	instanceVariableNames: ''!
 
 !classDefinition: #XXXXMessageNodeReferenceChanger category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #XXXXMessageNodeReferenceChanger
@@ -74,6 +84,16 @@ ParseNodeVisitor subclass: #XXXXSenderReplacer
 XXXXSenderReplacer class
 	instanceVariableNames: ''!
 
+!classDefinition: #MoveMethodUsagesStepWindow category: 'MoveMethodRefactoring'!
+MessageSetWindow subclass: #MoveMethodUsagesStepWindow
+	instanceVariableNames: 'applier'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'MoveMethodUsagesStepWindow class' category: 'MoveMethodRefactoring'!
+MoveMethodUsagesStepWindow class
+	instanceVariableNames: ''!
+
 !classDefinition: #MoveMethodRefactoringTest category: 'MoveMethodRefactoring'!
 RefactoringTest subclass: #MoveMethodRefactoringTest
 	instanceVariableNames: ''
@@ -92,6 +112,16 @@ Refactoring subclass: #MoveMethodRefactoring
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'MoveMethodRefactoring class' category: 'MoveMethodRefactoring'!
 MoveMethodRefactoring class
+	instanceVariableNames: ''!
+
+!classDefinition: #MoveMethodApplier category: 'MoveMethodRefactoring'!
+RefactoringApplier subclass: #MoveMethodApplier
+	instanceVariableNames: 'model methodReference methodToMove sourceClass accessingThroughinstanceVariableName targetClass scopeChoice sendsToChange shouldShowChanges wizardStepWindow'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'MoveMethodApplier class' category: 'MoveMethodRefactoring'!
+MoveMethodApplier class
 	instanceVariableNames: ''!
 
 !classDefinition: #TesisMoveMethodRefactoringMenu category: 'MoveMethodRefactoring'!
@@ -124,16 +154,11 @@ Object subclass: #XXXXSenderReplacerResult
 XXXXSenderReplacerResult class
 	instanceVariableNames: ''!
 
-!classDefinition: #MoveMethodApplier category: 'MoveMethodRefactoring'!
-ProtoObject subclass: #MoveMethodApplier
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'MoveMethodRefactoring'!
-!classDefinition: 'MoveMethodApplier class' category: 'MoveMethodRefactoring'!
-MoveMethodApplier class
-	instanceVariableNames: ''!
 
+!MoveMethodMessageSendsSet class methodsFor: 'as yet unclassified' stamp: 'mc 8/8/2023 00:33:58'!
+applier: anMoveMethodApplier
+
+	^(self messageList: anMoveMethodApplier messageSendsToInline) initializeApplier: anMoveMethodApplier! !
 
 !XXXXMessageNodeReferenceChanger methodsFor: 'initialization' stamp: 'mc 7/15/2023 19:24:26'!
 initializeNewWith: aMethodReference andWith: anInstanceVariableName andWith: aCollectionOfMessageNodesToChange andWith: aXXXXReplacerResult andWith: aMessageNodeReferenceFather andWith: someCurrentNodeToGetCode
@@ -629,10 +654,6 @@ is: aMessageNodeReference childOfAnyOne: aCollectionOfMessageNodesToChange
 			(aPosibleFather completeSourceRange includesAllOf: aMessageNodeReference completeSourceRange)
 			and: (aPosibleFather ~= aMessageNodeReference) ]! !
 
-!XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/19/2023 00:34:45'!
-isThereRefecenceWhichNeedsRefactor
-	^collectionOfMessageNodesToChange first messageNode receiver isMessageNode and: [ xXXXReplacerResult methodMovedHasExternalDependencies ]! !
-
 !XXXXMethodChanger methodsFor: 'as yet unclassified' stamp: 'mc 7/28/2023 09:13:41'!
 removeSeenRanges: rangesOfNode 
 	^rangesOfNode removeAllSuchThat: [ :aSourceInterval | intervalsToReject anySatisfy: [ :aSourceIntervalToModify | aSourceIntervalToModify = aSourceInterval ] ]! !
@@ -1094,6 +1115,115 @@ of: aSelector in: aCompiledMethod withReceiver: anInstanceVariableName andResult
 !XXXXSenderReplacer class methodsFor: 'instance creation' stamp: 'mc 6/4/2023 19:08:01'!
 of: aSelector in: aCompiledMethod withReceiver: anInstanceVariableName andResult: aXXXXReplacerResult onNode: aNode
 	^self new initializeOf: aSelector in: aCompiledMethod withReceiver: anInstanceVariableName  andResult: aXXXXReplacerResult onNode: aNode! !
+
+!MoveMethodUsagesStepWindow methodsFor: 'button creation' stamp: 'mc 8/8/2023 00:26:51'!
+createCancelButton
+
+	^RefactoringApplier createCancelButtonOn: self! !
+
+!MoveMethodUsagesStepWindow methodsFor: 'button creation' stamp: 'mc 8/8/2023 00:27:00'!
+createJustRefactorButton
+
+	^RefactoringApplier createJustRefactorButtonOn: self ! !
+
+!MoveMethodUsagesStepWindow methodsFor: 'button creation' stamp: 'mc 8/8/2023 00:27:05'!
+createRefactorButton
+
+	^RefactoringApplier createRefactorButtonOn: self! !
+
+!MoveMethodUsagesStepWindow methodsFor: 'button creation' stamp: 'mc 8/8/2023 00:27:11'!
+createRemoveButton
+
+	^RefactoringApplier createRemoveButtonOn: self! !
+
+!MoveMethodUsagesStepWindow methodsFor: 'GUI building' stamp: 'mc 8/8/2023 02:00:02'!
+addButton: button to: row color: buttonColor
+
+	button color: buttonColor.
+	row addMorph: button proportionalWidth: 10! !
+
+!MoveMethodUsagesStepWindow methodsFor: 'GUI building' stamp: 'mc 8/8/2023 00:25:58'!
+addButtonsTo: row color: buttonColor
+
+	self addButton: self createRemoveButton to: row color: buttonColor.
+	self addButton: self createRefactorButton to: row color: buttonColor.
+	self addButton: self createJustRefactorButton to: row color: buttonColor.
+	self addButton: self createCancelButton to: row color: buttonColor.! !
+
+!MoveMethodUsagesStepWindow methodsFor: 'GUI building' stamp: 'mc 8/8/2023 01:58:12'!
+buildLowerPanes
+
+	| codeAndButtons  |
+
+	codeAndButtons := LayoutMorph newColumn.
+	codeAndButtons
+		addMorph: self buttonsRow fixedHeight: self defaultButtonPaneHeight;
+		addAdjusterMorph;
+		addMorph: self buildMorphicCodePane proportionalHeight: 1.0.
+
+	^codeAndButtons ! !
+
+!MoveMethodUsagesStepWindow methodsFor: 'GUI building' stamp: 'mc 8/8/2023 01:58:37'!
+buttonsRow
+
+	| buttonColor row |
+
+	buttonColor := self buttonColor.
+	row := LayoutMorph newRow.
+	row doAdoptWidgetsColor.
+	row color: buttonColor.
+
+	self addButtonsTo: row color: buttonColor.
+
+	^row
+
+	! !
+
+!MoveMethodUsagesStepWindow methodsFor: 'actions' stamp: 'mc 8/9/2023 18:05:31'!
+changeUsages
+
+	applier messageSends: model messageList! !
+
+!MoveMethodUsagesStepWindow methodsFor: 'actions' stamp: 'mc 8/9/2023 01:25:08'!
+justRefactor
+
+	applier doNotShowChanges.
+	self refactor.! !
+
+!MoveMethodUsagesStepWindow methodsFor: 'actions' stamp: 'mc 8/9/2023 18:04:58'!
+refactor
+	self changeUsages.
+	applier wizardStepWindow: self.
+	applier wizardEnded.! !
+
+!MoveMethodUsagesStepWindow methodsFor: 'actions' stamp: 'mc 8/9/2023 17:29:21'!
+remove
+
+	model removeMessageFromBrowserKeepingLabel.! !
+
+!MoveMethodUsagesStepWindow methodsFor: 'initialization' stamp: 'mc 8/9/2023 01:24:06'!
+initializeFrom: anInlineMethodApplier
+
+	applier := anInlineMethodApplier ! !
+
+!MoveMethodUsagesStepWindow class methodsFor: 'instance creation' stamp: 'mc 8/9/2023 01:36:00'!
+openFrom: anInlineMethodApplier
+
+	| messageSendsSet window |
+	messageSendsSet := MessageSet messageList: anInlineMethodApplier sendsToChange.
+	messageSendsSet autoHighlightString: anInlineMethodApplier methodToMove allOccurrences: false.
+	window := self open: messageSendsSet label: 'Message sends of #', anInlineMethodApplier methodToMove , ' to Refactor'.
+	window initializeFrom: anInlineMethodApplier.
+	^window.
+
+	"messageSendsSet := InlineMethodMessageSendsSet applier: anInlineMethodApplier.
+
+	messageSendsSet autoHighlightString: anInlineMethodApplier selectorToInline allOccurrences: false.
+
+	window := self open: messageSendsSet label: 'Message sends of #', anInlineMethodApplier selectorToInline, ' to Refactor'.
+	
+
+	^window."! !
 
 !MoveMethodRefactoringTest methodsFor: 'as yet unclassified' stamp: 'mc 6/5/2023 22:29:35'!
 messageNodeReferenceOf: anImplementor inMethod: aMethodName atIndex: aSourceCodeIndex
@@ -2482,13 +2612,219 @@ sourceClassShouldNotBeNilErrorMessage
 targetClassShouldNotBeNilErrorMessage
 	^'Target class should not be nil'! !
 
-!TesisMoveMethodRefactoringMenu class methodsFor: 'as yet unclassified' stamp: 'mc 7/6/2023 23:02:19'!
+!MoveMethodApplier methodsFor: 'initialization' stamp: 'mc 8/9/2023 02:08:55'!
+initializeInitializeOn: aModel forMethod: aMethodReference 
+	model := aModel.
+	methodReference := aMethodReference.
+	shouldShowChanges := true.! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 18:15:09'!
+askForMessageSends
+	self 
+		calculateImplementorsAndMessageSends;
+		openMessageSendsSelectionWindow.! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 17:52:04'!
+askScope
+
+	| scopeMenu |
+
+	scopeMenu := PopUpMenu labelArray: self scopeOptionLabels.
+	scopeChoice := scopeMenu startUpWithCaption: 'Select Refactoring Scope'.
+	scopeChoice = 0 ifTrue: [ self endRequest ].! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 17:50:02'!
+askTargetClassName
+	| targetClassNameTmp |
+	targetClassNameTmp := ClassNameRequestMorph request: 'Enter target class name:' initialAnswer: '' orCancel: requestExitBlock.
+	"self halt."
+	targetClassNameTmp := targetClassNameTmp withoutSeparators.
+	targetClass := Smalltalk at: targetClassNameTmp asSymbol ifAbsent: [Refactoring refactoringErrorClass signal: 'Cant find the target class'].! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 18:17:56'!
+calculateImplementorsAndMessageSends
+	self isActualScopeChoice 
+		ifTrue: [ self actualImplementorsAndMessageSends ]
+		ifFalse: [ 
+			scopeChoice = 1 ifTrue: [ ^self implementorsAndMessageSendsForClass ].
+			scopeChoice = 2 ifTrue: [ ^self implementorsAndMessageSendsForHierarchy ].
+			scopeChoice = 3 ifTrue: [ ^self implementorsAndMessageSendsInCategory ].
+			scopeChoice = 4 ifTrue: [ ^self implementorsAndMessageSendsInCategoryAndHierarchy ].
+			scopeChoice = 5 ifTrue: [ ^self implementorsAndMessageSendsInSystem ].
+
+			self error: 'Unknown scope option'
+			]! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 17:46:55'!
+chooseInstanceVariableToAccessThrough
+	| vars index |
+	"self halt."
+	vars := sourceClass allInstVarNames sorted.
+	"vars := vars reject: [ :anInstanceVariable | anInstanceVariable = instanceVariableName ]."
+	vars isEmpty ifTrue: [Refactoring refactoringErrorClass signal: 'There is no instance variable to access through' ].
+	
+	index := (PopUpMenu labelArray: vars lines: #()) startUpWithCaption: self selectVariableLabel.
+	index = 0 ifTrue: [^self endRequest].
+	accessingThroughinstanceVariableName := vars at: index.! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 17:42:37'!
+chooseMethodToMove
+	methodToMove := methodReference selector! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 22:56:12'!
+findReferencesToSelector: aMethodToMove in: aMethodReference 
+	| references |
+
+	references := Set new.
+	aMethodReference notOptimizedMethodNode completeSourceRangesDo: [:aNode :ranges |
+		(aNode isMessageNode and: [aNode selector key = aMethodToMove]) ifTrue: [
+			ranges do: [:range  | references add: (MessageNodeReference messageNode: aNode
+				selector: aMethodReference methodSymbol class: aMethodReference methodClass completeSourceRange: range)]
+		]
+	].
+
+	^references.! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 22:43:16'!
+implementorsAndMessageSendsForClass
+	sendsToChange := OrderedCollection new.
+	(sourceClass whichSelectorsReferTo: methodToMove) do: [ :aSelector |
+		sendsToChange addAll: (self findReferencesToSelector: methodToMove in: (MethodReference class: sourceClass selector: aSelector))]! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 18:16:04'!
+isActualScopeChoice
+	"TODO: Duplicated code"
+	^scopeChoice isNil or: [ scopeChoice >= 6 ]! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/9/2023 18:08:50'!
+messageSends: aCollectionOfMessageSends 
+	sendsToChange := aCollectionOfMessageSends reject: [:aMessageNodeReference | aMessageNodeReference isMessageListTitle ]! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/9/2023 15:30:27'!
+messageSetWindowClass
+
+	^MessageSetWindow! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/8/2023 01:38:09'!
+methodToMove
+	^methodToMove! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/8/2023 01:11:06'!
+openMessageSendsSelectionWindow
+	| messageSendsSet window |
+	"messageSendsSet := MessageSet messageList: sendsToChange.
+	messageSendsSet autoHighlightString: methodToMove allOccurrences: false.
+	window := MoveMethodUsagesStepWindow open: messageSendsSet label: 'Message sends of #', methodToMove , ' to Refactor'"
+	^MoveMethodUsagesStepWindow openFrom: self! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 17:24:11'!
+requestRefactoringParameters
+	self 
+		chooseMethodToMove;
+		selectClassWichMethodIsDefined;
+		chooseInstanceVariableToAccessThrough;
+		askTargetClassName;
+		askScope;
+		askForMessageSends
+		! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 17:52:53'!
+scopeOptionLabels
+
+	^{'In Class'. 'In Hierarchy'. 'In Category'. 'In Hierarchy and its Categories'. 'In System'}! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 17:44:36'!
+selectClassWichMethodIsDefined
+	sourceClass := methodReference actualClass ! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 17:48:35'!
+selectVariableLabel
+	^'Select variable to access through'! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/8/2023 01:37:48'!
+sendsToChange
+	^sendsToChange! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/9/2023 15:29:20'!
+showChanges
+
+	self showChangesInMessageSetWindow! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/9/2023 17:11:38'!
+showChangesInMessageSetWindow
+	"self halt."
+	self messageSetWindowClass openMessageList: (sendsToChange collect: [:aMethodNodeReference | aMethodNodeReference methodReference]) label: 'Changed methods' ! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/9/2023 15:14:26'!
+value
+
+	requestExitBlock := [ ^self ].
+	
+	self 
+		requestRefactoringParametersHandlingRefactoringExceptions.! !
+
+!MoveMethodApplier methodsFor: 'as yet unclassified' stamp: 'mc 8/9/2023 02:24:16'!
+closeBrowser
+
+	wizardStepWindow delete.! !
+
+!MoveMethodApplier methodsFor: 'as yet unclassified' stamp: 'mc 8/9/2023 02:57:19'!
+createAndApplyRefactoring
+	self 
+		createRefactoringHandlingRefactoringExceptions;
+		applyRefactoring.
+		
+	shouldShowChanges ifTrue: [ self showChanges ]! !
+
+!MoveMethodApplier methodsFor: 'as yet unclassified' stamp: 'mc 8/9/2023 03:04:39'!
+createRefactoring
+	^MoveMethodRefactoring 
+		methodNamed: methodToMove 
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: accessingThroughinstanceVariableName 
+		changingSenders: sendsToChange. ! !
+
+!MoveMethodApplier methodsFor: 'as yet unclassified' stamp: 'mc 8/9/2023 02:09:21'!
+doNotShowChanges
+
+	shouldShowChanges := false! !
+
+!MoveMethodApplier methodsFor: 'as yet unclassified' stamp: 'mc 8/9/2023 02:23:53'!
+wizardEnded
+
+	requestExitBlock := [ ^self ].
+
+	self
+		closeBrowser;
+		createAndApplyRefactoring.! !
+
+!MoveMethodApplier methodsFor: 'as yet unclassified' stamp: 'mc 8/9/2023 02:15:41'!
+wizardStepWindow: aWizarStepWindow
+
+	wizardStepWindow := aWizarStepWindow ! !
+
+!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/6/2023 23:09:15'!
+createAndValueHandlingExceptionsOn: aModel forMethod: aMethodReference 
+	self createAndValueHandlingExceptions: [ self initializeOn: aModel forMethod: aMethodReference ].! !
+
+!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 8/6/2023 15:35:52'!
+initialize
+
+	RefactoringApplier 
+		registerMoveMethodApplier: MoveMethodApplier.! !
+
+!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 8/6/2023 16:51:50'!
+initializeOn: aModel forMethod: aMethodReference 
+	^self new initializeInitializeOn: aModel forMethod: aMethodReference ! !
+
+!TesisMoveMethodRefactoringMenu class methodsFor: 'as yet unclassified' stamp: 'mc 8/6/2023 13:13:16'!
 smalltalkEditorCmdShortcutsSpec
 	"
 	SmalltalkEditor initializeCmdShortcuts
 	"
 	^#(
-		#($5	#contextualMoveMethod: 'Move Method what is under cursor')
+		#($7	 #contextualMoveMethod:  'Move Method what is under cursor')
 	)! !
 
 !XXXXReplacerResult methodsFor: 'as yet unclassified' stamp: 'mc 7/16/2023 02:46:47'!
@@ -2567,13 +2903,9 @@ sourceCode
 newWith: aSourceCode 
 	^self new initializeNewWith: aSourceCode  ! !
 
-!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/6/2023 23:09:15'!
-createAndValueHandlingExceptionsOn: aModel forMethod: aMethodReference 
-	self createAndValueHandlingExceptions: [ self initializeOn: aModel forMethod: aMethodReference ].! !
-
-!SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/4/2023 23:01:32'!
+!SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 8/9/2023 15:14:57'!
 contextualMoveMethod
-	self halt.
+	"self halt."
 	self isEditingClassDefinition ifTrue: [ ^morph flash ].
 	self ifSourceCodeRefactoringCanBeAppliedDo: [
 		self
@@ -2581,18 +2913,16 @@ contextualMoveMethod
 			ifErrorsParsing: [ :anError | morph flash ]	]	
 	! !
 
-!SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/6/2023 23:00:26'!
+!SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 8/6/2023 14:13:38'!
 contextualMoveMethod: aKeyboardEvent
+"self halt."
 	self contextualMoveMethod.
 	^true
 	! !
 
-!SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/5/2023 19:32:51'!
+!SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 8/8/2023 01:05:07'!
 contextualMoveMethodOf: aMethodNode in: aSelectedClass
-	RefactoringApplier moveMethodApplier
-					createAndValueHandlingExceptionsOn: model textProvider
-					forMethod: (MethodReference class: aSelectedClass selector: aMethodNode selector).
-"
+	| aReference |
 	aMethodNode
 		withParseNodeIncluding: self startIndex
 		do: [ :nodeUnderCursor |
@@ -2610,12 +2940,12 @@ contextualMoveMethodOf: aMethodNode in: aSelectedClass
 					ifNone: [self shouldNotHappen ])]
 		ifAbsent: [
 			self startIndex <= aMethodNode selectorLastPosition ifFalse: [ ^ morph flash ].
-
+			aReference := MethodReference class: aSelectedClass selector: aMethodNode selector.
 			RefactoringApplier moveMethodApplier
 				createAndValueHandlingExceptionsOn: model textProvider
-				forMethod: (MethodReference class: aSelectedClass selector: aMethodNode selector)]
+				forMethod: aReference]
 
-"! !
+! !
 
 !SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/4/2023 00:17:55'!
 ifSourceCodeRefactoringCanBeAppliedDo: aBlock
@@ -2624,11 +2954,18 @@ ifSourceCodeRefactoringCanBeAppliedDo: aBlock
 		ifTrue: [ self inform: 'This refactoring can not be applied when there are unsaved changes' ]
 		ifFalse: aBlock! !
 
-!RefactoringApplier class methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/6/2023 23:04:42'!
-moveInstanceMethodApplierId
-	^#moveInstanceMethodApplier! !
-
-!RefactoringApplier class methodsFor: '*MoveMethodRefactoring' stamp: 'mc 7/18/2023 00:17:40'!
+!RefactoringApplier class methodsFor: '*MoveMethodRefactoring' stamp: 'mc 8/6/2023 14:28:20'!
 moveMethodApplier
 
-	^self applierAt: self moveInstanceMethodApplierId ifAbsent: [ MoveMethodApplier ]! !
+	^self applierAt: self moveMethodApplierId ifAbsent: [ MoveMethodApplier ]! !
+
+!RefactoringApplier class methodsFor: '*MoveMethodRefactoring' stamp: 'mc 8/6/2023 15:07:01'!
+moveMethodApplierId
+	^#moveMethodApplier! !
+
+!RefactoringApplier class methodsFor: '*MoveMethodRefactoring' stamp: 'mc 8/6/2023 15:13:19'!
+registerMoveMethodApplier: aMoveMethodApplierClass
+
+	self registerApplierAt: self moveMethodApplierId with: aMoveMethodApplierClass
+! !
+MoveMethodApplier initialize!
