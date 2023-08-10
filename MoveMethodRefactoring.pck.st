@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5962] on 9 August 2023 at 11:44:12 pm'!
+'From Cuis 6.0 [latest update: #5962] on 10 August 2023 at 1:05:03 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 46!
+!provides: 'MoveMethodRefactoring' 1 47!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -2690,6 +2690,16 @@ implementorsAndMessageSendsForClass
 	sendsToChange := OrderedCollection new.
 	(sourceClass whichSelectorsReferTo: methodToMove) do: [ :aSelector |
 		sendsToChange addAll: (self findReferencesToSelector: methodToMove in: (MethodReference class: sourceClass selector: aSelector))]! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/10/2023 00:55:44'!
+implementorsAndMessageSendsForHierarchy
+	| highestClassImplementingOldSelector |
+	sendsToChange := OrderedCollection new.
+	highestClassImplementingOldSelector := sourceClass highestClassImplementing: methodToMove ifNone: [ sourceClass ].
+	highestClassImplementingOldSelector theNonMetaClass withAllSubclassesDo: [ :aPotentialClassToRefactor |
+		aPotentialClassToRefactor isMeta ifFalse: [
+			(sourceClass whichSelectorsReferTo: methodToMove) do: [ :aSelector |
+				sendsToChange addAll: (self findReferencesToSelector: methodToMove in: (MethodReference class: aPotentialClassToRefactor selector: aSelector))] ]]! !
 
 !MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 18:16:04'!
 isActualScopeChoice
