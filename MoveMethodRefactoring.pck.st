@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5962] on 10 August 2023 at 11:21:24 pm'!
+'From Cuis 6.0 [latest update: #5962] on 11 August 2023 at 1:43:54 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 48!
+!provides: 'MoveMethodRefactoring' 1 49!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -2711,6 +2711,22 @@ implementorsAndMessageSendsInCategory
 		(aPotentialClassToRefactor whichSelectorsReferTo: methodToMove) do: [ :aSelector |
 			sendsToChange addAll: (self findReferencesToSelector: methodToMove in: (MethodReference class: aPotentialClassToRefactor selector: aSelector))].
 	].! !
+
+!MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/11/2023 01:24:52'!
+implementorsAndMessageSendsInCategoryAndHierarchy
+	| highestClassImplementingOldSelector categories classesInCategory |
+	sendsToChange := OrderedCollection new.
+	categories := Set new.
+	highestClassImplementingOldSelector := sourceClass highestClassImplementing: methodToMove ifNone: [ sourceClass ].
+	highestClassImplementingOldSelector theNonMetaClass withAllSubclassesDo: [ :aPotentialClassToRefactor |
+		aPotentialClassToRefactor isMeta ifFalse: [categories add: aPotentialClassToRefactor category.]].
+	
+	categories do: [ :aCategory |
+		classesInCategory := SystemOrganization classesAt: aCategory.
+		classesInCategory do: [ :aPotentialClassToRefactor |
+			(aPotentialClassToRefactor whichSelectorsReferTo: methodToMove) do: [ :aSelector |
+				sendsToChange addAll: (self findReferencesToSelector: methodToMove in: (MethodReference class: aPotentialClassToRefactor selector: aSelector))].
+		]]! !
 
 !MoveMethodApplier methodsFor: 'evaluating' stamp: 'mc 8/6/2023 18:16:04'!
 isActualScopeChoice
