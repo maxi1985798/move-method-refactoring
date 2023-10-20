@@ -1,12 +1,12 @@
-'From Cuis 6.0 [latest update: #5981] on 16 September 2023 at 1:33:40 am'!
+'From Cuis 6.0 [latest update: #5981] on 8 October 2023 at 6:26:59 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 61!
+!provides: 'MoveMethodRefactoring' 1 62!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
 !classDefinition: #CodeForNodeToMove category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #CodeForNodeToMove
-	instanceVariableNames: 'compiledMethod intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables parameterNeeded'
+	instanceVariableNames: 'compiledMethod intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables parameterNeeded variableToAccesThrough'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -115,8 +115,8 @@ TesisMoveMethodRefactoringMenu class
 	instanceVariableNames: ''!
 
 
-!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 9/14/2023 01:24:24'!
-initializeFor: aCompiledMethod rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: aParameterNeeded 
+!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 10/8/2023 02:36:42'!
+initializeFor: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: aParameterNeeded 
 	compiledMethod := aCompiledMethod.
 	intervalsToReject := aFewIntervalsToReject.
 	node := aNodeToGetCode.
@@ -125,9 +125,10 @@ initializeFor: aCompiledMethod rejectingIntervals: aFewIntervalsToReject onNode:
 	writeAccessOnInstanceVariables := Set new.
 	readAccessOnClassVariables := Set new.
 	writeAccessOnClassVariables := Set new.
-	parameterNeeded := aParameterNeeded ! !
+	parameterNeeded := aParameterNeeded.
+	variableToAccesThrough := aVariableToAccesoThroughName! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 9/16/2023 01:24:34'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 10/8/2023 02:35:18'!
 visitAssignmentNode: anAssignmentNode 
 	| assigmentValue completeRangesOfassigmentNode nodeXXXReplacer resultForValue setterSelectorAsString |
 	"self halt."
@@ -135,7 +136,7 @@ visitAssignmentNode: anAssignmentNode
 	completeRangesOfassigmentNode := self firstUnseenIntervalFor: anAssignmentNode.
 	nodeXXXReplacer := CodeForNodeToMove 
 					for: compiledMethod
-					rejectingIntervals: intervalsToReject 
+					variableToAcessThrough: instanceVariable rejectingIntervals: intervalsToReject 
 					onNode: anAssignmentNode value
 					parameterNeeded: parameterNeeded.
 					
@@ -169,14 +170,18 @@ visitAssignmentNode: anAssignmentNode
 	
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 9/1/2023 00:35:54'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 10/8/2023 03:01:50'!
 visitInstanceVariableNode: anInstanceVariableNode 
 	| sourceCodeForInterval anInterval |
 	"self halt."
 	anInterval := self firstUnseenIntervalFor: anInstanceVariableNode.
-	sourceCodeForInterval := parameterNeeded parameterName, ' ', anInstanceVariableNode key.
+	(anInstanceVariableNode name = variableToAccesThrough)
+		ifTrue: [sourceCodeForInterval := 'self'.]
+		ifFalse: [
+			sourceCodeForInterval := parameterNeeded parameterName, ' ', anInstanceVariableNode key.
+			readAccessOnInstanceVariables add: anInstanceVariableNode key.].
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
-	readAccessOnInstanceVariables add: anInstanceVariableNode key.! !
+	! !
 
 !CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 9/10/2023 00:22:43'!
 visitLiteralVariableNode: aLiteralVariableNode 
@@ -313,7 +318,7 @@ newSelector: aMessageNode
 	newSelector := 'CHANGE_ME_super_', (newSelector copyFrom: 2 to: newSelector size).
 	^newSelector! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 9/16/2023 01:24:34'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 10/8/2023 02:35:18'!
 newSenderFor: aMessageNode
 	|  newSend argumentsCode argumentIndex replacer replacerResult argumentNode |
 	argumentsCode := OrderedCollection new.
@@ -323,7 +328,7 @@ newSenderFor: aMessageNode
 		argumentNode := aMessageNode argumentsInEvaluationOrder at: argumentIndex.
 		replacer := CodeForNodeToMove 
 					for: compiledMethod
-					rejectingIntervals: intervalsToReject
+					variableToAcessThrough: instanceVariable rejectingIntervals: intervalsToReject
 					onNode: argumentNode
 					parameterNeeded: parameterNeeded.
 		replacerResult := replacer apply.
@@ -371,19 +376,21 @@ apply
 	result := CodeForNodeToMoveResult newWith: newCode modifiedReads: readAccessOnInstanceVariables modifiedWrites: writeAccessOnInstanceVariables modifiedClassReads: readAccessOnClassVariables modifiedClassWrites:writeAccessOnClassVariables .
 	^result! !
 
-!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 9/3/2023 02:55:12'!
-for: compiledMethod parameterNeeded: parameterNeeded
+!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 10/8/2023 02:35:30'!
+for: compiledMethod variableToAccesThrough: aVariableToAccesoThroughName parameterNeeded: parameterNeeded
 	^self 
 		for: compiledMethod
+		variableToAcessThrough: aVariableToAccesoThroughName 
 		rejectingIntervals: OrderedCollection new
 		onNode: compiledMethod methodNode
 		parameterNeeded: parameterNeeded.
 	! !
 
-!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 9/3/2023 02:54:45'!
-for: aCompiledMethod rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: parameterNeeded
+!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 10/8/2023 02:36:59'!
+for: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: parameterNeeded
 	^self new 
 		initializeFor: aCompiledMethod
+		variableToAcessThrough: aVariableToAccesoThroughName
 		rejectingIntervals: aFewIntervalsToReject
 		onNode: aNodeToGetCode
 		parameterNeeded: parameterNeeded! !
@@ -1335,6 +1342,31 @@ test205CanMoveMethodWhenSendsKeywordMessageToSuperWithOneTmpVarAsColaborators
 	self assert: 'm1: sourceObject |asd| ^sourceObject CHANGE_ME_super_increment: asd.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass sourceCodeAt: #CHANGE_ME_super_increment:)! !
 
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 10/8/2023 01:45:15'!
+test300MovingMethodWichUsesAccesingThroughVariableShouldBeRepalcedForSelf
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'm1 ^iv3 + iv1 number.' .
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #m1 
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: (ExtraParameterNameNeeded 
+							parameterName: 'sourceObject').
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject iv3 + self number.' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'm1
+	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
+	self deny: (sourceClass includesSelector: #iv1).
+	self assert: 'iv3', String newLineString, String tab, '^iv3.' equals: (sourceClass sourceCodeAt: #iv3).! !
+
 !MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 9/3/2023 02:57:54'!
 initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: anInstanceVariable changingSenders: aCollectionOfSendersToChange parameterNeeded: anExtraParameterNeeded 
 	methodName := aMethodName.
@@ -1424,10 +1456,10 @@ method: setterCandidate isSetterOf: anInstVarName
 	scanner movePcForward.
 	^scanner nextByte = 16r7C! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 9/16/2023 01:24:34'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 10/8/2023 02:33:32'!
 replaceDependenciesFromSource: compiledMethod
 	| replacer |
-	replacer := CodeForNodeToMove for: compiledMethod parameterNeeded: parameterNeeded .
+	replacer := CodeForNodeToMove for: compiledMethod variableToAccesThrough: instanceVariable parameterNeeded: parameterNeeded .
 	^replacer apply.! !
 
 !MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 9/7/2023 22:56:57'!
