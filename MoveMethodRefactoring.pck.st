@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5981] on 24 November 2023 at 2:15:00 am'!
+'From Cuis 6.0 [latest update: #5981] on 26 November 2023 at 2:56:21 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 64!
+!provides: 'MoveMethodRefactoring' 1 65!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -183,10 +183,11 @@ visitInstanceVariableNode: anInstanceVariableNode
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 9/10/2023 00:22:43'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 11/26/2023 02:55:24'!
 visitLiteralVariableNode: aLiteralVariableNode 
 	| sourceCodeForInterval anInterval |
 	"self halt."
+	aLiteralVariableNode isReferencingGlobal ifTrue: [^self].
 	anInterval := self firstUnseenIntervalFor: aLiteralVariableNode.
 	sourceCodeForInterval := parameterNeeded parameterName, ' ', aLiteralVariableNode name uncapitalized.
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
@@ -404,9 +405,10 @@ visitInstanceVariableNode: anInstanceVariableNode
 	
 	needParameterName := needParameterName or: [instanceVariableNameToAccessThrough ~= anInstanceVariableNode name].! !
 
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 8/31/2023 23:56:17'!
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 11/26/2023 02:53:23'!
 visitLiteralVariableNode: aLiteralVariableNode 
-	needParameterName := true! !
+
+	needParameterName := aLiteralVariableNode  isReferencingGlobal not.! !
 
 !NeedParameterName methodsFor: 'visiting' stamp: 'mc 8/24/2023 23:53:27'!
 visitVariableNode: aVariableNode 
@@ -1468,6 +1470,29 @@ test302CanMoveMethodWhenVariableToAccesThroughIsInSuperClass
 	refactoring apply.
 	
 	self assert: 'm1 ^1.' equals: (targetClass sourceCodeAt: #m1).
+	self assert: 'm1
+	^iv1 m1.' equals: (sourceClass sourceCodeAt: #m1)! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/26/2023 02:50:36'!
+test303AfterMovingMethodWhichReferencesAClassShouldKeepTheClass
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass  subclassOf: Object instanceVariableNames: 'iv1' classVariableNames: 'Icv1' poolDictionaries: '' category: self class classCategoryOfTestData.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'm1 ^Array new.'.
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #m1 
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: NonExtraParameterNameNeeded new.
+	refactoring apply.
+	
+	self assert: 'm1 ^Array new.' equals: (targetClass sourceCodeAt: #m1).
 	self assert: 'm1
 	^iv1 m1.' equals: (sourceClass sourceCodeAt: #m1)! !
 
