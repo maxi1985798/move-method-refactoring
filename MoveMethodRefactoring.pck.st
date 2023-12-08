@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5981] on 7 December 2023 at 12:54:09 am'!
+'From Cuis 6.0 [latest update: #5981] on 8 December 2023 at 2:41:30 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 66!
+!provides: 'MoveMethodRefactoring' 1 67!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -761,6 +761,25 @@ test018InstanceVariableToAccessingThroughShouldHaveAtLeastOneAssignation
 				parameterNeeded: NonExtraParameterNameNeeded new ]  
 		raise: self refactoringWarning 
 		withMessageText: [MoveMethodRefactoring instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: 'iv1'].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/8/2023 02:33:29'!
+test019ClassMethodToMoveShouldNotBeNil
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class compile: 'm1 ^1' .
+	
+	
+	self 
+		assertCreation: [MoveMethodRefactoring 
+						classMethodNamed: nil
+						from: sourceClass
+						to: targetClass
+						parameterNeeded: NonExtraParameterNameNeeded new.]  
+		failsWith: [MoveMethodRefactoring classMethodToMoveShouldNotBeNilErrorMessage].
 		! !
 
 !MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:00:02'!
@@ -1733,9 +1752,9 @@ replaceDependenciesFromSource: compiledMethod
 	replacer := CodeForNodeToMove for: compiledMethod variableToAccesThrough: instanceVariable parameterNeeded: parameterNeeded .
 	^replacer apply.! !
 
-!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 12/4/2023 00:08:25'!
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 12/8/2023 02:34:24'!
 classMethodNamed: methodName from: sourceClass to: targetClass parameterNeeded: anExtraParameterNeeded 
-	
+	(methodName isNil) ifTrue: [ self refactoringError: self classMethodToMoveShouldNotBeNilErrorMessage ].
 	^self new initializeClassMethodNamed: methodName from: sourceClass class to: targetClass class parameterNeeded: anExtraParameterNeeded ! !
 
 !MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 9/7/2023 22:56:57'!
@@ -1772,6 +1791,10 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: inst
 		changingSenders: OrderedCollection new 
 		parameterNeeded: anExtraParameterNeeded 
 		! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 12/8/2023 02:35:10'!
+classMethodToMoveShouldNotBeNilErrorMessage
+	^'class method to move should not be nil'! !
 
 !MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 4/5/2023 02:12:56'!
 instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage
@@ -1845,14 +1868,24 @@ initializeInitializeOn: aModel forMethod: aMethodReference
 	model := aModel.
 	methodReference := aMethodReference.! !
 
-!MoveMethodApplier methodsFor: 'refactoring - creation' stamp: 'mc 9/5/2023 00:03:10'!
+!MoveMethodApplier methodsFor: 'refactoring - creation' stamp: 'mc 12/7/2023 23:34:11'!
 createRefactoring
-	^MoveMethodRefactoring 
-		methodNamed: methodToMove 
-		from: sourceClass 
-		to: targetClass 
-		accessingThrough: accessingThroughinstanceVariableName 
-		parameterNeeded: extraParameter . ! !
+	"self halt."
+	sourceClass isMeta 
+		ifTrue: [
+			^MoveMethodRefactoring 
+				classMethodNamed: methodToMove
+				from: sourceClass soleInstance
+				to: targetClass
+				parameterNeeded: extraParameter.]
+		ifFalse: [
+			^MoveMethodRefactoring 
+				methodNamed: methodToMove 
+				from: sourceClass 
+				to: targetClass 
+				accessingThrough: accessingThroughinstanceVariableName 
+				parameterNeeded: extraParameter . ]
+! !
 
 !MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 11/13/2023 02:06:51'!
 askExtraParameterIfNeeded
@@ -1885,10 +1918,11 @@ askTargetClassName
 	targetClassNameTmp := targetClassNameTmp withoutSeparators.
 	targetClass := Smalltalk at: targetClassNameTmp asSymbol ifAbsent: [Refactoring refactoringErrorClass signal: 'Cant find the target class'].! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 8/6/2023 17:46:55'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/7/2023 23:29:52'!
 chooseInstanceVariableToAccessThrough
 	| vars index |
 	"self halt."
+	sourceClass isMeta ifTrue: [^self].
 	vars := sourceClass allInstVarNames sorted.
 	"vars := vars reject: [ :anInstanceVariable | anInstanceVariable = instanceVariableName ]."
 	vars isEmpty ifTrue: [Refactoring refactoringErrorClass signal: 'There is no instance variable to access through' ].
