@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5981] on 8 December 2023 at 2:41:30 am'!
+'From Cuis 6.0 [latest update: #5981] on 9 December 2023 at 8:09:51 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 67!
+!provides: 'MoveMethodRefactoring' 1 71!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -22,6 +22,16 @@ ParseNodeVisitor subclass: #NeedParameterName
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'NeedParameterName class' category: 'MoveMethodRefactoring'!
 NeedParameterName class
+	instanceVariableNames: ''!
+
+!classDefinition: #NeedParameterNameForClassMethod category: 'MoveMethodRefactoring'!
+ParseNodeVisitor subclass: #NeedParameterNameForClassMethod
+	instanceVariableNames: 'needParameterName'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'NeedParameterNameForClassMethod class' category: 'MoveMethodRefactoring'!
+NeedParameterNameForClassMethod class
 	instanceVariableNames: ''!
 
 !classDefinition: #MoveMethodRefactoringTest category: 'MoveMethodRefactoring'!
@@ -431,6 +441,27 @@ newAccessingThrough: instanceVariable
 	
 	^self new initializeNewAccessingThrough: instanceVariable ! !
 
+!NeedParameterNameForClassMethod methodsFor: 'accessing' stamp: 'mc 12/9/2023 02:44:10'!
+needParameterName
+	^needParameterName! !
+
+!NeedParameterNameForClassMethod methodsFor: 'initialization' stamp: 'mc 12/9/2023 02:45:20'!
+initialize
+	needParameterName := false.
+	super initialize.! !
+
+!NeedParameterNameForClassMethod methodsFor: 'visiting' stamp: 'mc 12/9/2023 03:47:00'!
+visitInstanceVariableNode: anInstanceVariableNode 
+	needParameterName := true! !
+
+!NeedParameterNameForClassMethod methodsFor: 'visiting' stamp: 'mc 12/9/2023 02:46:56'!
+visitLiteralVariableNode: aLiteralVariableNode 
+	needParameterName := true.! !
+
+!NeedParameterNameForClassMethod methodsFor: 'visiting' stamp: 'mc 12/9/2023 03:41:54'!
+visitVariableNode: aVariableNode 
+	needParameterName := true.! !
+
 !MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 9/13/2023 21:53:19'!
 test001SelectorShouldExistsOnSourceClass
 	
@@ -780,6 +811,224 @@ test019ClassMethodToMoveShouldNotBeNil
 						to: targetClass
 						parameterNeeded: NonExtraParameterNameNeeded new.]  
 		failsWith: [MoveMethodRefactoring classMethodToMoveShouldNotBeNilErrorMessage].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/8/2023 02:58:54'!
+test020SourceClassShouldNotBeNil
+	
+	| sourceClass targetClass |
+	
+	sourceClass := nil.
+	targetClass := self createClassNamed: #TargetClass.
+	
+	
+	self 
+		assertCreation: [MoveMethodRefactoring 
+						classMethodNamed: #m1
+						from: sourceClass
+						to: targetClass
+						parameterNeeded: NonExtraParameterNameNeeded new.]  
+		failsWith: [MoveMethodRefactoring sourceClassShouldNotBeNilErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/8/2023 03:00:09'!
+test021TargetClassShouldNotBeNil
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := nil.
+	
+	
+	self 
+		assertCreation: [MoveMethodRefactoring 
+						classMethodNamed: #m1
+						from: sourceClass
+						to: targetClass
+						parameterNeeded: NonExtraParameterNameNeeded new.]  
+		failsWith: [MoveMethodRefactoring targetClassShouldNotBeNilErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/8/2023 23:53:14'!
+test022ClassMethodShouldNotExistsInTarget
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class compile: 'm1 ^1' .
+	targetClass class compile: 'm1 ^2' .
+	
+	self 
+		assertCreation: [MoveMethodRefactoring 
+						classMethodNamed: #m1
+						from: sourceClass
+						to: targetClass
+						parameterNeeded: NonExtraParameterNameNeeded new.]  
+		failsWith: [MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/9/2023 01:29:23'!
+test023ClassMethodShouldExistsInSouceClass
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	
+	self 
+		assertCreation: [MoveMethodRefactoring 
+						classMethodNamed: #m1
+						from: sourceClass
+						to: targetClass
+						parameterNeeded: NonExtraParameterNameNeeded new.]  
+		failsWith: [MoveMethodRefactoring classMethodShouldExistsOnSourceClassErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/9/2023 20:02:58'!
+test024ClassSelectorWithNewParameterShouldNotExistsOnTargetClass
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class addInstVarName: 'iv2'.
+	sourceClass class compile: 'm1 ^iv2' .
+	targetClass class compile: 'm1: anObject ^1' .
+
+	
+	self 
+		assertCreation: [MoveMethodRefactoring 
+						classMethodNamed: #m1
+						from: sourceClass
+						to: targetClass
+						parameterNeeded: (ExtraParameterNameNeeded 
+									parameterName: 'originalClass').]  
+		failsWith: [MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/9/2023 20:03:33'!
+test025ClassSelectorWithNewParameterAndKeywordShouldNotExistsOnTargetClass
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class addInstVarName: 'iv2'.
+	sourceClass class compile: 'm1: anInt ^iv2'.
+	targetClass class compile: 'm1: anInt originalObject: originalObject ^originalObject + anInt' .
+
+	
+	self 
+		assertCreation: [MoveMethodRefactoring 
+						classMethodNamed: #m1:
+						from: sourceClass
+						to: targetClass
+						parameterNeeded: (ExtraParameterNameNeededAndExtraKeyword
+									parameterName: 'originalObject'
+									extraKeyword: 'originalObject').]  
+		failsWith: [MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/9/2023 20:03:50'!
+test026ClassSelectorWithNewParameterAndKeywordShouldNotExistsOnTargetClass
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class compile: 'm1: anInt ^self'.
+
+	
+	self 
+		assertCreation: [MoveMethodRefactoring 
+						classMethodNamed: #m1:
+						from: sourceClass
+						to: targetClass
+						parameterNeeded: (ExtraParameterNameNeeded 
+											parameterName: 'sourceObject').]  
+		failsWith: [MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/9/2023 20:04:02'!
+test027NameForANewParameterShouldBeProvidedIfNeeded
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class compile: 'm1 ^self'.
+
+	
+	self 
+		assertCreation: [MoveMethodRefactoring 
+						classMethodNamed: #m1
+						from: sourceClass
+						to: targetClass
+						parameterNeeded: NonExtraParameterNameNeeded new.]  
+		failsWith: [MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/9/2023 20:04:14'!
+test028NameForANewParameterKeywordShouldBeProvidedIfNeeded
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class compile: 'm1: anInt ^self'.
+
+	
+	self 
+		assertCreation: [MoveMethodRefactoring 
+						classMethodNamed: #m1: 
+						from: sourceClass
+						to: targetClass
+						parameterNeeded: (ExtraParameterNameNeeded 
+							parameterName: 'sourceObject').]  
+		failsWith: [MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/9/2023 20:04:26'!
+test029ShouldNotPassNameForNewParameterWhenIsNotNeeded
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class compile: 'm1 ^1.'.
+
+	
+	self 
+		assertCreation: [MoveMethodRefactoring 
+						classMethodNamed: #m1
+						from: sourceClass
+						to: targetClass
+						parameterNeeded: (ExtraParameterNameNeeded 
+									parameterName: 'extraParameterName').]  
+		failsWith: [MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/9/2023 20:06:38'!
+test030ShouldNotPassNameForNewParameterWhenIsNotNeeded
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class addInstVarName: 'iv2'.
+	sourceClass class compile: 'm1 ^iv2.'.
+
+	
+	self 
+		assertCreation: [MoveMethodRefactoring 
+						classMethodNamed: #m1
+						from: sourceClass
+						to: targetClass
+						parameterNeeded: (ExtraParameterNameNeededAndExtraKeyword 
+								parameterName: 'extraParameterName' 
+								extraKeyword: 'extraKeywordName').]  
+		failsWith: [MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage ].
 		! !
 
 !MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:00:02'!
@@ -1752,9 +2001,19 @@ replaceDependenciesFromSource: compiledMethod
 	replacer := CodeForNodeToMove for: compiledMethod variableToAccesThrough: instanceVariable parameterNeeded: parameterNeeded .
 	^replacer apply.! !
 
-!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 12/8/2023 02:34:24'!
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 12/9/2023 02:34:17'!
 classMethodNamed: methodName from: sourceClass to: targetClass parameterNeeded: anExtraParameterNeeded 
 	(methodName isNil) ifTrue: [ self refactoringError: self classMethodToMoveShouldNotBeNilErrorMessage ].
+	(sourceClass isNil) ifTrue: [ self refactoringError: self sourceClassShouldNotBeNilErrorMessage].
+	(targetClass isNil) ifTrue: [ self refactoringError: self targetClassShouldNotBeNilErrorMessage ].
+	(targetClass class includesSelector: methodName) ifTrue: [ self refactoringError: self classMethodShouldNotExistsOnTargertClassErrorMessage ].
+	(sourceClass class includesSelector: methodName) ifFalse: [ self refactoringError: self classMethodShouldExistsOnSourceClassErrorMessage ].
+
+	anExtraParameterNeeded 
+		assertIfCanMoveClassMethod: methodName
+		from: sourceClass
+		to: targetClass.
+	
 	^self new initializeClassMethodNamed: methodName from: sourceClass class to: targetClass class parameterNeeded: anExtraParameterNeeded ! !
 
 !MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 9/7/2023 22:56:57'!
@@ -1791,6 +2050,16 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: inst
 		changingSenders: OrderedCollection new 
 		parameterNeeded: anExtraParameterNeeded 
 		! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 12/9/2023 01:30:44'!
+classMethodShouldExistsOnSourceClassErrorMessage
+	
+	^'class method should exists on source class'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 12/9/2023 01:01:16'!
+classMethodShouldNotExistsOnTargertClassErrorMessage
+	
+	^'class method should not exists on targert class'! !
 
 !MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 12/8/2023 02:35:10'!
 classMethodToMoveShouldNotBeNilErrorMessage
@@ -1860,6 +2129,18 @@ needParameterNameToMove: methodName from: sourceClass accessingThrough: instance
 	methodNode := compiledMethod methodNode.
 	needParameterName := false.
 	needParameterNameVisitor := NeedParameterName newAccessingThrough: instanceVariable .
+	methodNode accept: needParameterNameVisitor.
+	^needParameterNameVisitor needParameterName! !
+
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 12/9/2023 02:42:59'!
+needParameterNameToMoveClassMethod: methodName from: sourceClass 
+	
+	| compiledMethod methodNode needParameterName needParameterNameVisitor |
+	
+	compiledMethod := sourceClass class compiledMethodAt: methodName.
+	methodNode := compiledMethod methodNode.
+	needParameterName := false.
+	needParameterNameVisitor := NeedParameterNameForClassMethod new.
 	methodNode accept: needParameterNameVisitor.
 	^needParameterNameVisitor needParameterName! !
 
@@ -2034,6 +2315,18 @@ assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: 
 	
 	(targetClass includesSelector: (methodName asString, ':') asSymbol ) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage]! !
 
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/9/2023 19:32:30'!
+assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
+	| needParameter |
+	
+	needParameter := MoveMethodRefactoring needParameterNameToMoveClassMethod: methodName from: sourceClass.
+	
+	needParameter ifFalse: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
+	
+	(methodName isUnary) ifFalse: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage].
+	
+	(targetClass class includesSelector: (methodName asString, ':') asSymbol) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage]! !
+
 !ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 9/7/2023 22:53:28'!
 associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection  
 	| assoc |
@@ -2068,6 +2361,19 @@ assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: 
 	
 	(targetClass includesSelector: (methodName asString, extraKeyword, ':') asSymbol ) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage]! !
 
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 12/9/2023 20:08:15'!
+assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
+	| needParameter |
+	
+	needParameter := MoveMethodRefactoring needParameterNameToMoveClassMethod: methodName from: sourceClass.
+	
+	needParameter ifFalse:[Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
+	
+	methodName isKeyword
+		ifFalse:[Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage].
+	
+	(targetClass class includesSelector: (methodName asString, extraKeyword, ':') asSymbol) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage]! !
+
 !ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 9/7/2023 22:49:35'!
 associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection  
 	| assoc |
@@ -2092,6 +2398,15 @@ assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: 
 	| needParameter |
 	needParameter := MoveMethodRefactoring needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable .
 	needParameter ifTrue: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage]! !
+
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/9/2023 04:00:17'!
+assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
+	
+	| needParameter |
+	
+	needParameter := MoveMethodRefactoring needParameterNameToMoveClassMethod: methodName from: sourceClass.
+	needParameter ifTrue: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
+	! !
 
 !NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 9/7/2023 22:50:59'!
 associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection 
