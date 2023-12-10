@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5981] on 9 December 2023 at 8:09:51 pm'!
+'From Cuis 6.0 [latest update: #5981] on 10 December 2023 at 6:08:58 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 71!
+!provides: 'MoveMethodRefactoring' 1 72!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -2191,11 +2191,11 @@ askExtraParameterIfNeeded
 			extraParameter := NonExtraParameterNameNeeded new.
 			]! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 8/6/2023 17:50:02'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/10/2023 03:38:12'!
 askTargetClassName
-	| targetClassNameTmp |
-	targetClassNameTmp := ClassNameRequestMorph request: 'Enter target class name:' initialAnswer: '' orCancel: requestExitBlock.
-	"self halt."
+	| targetClassNameTmp initialAnswer |
+	initialAnswer := self initialAnswerForInstanceVariable: accessingThroughinstanceVariableName in: sourceClass.
+	targetClassNameTmp := ClassNameRequestMorph request: 'Enter target class name:' initialAnswer: initialAnswer orCancel: requestExitBlock.
 	targetClassNameTmp := targetClassNameTmp withoutSeparators.
 	targetClass := Smalltalk at: targetClassNameTmp asSymbol ifAbsent: [Refactoring refactoringErrorClass signal: 'Cant find the target class'].! !
 
@@ -2215,6 +2215,21 @@ chooseInstanceVariableToAccessThrough
 !MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 8/6/2023 17:42:37'!
 chooseMethodToMove
 	methodToMove := methodReference selector! !
+
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/10/2023 03:37:18'!
+initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSourceClass 
+	
+	| liveTypingTypes |
+	
+	sourceClass shouldLiveTypingBeDisabled 
+		ifTrue: [^'']
+		ifFalse: [
+			liveTypingTypes := sourceClass typeInfoOfInstanceVariableNamed: accessingThroughinstanceVariableName ifAbsent: [^''].
+			(liveTypingTypes types includes: UndefinedObject) ifTrue: [^''].
+			^liveTypingTypes commonSupertype name asString 
+		]
+		
+	! !
 
 !MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 8/30/2023 01:38:48'!
 requestRefactoringParameters
@@ -2289,6 +2304,11 @@ assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: 
 
 	self subclassResponsibility! !
 
+!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 12/10/2023 03:05:21'!
+assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
+
+	self subclassResponsibility! !
+
 !MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 9/7/2023 22:58:23'!
 associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection
 
@@ -2315,10 +2335,9 @@ assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: 
 	
 	(targetClass includesSelector: (methodName asString, ':') asSymbol ) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage]! !
 
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/9/2023 19:32:30'!
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/10/2023 03:02:26'!
 assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
 	| needParameter |
-	
 	needParameter := MoveMethodRefactoring needParameterNameToMoveClassMethod: methodName from: sourceClass.
 	
 	needParameter ifFalse: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
@@ -2393,10 +2412,12 @@ parameterName: aParameterName extraKeyword: anExtraKeyword
 	
 	^self new initializeParameterName: aParameterName extraKeyword: anExtraKeyword! !
 
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 11/13/2023 01:45:56'!
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/10/2023 03:04:48'!
 assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
 	| needParameter |
-	needParameter := MoveMethodRefactoring needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable .
+	
+	needParameter := MoveMethodRefactoring needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable.
+	
 	needParameter ifTrue: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage]! !
 
 !NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/9/2023 04:00:17'!
