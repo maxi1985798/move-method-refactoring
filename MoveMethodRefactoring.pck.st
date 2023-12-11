@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5981] on 10 December 2023 at 6:08:58 pm'!
+'From Cuis 6.0 [latest update: #5981] on 11 December 2023 at 12:37:59 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 72!
+!provides: 'MoveMethodRefactoring' 1 76!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -62,6 +62,16 @@ TransferMethodApplier subclass: #MoveMethodApplier
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'MoveMethodApplier class' category: 'MoveMethodRefactoring'!
 MoveMethodApplier class
+	instanceVariableNames: ''!
+
+!classDefinition: #MoveMethodWithActualScopeApplier category: 'MoveMethodRefactoring'!
+MoveMethodApplier subclass: #MoveMethodWithActualScopeApplier
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'MoveMethodWithActualScopeApplier class' category: 'MoveMethodRefactoring'!
+MoveMethodWithActualScopeApplier class
 	instanceVariableNames: ''!
 
 !classDefinition: #CodeForNodeToMoveResult category: 'MoveMethodRefactoring'!
@@ -2216,18 +2226,10 @@ chooseInstanceVariableToAccessThrough
 chooseMethodToMove
 	methodToMove := methodReference selector! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/10/2023 03:37:18'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/10/2023 23:44:41'!
 initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSourceClass 
 	
-	| liveTypingTypes |
-	
-	sourceClass shouldLiveTypingBeDisabled 
-		ifTrue: [^'']
-		ifFalse: [
-			liveTypingTypes := sourceClass typeInfoOfInstanceVariableNamed: accessingThroughinstanceVariableName ifAbsent: [^''].
-			(liveTypingTypes types includes: UndefinedObject) ifTrue: [^''].
-			^liveTypingTypes commonSupertype name asString 
-		]
+	^''
 		
 	! !
 
@@ -2257,15 +2259,30 @@ showChanges
 createAndValueHandlingExceptionsOn: aModel forMethod: aMethodReference 
 	self createAndValueHandlingExceptions: [ self initializeOn: aModel forMethod: aMethodReference ].! !
 
-!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 8/6/2023 15:35:52'!
+!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 12/11/2023 00:37:44'!
 initialize
-
-	RefactoringApplier 
-		registerMoveMethodApplier: MoveMethodApplier.! !
+	(Smalltalk classNamed: #LiveTyping) ifNotNil: [
+		RefactoringApplier 
+			registerMoveMethodApplier: MoveMethodWithActualScopeApplier.
+	].
+	! !
 
 !MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 8/6/2023 16:51:50'!
 initializeOn: aModel forMethod: aMethodReference 
 	^self new initializeInitializeOn: aModel forMethod: aMethodReference ! !
+
+!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/11/2023 00:28:04'!
+initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSourceClass 
+	
+	| liveTypingTypes |
+	"self halt."
+	sourceClass shouldLiveTypingBeDisabled 
+		ifTrue: [^'']
+		ifFalse: [
+			liveTypingTypes := sourceClass typeInfoOfInstanceVariableNamed: accessingThroughinstanceVariableName ifAbsent: [^''].
+			(liveTypingTypes types includes: UndefinedObject) ifTrue: [^''].
+			^liveTypingTypes commonSupertype name asString 
+		]! !
 
 !CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 5/24/2023 17:43:48'!
 readAccessOnClassVariables
@@ -2518,9 +2535,9 @@ moveMethod
 			createAndValueHandlingExceptionsOn: model
 			forMethod: (MethodReference class: model selectedClassOrMetaClass selector: selectorToInline )]! !
 
-!RefactoringApplier class methodsFor: '*MoveMethodRefactoring' stamp: 'mc 8/6/2023 14:28:20'!
+!RefactoringApplier class methodsFor: '*MoveMethodRefactoring' stamp: 'mc 12/11/2023 00:26:05'!
 moveMethodApplier
-
+	"self halt."
 	^self applierAt: self moveMethodApplierId ifAbsent: [ MoveMethodApplier ]! !
 
 !RefactoringApplier class methodsFor: '*MoveMethodRefactoring' stamp: 'mc 8/6/2023 15:07:01'!
