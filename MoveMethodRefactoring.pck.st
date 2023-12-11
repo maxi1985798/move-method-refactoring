@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5981] on 11 December 2023 at 12:37:59 am'!
+'From Cuis 6.0 [latest update: #5981] on 11 December 2023 at 6:59:43 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 76!
+!provides: 'MoveMethodRefactoring' 1 77!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -2271,7 +2271,7 @@ initialize
 initializeOn: aModel forMethod: aMethodReference 
 	^self new initializeInitializeOn: aModel forMethod: aMethodReference ! !
 
-!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/11/2023 00:28:04'!
+!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/11/2023 18:59:06'!
 initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSourceClass 
 	
 	| liveTypingTypes |
@@ -2280,7 +2280,7 @@ initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSo
 		ifTrue: [^'']
 		ifFalse: [
 			liveTypingTypes := sourceClass typeInfoOfInstanceVariableNamed: accessingThroughinstanceVariableName ifAbsent: [^''].
-			(liveTypingTypes types includes: UndefinedObject) ifTrue: [^''].
+			((liveTypingTypes types includes: UndefinedObject) or: [liveTypingTypes types isEmpty]) ifTrue: [^''].
 			^liveTypingTypes commonSupertype name asString 
 		]! !
 
