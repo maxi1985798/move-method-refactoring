@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5981] on 16 December 2023 at 2:16:34 am'!
+'From Cuis 6.0 [latest update: #5981] on 16 December 2023 at 3:10:33 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 78!
+!provides: 'MoveMethodRefactoring' 1 79!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -16,7 +16,7 @@ CodeForNodeToMove class
 
 !classDefinition: #NeedParameterName category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #NeedParameterName
-	instanceVariableNames: 'needParameterName instanceVariable_CHANGE_ME instanceVariableNameToAccessThrough compiledMethod_CHANGE_ME'
+	instanceVariableNames: 'needParameterName instanceVariableNameToAccessThrough compiledMethod'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -76,7 +76,7 @@ MoveMethodWithActualScopeApplier class
 
 !classDefinition: #CodeForNodeToMoveResult category: 'MoveMethodRefactoring'!
 Object subclass: #CodeForNodeToMoveResult
-	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables newCode_CHANGE_ME modifiedReads_CHANGE_ME modifiedWrites_CHANGE_ME modifiedClassReads_CHANGE_ME modifiedClassWrites_CHANGE_ME hasImplicitSelfReturn'
+	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables hasImplicitSelfReturn'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -435,9 +435,9 @@ for: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughName reject
 needParameterName
 	^needParameterName! !
 
-!NeedParameterName methodsFor: 'public' stamp: 'mc 12/12/2023 23:36:50'!
+!NeedParameterName methodsFor: 'public' stamp: 'mc 12/16/2023 02:19:28'!
 value
-	compiledMethod_CHANGE_ME methodNode accept: self.
+	compiledMethod methodNode accept: self.
 	^self needParameterName ! !
 
 !NeedParameterName methodsFor: 'visiting' stamp: 'mc 11/13/2023 02:01:02'!
@@ -450,30 +450,21 @@ visitLiteralVariableNode: aLiteralVariableNode
 
 	needParameterName := aLiteralVariableNode  isReferencingGlobal not.! !
 
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 12/16/2023 02:16:23'!
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 12/16/2023 02:19:28'!
 visitReturnNode: aReturnNode 
 	"creo que ReturnNode>>isImplicitSelfReturnIn: no funca en donde se devuelve ^self"
 	"(aReturnNode isImplicitSelfReturnIn: compiledMethod_CHANGE_ME methodNode)"
-	(self isImplicitSelfReturn: aReturnNode In: compiledMethod_CHANGE_ME methodNode)
+	(self isImplicitSelfReturn: aReturnNode In: compiledMethod methodNode)
 		ifFalse: [super visitReturnNode: aReturnNode ]! !
 
 !NeedParameterName methodsFor: 'visiting' stamp: 'mc 8/24/2023 23:53:27'!
 visitVariableNode: aVariableNode 
 	needParameterName := true.! !
 
-!NeedParameterName methodsFor: 'initialization' stamp: 'mc 8/24/2023 23:50:36'!
-initialize
-	needParameterName := false.
-	super initialize.! !
-
-!NeedParameterName methodsFor: 'initialization' stamp: 'mc 12/12/2023 23:34:37'!
-initializeFor: compiledMethod newAccessingThrough: instanceVariable 
+!NeedParameterName methodsFor: 'initialization' stamp: 'mc 12/16/2023 02:20:37'!
+initializeFor: aCompiledMethod newAccessingThrough: instanceVariable 
 	
-	compiledMethod_CHANGE_ME := compiledMethod.
-	instanceVariableNameToAccessThrough := instanceVariable.! !
-
-!NeedParameterName methodsFor: 'initialization' stamp: 'mc 11/13/2023 01:49:05'!
-initializeNewAccessingThrough: instanceVariable 
+	compiledMethod := aCompiledMethod.
 	instanceVariableNameToAccessThrough := instanceVariable.
 	needParameterName := false.! !
 
@@ -489,11 +480,6 @@ isImplicitSelfReturn: aReturnNode In: aMethodNode
 for: compiledMethod newAccessingThrough: instanceVariable 
 	
 	^self new initializeFor: compiledMethod newAccessingThrough: instanceVariable ! !
-
-!NeedParameterName class methodsFor: 'instance creation' stamp: 'mc 11/13/2023 01:48:07'!
-newAccessingThrough: instanceVariable 
-	
-	^self new initializeNewAccessingThrough: instanceVariable ! !
 
 !NeedParameterNameForClassMethod methodsFor: 'accessing' stamp: 'mc 12/9/2023 02:44:10'!
 needParameterName
