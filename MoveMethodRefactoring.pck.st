@@ -1,12 +1,12 @@
-'From Cuis 6.0 [latest update: #5981] on 11 December 2023 at 6:59:43 pm'!
+'From Cuis 6.0 [latest update: #5981] on 16 December 2023 at 2:16:34 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 77!
+!provides: 'MoveMethodRefactoring' 1 78!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
 !classDefinition: #CodeForNodeToMove category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #CodeForNodeToMove
-	instanceVariableNames: 'compiledMethod intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables parameterNeeded variableToAccesThrough'
+	instanceVariableNames: 'compiledMethod intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables parameterNeeded variableToAccesThrough hasImplicitSelfReturn'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -16,7 +16,7 @@ CodeForNodeToMove class
 
 !classDefinition: #NeedParameterName category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #NeedParameterName
-	instanceVariableNames: 'needParameterName instanceVariable_CHANGE_ME instanceVariableNameToAccessThrough'
+	instanceVariableNames: 'needParameterName instanceVariable_CHANGE_ME instanceVariableNameToAccessThrough compiledMethod_CHANGE_ME'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -76,7 +76,7 @@ MoveMethodWithActualScopeApplier class
 
 !classDefinition: #CodeForNodeToMoveResult category: 'MoveMethodRefactoring'!
 Object subclass: #CodeForNodeToMoveResult
-	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables'
+	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables newCode_CHANGE_ME modifiedReads_CHANGE_ME modifiedWrites_CHANGE_ME modifiedClassReads_CHANGE_ME modifiedClassWrites_CHANGE_ME hasImplicitSelfReturn'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -135,7 +135,7 @@ TesisMoveMethodRefactoringMenu class
 	instanceVariableNames: ''!
 
 
-!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 10/8/2023 02:36:42'!
+!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 12/16/2023 01:24:31'!
 initializeFor: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: aParameterNeeded 
 	compiledMethod := aCompiledMethod.
 	intervalsToReject := aFewIntervalsToReject.
@@ -146,7 +146,8 @@ initializeFor: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughN
 	readAccessOnClassVariables := Set new.
 	writeAccessOnClassVariables := Set new.
 	parameterNeeded := aParameterNeeded.
-	variableToAccesThrough := aVariableToAccesoThroughName! !
+	variableToAccesThrough := aVariableToAccesoThroughName.
+	hasImplicitSelfReturn := false.! !
 
 !CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/6/2023 23:49:37'!
 visitAssignmentNode: anAssignmentNode 
@@ -241,6 +242,12 @@ visitMessageNode: aMessageNode
 			aMessageNode argumentsInEvaluationOrder do: [:argument| argument accept: self]
 			].
 	! !
+
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/13/2023 22:57:15'!
+visitReturnNode: aReturnNode 
+	(aReturnNode isImplicitSelfReturnIn: compiledMethod methodNode)
+		ifTrue: [hasImplicitSelfReturn := true]
+		ifFalse: [super visitReturnNode: aReturnNode]! !
 
 !CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 9/14/2023 01:21:49'!
 visitVariableNode: aVariableNode 
@@ -380,7 +387,7 @@ removeSeenRanges: rangesOfNode
 shouldAddParenthesis: argumentNode 
 	^argumentNode isAssignmentNode! !
 
-!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 9/16/2023 01:25:06'!
+!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 12/13/2023 22:59:37'!
 apply
 	| newCode newCodeForNode result |
 	"self halt."
@@ -396,7 +403,13 @@ apply
 	"self halt."
 	intervalsToModify sort: [ :left :right | left key first < right key first ].
 	newCode := newCodeForNode copyReplacing: intervalsToModify.
-	result := CodeForNodeToMoveResult newWith: newCode modifiedReads: readAccessOnInstanceVariables modifiedWrites: writeAccessOnInstanceVariables modifiedClassReads: readAccessOnClassVariables modifiedClassWrites:writeAccessOnClassVariables .
+	result := CodeForNodeToMoveResult 
+				newWith: newCode 
+				modifiedReads: readAccessOnInstanceVariables
+				modifiedWrites: writeAccessOnInstanceVariables
+				modifiedClassReads: readAccessOnClassVariables
+				modifiedClassWrites:writeAccessOnClassVariables
+				hasImplicitSelfReturn: hasImplicitSelfReturn .
 	^result! !
 
 !CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 10/8/2023 02:35:30'!
@@ -422,6 +435,11 @@ for: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughName reject
 needParameterName
 	^needParameterName! !
 
+!NeedParameterName methodsFor: 'public' stamp: 'mc 12/12/2023 23:36:50'!
+value
+	compiledMethod_CHANGE_ME methodNode accept: self.
+	^self needParameterName ! !
+
 !NeedParameterName methodsFor: 'visiting' stamp: 'mc 11/13/2023 02:01:02'!
 visitInstanceVariableNode: anInstanceVariableNode 
 	
@@ -432,6 +450,13 @@ visitLiteralVariableNode: aLiteralVariableNode
 
 	needParameterName := aLiteralVariableNode  isReferencingGlobal not.! !
 
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 12/16/2023 02:16:23'!
+visitReturnNode: aReturnNode 
+	"creo que ReturnNode>>isImplicitSelfReturnIn: no funca en donde se devuelve ^self"
+	"(aReturnNode isImplicitSelfReturnIn: compiledMethod_CHANGE_ME methodNode)"
+	(self isImplicitSelfReturn: aReturnNode In: compiledMethod_CHANGE_ME methodNode)
+		ifFalse: [super visitReturnNode: aReturnNode ]! !
+
 !NeedParameterName methodsFor: 'visiting' stamp: 'mc 8/24/2023 23:53:27'!
 visitVariableNode: aVariableNode 
 	needParameterName := true.! !
@@ -441,10 +466,29 @@ initialize
 	needParameterName := false.
 	super initialize.! !
 
+!NeedParameterName methodsFor: 'initialization' stamp: 'mc 12/12/2023 23:34:37'!
+initializeFor: compiledMethod newAccessingThrough: instanceVariable 
+	
+	compiledMethod_CHANGE_ME := compiledMethod.
+	instanceVariableNameToAccessThrough := instanceVariable.! !
+
 !NeedParameterName methodsFor: 'initialization' stamp: 'mc 11/13/2023 01:49:05'!
 initializeNewAccessingThrough: instanceVariable 
 	instanceVariableNameToAccessThrough := instanceVariable.
 	needParameterName := false.! !
+
+!NeedParameterName methodsFor: 'private' stamp: 'mc 12/15/2023 23:22:39'!
+isImplicitSelfReturn: aReturnNode In: aMethodNode
+	
+	aReturnNode isReturnSelf ifFalse: [^false]. 
+	aMethodNode completeSourceRangesOf: aReturnNode ifAbsent: [^true].
+	
+	^false! !
+
+!NeedParameterName class methodsFor: 'instance creation' stamp: 'mc 12/12/2023 23:33:47'!
+for: compiledMethod newAccessingThrough: instanceVariable 
+	
+	^self new initializeFor: compiledMethod newAccessingThrough: instanceVariable ! !
 
 !NeedParameterName class methodsFor: 'instance creation' stamp: 'mc 11/13/2023 01:48:07'!
 newAccessingThrough: instanceVariable 
@@ -618,13 +662,14 @@ test009InstanceVariableToAccessingThroughShouldExistsInSourceClass
 		failsWith: [
 			MoveMethodRefactoring instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 9/16/2023 01:29:52'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/14/2023 01:12:37'!
 test010NameForANewParameterShouldBeProvidedIfNeeded
 	
 	| sourceClass targetClass |
 	
 	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
 	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
 	sourceClass compile: 'm1 ^self' .
 	
 	self
@@ -1184,7 +1229,7 @@ test105CanMoveMethodWhenReferencesAnInstanceVariableForWriting
 	self assert: 'iv3: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass sourceCodeAt: #iv3:).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:02:24'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/16/2023 02:12:29'!
 test106CanMoveMethodWhenReferencesTwoInstanceVariableForWriting
 	
 	| sourceClass targetClass refactoring |
@@ -1206,7 +1251,7 @@ test106CanMoveMethodWhenReferencesTwoInstanceVariableForWriting
 	
 	self assert: 'm1: sourceObject sourceObject iv3: (sourceObject iv4: 1).' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'm1
-	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
+	iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
 	self deny: (sourceClass includesSelector: #iv1).
 	self assert: 'iv3: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass sourceCodeAt: #iv3:).
 	self assert: 'iv4: anObject', String newLineString, String tab, '^iv4 := anObject.' equals: (sourceClass sourceCodeAt: #iv4:).! !
@@ -1238,7 +1283,7 @@ test107CanMoveMethodWhenReferencesInstanceVariableAnd2Params
 	self deny: (sourceClass includesSelector: #iv1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:03:09'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/16/2023 02:13:16'!
 test107CanMoveMethodWhenReferencesTwoInstanceVariableForWritingAndOneForReading
 	
 	| sourceClass targetClass refactoring |
@@ -1260,7 +1305,7 @@ test107CanMoveMethodWhenReferencesTwoInstanceVariableForWritingAndOneForReading
 	
 	self assert: 'm1: sourceObject sourceObject iv3: (sourceObject iv4: sourceObject iv5).' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'm1
-	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
+	iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
 	self deny: (sourceClass includesSelector: #iv1).
 	! !
 
@@ -1907,6 +1952,28 @@ test309ClassMethodsShouldBleMovedWithoutVariableToAccessTargetClass
 	^super increment: arg1.' equals: (sourceClass class sourceCodeAt: #CHANGE_ME_super_increment:).
 	! !
 
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/13/2023 00:23:24'!
+test400ImplicitReturnShouldntBeMoved
+	
+	| sourceClass targetClass refactoring |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'm1 .'.
+	
+	refactoring := MoveMethodRefactoring 
+					methodNamed: #m1 
+					from: sourceClass 
+					to: targetClass 
+					accessingThrough: 'iv1' 
+					parameterNeeded: NonExtraParameterNameNeeded new.
+	refactoring apply.
+
+	self assert: 'm1 .' equals: (targetClass sourceCodeAt: #m1).
+	self assert: 'm1
+	iv1 m1.' equals: (sourceClass sourceCodeAt: #m1).
+	! !
+
 !MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 12/3/2023 02:51:03'!
 initializeClassMethodNamed: aMethodName from: aSourceClass to: aTargetClass parameterNeeded: anExtraParameterNeeded 
 	methodName := aMethodName.
@@ -1923,9 +1990,9 @@ initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessing
 	collectionOfSendersToChange := aCollectionOfSendersToChange.
 	parameterNeeded := anExtraParameterNeeded ! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 12/4/2023 01:22:10'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 12/13/2023 23:07:02'!
 apply
-	| compiledMethodToMove xxxxreplacerResult selectorInCode |
+	| compiledMethodToMove xxxxreplacerResult selectorInCode codeForDelegation |
 	compiledMethodToMove := sourceClass methodDict at: methodName.
 	xxxxreplacerResult := self replaceDependenciesFromSource: compiledMethodToMove.
 	
@@ -1937,10 +2004,13 @@ apply
 	xxxxreplacerResult writeAccessOnClassVariables do: [ :aClassVariable | self createClassVariableSetterIfNotExistsFor: aClassVariable on: sourceClass].
 	selectorInCode := parameterNeeded newSenderFor: compiledMethodToMove.
 	
+	codeForDelegation := compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab.
+	xxxxreplacerResult hasImplicitSelfReturn ifFalse: [codeForDelegation := codeForDelegation, '^' ].
 	sourceClass isMeta 
-		ifTrue: [sourceClass compile: compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab,'^', (targetClass soleInstance name), ' ', selectorInCode, '.'.]
-		ifFalse: [sourceClass compile: compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab,'^', instanceVariable, ' ', selectorInCode, '.'.].
-	! !
+		ifTrue: [codeForDelegation := codeForDelegation, (targetClass soleInstance name), ' ', selectorInCode, '.'.]
+		ifFalse: [codeForDelegation := codeForDelegation, instanceVariable, ' ', selectorInCode, '.'.].
+	
+	sourceClass compile: codeForDelegation.! !
 
 !MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 6/3/2023 00:21:53'!
 createClassVariableGetterIfNotExistsFor: aClassVariable on: aClass
@@ -2132,15 +2202,13 @@ existsAssignationOf: instanceVariable inHierarchyOf: sourceClass
 	].
 	^existsAssignation.! !
 
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 11/13/2023 01:46:58'!
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 12/12/2023 23:32:05'!
 needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable 
-	| compiledMethod methodNode needParameterName needParameterNameVisitor |
+	| compiledMethod needParameterNameVisitor |
 	compiledMethod := sourceClass compiledMethodAt: methodName.
-	methodNode := compiledMethod methodNode.
-	needParameterName := false.
-	needParameterNameVisitor := NeedParameterName newAccessingThrough: instanceVariable .
-	methodNode accept: needParameterNameVisitor.
-	^needParameterNameVisitor needParameterName! !
+	needParameterNameVisitor := NeedParameterName for: compiledMethod newAccessingThrough: instanceVariable .
+	"methodNode accept: needParameterNameVisitor."
+	^needParameterNameVisitor value! !
 
 !MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 12/9/2023 02:42:59'!
 needParameterNameToMoveClassMethod: methodName from: sourceClass 
@@ -2284,6 +2352,11 @@ initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSo
 			^liveTypingTypes commonSupertype name asString 
 		]! !
 
+!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 12/14/2023 00:12:28'!
+hasImplicitSelfReturn
+	
+	^hasImplicitSelfReturn! !
+
 !CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 5/24/2023 17:43:48'!
 readAccessOnClassVariables
 	^readAccessOnClassVariables ! !
@@ -2312,9 +2385,22 @@ initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modified
 	readAccessOnClassVariables := modifiedClassReads.
 	writeAccessOnClassVariables := modifiedClassWrites.! !
 
+!CodeForNodeToMoveResult methodsFor: 'initialization' stamp: 'mc 12/13/2023 23:01:04'!
+initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites hasImplicitSelfReturn: aHasImplicitSelfReturn 
+	sourceCode := newCode.
+	readAccessOnInstanceVariables := modifiedReads.
+	writeAccessOnInstanceVariables := modifiedWrites.
+	readAccessOnClassVariables := modifiedClassReads.
+	writeAccessOnClassVariables := modifiedClassWrites.
+	hasImplicitSelfReturn := aHasImplicitSelfReturn.! !
+
 !CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 9/14/2023 01:23:52'!
 newWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites 
 	^self new initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites ! !
+
+!CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 12/13/2023 23:00:31'!
+newWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites hasImplicitSelfReturn: aHasImplicitSelfReturn 
+	^self new initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites  hasImplicitSelfReturn: aHasImplicitSelfReturn ! !
 
 !MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 11/13/2023 02:04:19'!
 assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
