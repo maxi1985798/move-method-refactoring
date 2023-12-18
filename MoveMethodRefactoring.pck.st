@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5981] on 16 December 2023 at 3:10:33 am'!
+'From Cuis 6.0 [latest update: #5981] on 17 December 2023 at 11:57:54 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 79!
+!provides: 'MoveMethodRefactoring' 1 81!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -149,7 +149,7 @@ initializeFor: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughN
 	variableToAccesThrough := aVariableToAccesoThroughName.
 	hasImplicitSelfReturn := false.! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/6/2023 23:49:37'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/17/2023 23:53:54'!
 visitAssignmentNode: anAssignmentNode 
 	| assigmentValue completeRangesOfassigmentNode nodeXXXReplacer resultForValue setterSelectorAsString |
 	"self halt."
@@ -162,7 +162,7 @@ visitAssignmentNode: anAssignmentNode
 					onNode: anAssignmentNode value
 					parameterNeeded: parameterNeeded.
 					
-	resultForValue :=			nodeXXXReplacer apply.
+	resultForValue :=			nodeXXXReplacer value.
 	(((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ])
 		ifTrue: [assigmentValue := '(', resultForValue sourceCode , ')'.] 
 		ifFalse: [assigmentValue := resultForValue sourceCode .].
@@ -314,17 +314,12 @@ initializeOffset
 
 	^ nodeOffsetInSourceCode := nodeInterval first -1! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/6/2023 02:02:40'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/17/2023 23:54:20'!
 method: setterCandidate isSetterOf: anInstVarName 
 	| anInstVarIndex varIndexCode scanner |
-	"self halt."
+
 	anInstVarIndex := compiledMethod methodClass allInstVarNames indexOf: anInstVarName.
-	"setterCandidate selector = (anInstanceVariable, ':') ifFalse: [ ^false ].
-	"
-	
-	"^setterCandidate isSetterOf: anInstanceVariable at: varIndex."
-	
-	"self isQuick ifTrue: [ ^false ]."
+
 	setterCandidate selector = (anInstVarName, ':') ifFalse: [ ^false ].
 	
 	"I could have use the AST of the method, but parsing the source code could generate errors
@@ -347,7 +342,7 @@ newSelector: aMessageNode
 	newSelector := 'CHANGE_ME_super_', (newSelector copyFrom: 2 to: newSelector size).
 	^newSelector! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/6/2023 23:41:50'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/17/2023 23:54:28'!
 newSenderFor: aMessageNode
 	|  newSend argumentsCode argumentIndex replacer replacerResult argumentNode |
 	argumentsCode := OrderedCollection new.
@@ -361,7 +356,7 @@ newSenderFor: aMessageNode
 					rejectingIntervals: intervalsToReject
 					onNode: argumentNode
 					parameterNeeded: parameterNeeded.
-		replacerResult := replacer apply.
+		replacerResult := replacer value.
 		(self shouldAddParenthesis: argumentNode) 
 			ifTrue: [argumentsCode add: '(', replacerResult sourceCode, ')'.]
 			ifFalse: [argumentsCode add: replacerResult sourceCode.].
@@ -387,8 +382,8 @@ removeSeenRanges: rangesOfNode
 shouldAddParenthesis: argumentNode 
 	^argumentNode isAssignmentNode! !
 
-!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 12/13/2023 22:59:37'!
-apply
+!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 12/17/2023 23:53:13'!
+value
 	| newCode newCodeForNode result |
 	"self halt."
 	self initializeNodeInterval.
@@ -1712,6 +1707,31 @@ test205CanMoveMethodWhenSendsKeywordMessageToSuperWithOneTmpVarAsColaborators
 	self assert: 'm1: sourceObject |asd| ^sourceObject CHANGE_ME_super_increment: asd.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass sourceCodeAt: #CHANGE_ME_super_increment:)! !
 
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/16/2023 20:10:26'!
+test206moveGetterShouldNotMakeDoubleRecursion
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'iv2 ^iv2.'.
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #iv2 
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: (ExtraParameterNameNeeded 
+							parameterName: 'sourceObject').
+	refactoring apply.
+	
+	self assert: 'iv2: sourceObject ^sourceObject iv2.' equals: (targetClass sourceCodeAt: #iv2:).
+	
+	
+	! !
+
 !MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:57:18'!
 test300MovingMethodWichUsesAccesingThroughVariableShouldBeRepalcedForSelf
 	
@@ -2061,11 +2081,11 @@ method: setterCandidate isSetterOf: anInstVarName
 	scanner movePcForward.
 	^scanner nextByte = 16r7C! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 10/8/2023 02:33:32'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/17/2023 23:53:38'!
 replaceDependenciesFromSource: compiledMethod
 	| replacer |
 	replacer := CodeForNodeToMove for: compiledMethod variableToAccesThrough: instanceVariable parameterNeeded: parameterNeeded .
-	^replacer apply.! !
+	^replacer value.! !
 
 !MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 12/9/2023 02:34:17'!
 classMethodNamed: methodName from: sourceClass to: targetClass parameterNeeded: anExtraParameterNeeded 
@@ -2188,12 +2208,11 @@ existsAssignationOf: instanceVariable inHierarchyOf: sourceClass
 	].
 	^existsAssignation.! !
 
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 12/12/2023 23:32:05'!
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 12/17/2023 22:37:00'!
 needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable 
 	| compiledMethod needParameterNameVisitor |
 	compiledMethod := sourceClass compiledMethodAt: methodName.
 	needParameterNameVisitor := NeedParameterName for: compiledMethod newAccessingThrough: instanceVariable .
-	"methodNode accept: needParameterNameVisitor."
 	^needParameterNameVisitor value! !
 
 !MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 12/9/2023 02:42:59'!
@@ -2363,14 +2382,6 @@ writeAccessOnClassVariables
 writeAccessOnInstanceVariables
 	^writeAccessOnInstanceVariables! !
 
-!CodeForNodeToMoveResult methodsFor: 'initialization' stamp: 'mc 9/14/2023 01:23:26'!
-initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites 
-	sourceCode := newCode.
-	readAccessOnInstanceVariables := modifiedReads.
-	writeAccessOnInstanceVariables := modifiedWrites.
-	readAccessOnClassVariables := modifiedClassReads.
-	writeAccessOnClassVariables := modifiedClassWrites.! !
-
 !CodeForNodeToMoveResult methodsFor: 'initialization' stamp: 'mc 12/13/2023 23:01:04'!
 initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites hasImplicitSelfReturn: aHasImplicitSelfReturn 
 	sourceCode := newCode.
@@ -2379,10 +2390,6 @@ initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modified
 	readAccessOnClassVariables := modifiedClassReads.
 	writeAccessOnClassVariables := modifiedClassWrites.
 	hasImplicitSelfReturn := aHasImplicitSelfReturn.! !
-
-!CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 9/14/2023 01:23:52'!
-newWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites 
-	^self new initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites ! !
 
 !CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 12/13/2023 23:00:31'!
 newWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites hasImplicitSelfReturn: aHasImplicitSelfReturn 
