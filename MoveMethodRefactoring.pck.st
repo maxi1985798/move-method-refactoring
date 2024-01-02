@@ -1,17 +1,27 @@
-'From Cuis 6.0 [latest update: #5981] on 17 December 2023 at 11:57:54 pm'!
+'From Cuis 6.0 [latest update: #5981] on 1 January 2024 at 11:10:52 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 81!
+!provides: 'MoveMethodRefactoring' 1 82!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
 !classDefinition: #CodeForNodeToMove category: 'MoveMethodRefactoring'!
 ParseNodeVisitor subclass: #CodeForNodeToMove
-	instanceVariableNames: 'compiledMethod intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables parameterNeeded variableToAccesThrough hasImplicitSelfReturn'
+	instanceVariableNames: 'compiledMethod intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables parameterNeeded variableToAccesThrough hasImplicitSelfReturn gettersToCreate settersToCreate'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'CodeForNodeToMove class' category: 'MoveMethodRefactoring'!
 CodeForNodeToMove class
+	instanceVariableNames: ''!
+
+!classDefinition: #MethodWorksAsGetterVisitor category: 'MoveMethodRefactoring'!
+ParseNodeVisitor subclass: #MethodWorksAsGetterVisitor
+	instanceVariableNames: 'getterCandidate_CHANGE_ME classVariableName methodCanWorkAsGetter returnMethodIsNotGetterClousure returnMethodIsGetterClousure'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'MethodWorksAsGetterVisitor class' category: 'MoveMethodRefactoring'!
+MethodWorksAsGetterVisitor class
 	instanceVariableNames: ''!
 
 !classDefinition: #NeedParameterName category: 'MoveMethodRefactoring'!
@@ -76,7 +86,7 @@ MoveMethodWithActualScopeApplier class
 
 !classDefinition: #CodeForNodeToMoveResult category: 'MoveMethodRefactoring'!
 Object subclass: #CodeForNodeToMoveResult
-	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables hasImplicitSelfReturn'
+	instanceVariableNames: 'sourceCode readAccessOnInstanceVariables writeAccessOnInstanceVariables readAccessOnClassVariables writeAccessOnClassVariables hasImplicitSelfReturn gettersToCreate sourceClass settersToCreate'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -135,7 +145,7 @@ TesisMoveMethodRefactoringMenu class
 	instanceVariableNames: ''!
 
 
-!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 12/16/2023 01:24:31'!
+!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 12/29/2023 02:42:17'!
 initializeFor: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: aParameterNeeded 
 	compiledMethod := aCompiledMethod.
 	intervalsToReject := aFewIntervalsToReject.
@@ -147,9 +157,11 @@ initializeFor: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughN
 	writeAccessOnClassVariables := Set new.
 	parameterNeeded := aParameterNeeded.
 	variableToAccesThrough := aVariableToAccesoThroughName.
-	hasImplicitSelfReturn := false.! !
+	hasImplicitSelfReturn := false.
+	gettersToCreate := Dictionary new.
+	settersToCreate := Dictionary new.! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/17/2023 23:53:54'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 1/1/2024 03:27:43'!
 visitAssignmentNode: anAssignmentNode 
 	| assigmentValue completeRangesOfassigmentNode nodeXXXReplacer resultForValue setterSelectorAsString |
 	"self halt."
@@ -167,51 +179,57 @@ visitAssignmentNode: anAssignmentNode
 		ifTrue: [assigmentValue := '(', resultForValue sourceCode , ')'.] 
 		ifFalse: [assigmentValue := resultForValue sourceCode .].
 	
+	anAssignmentNode variable isLiteralVariableNode 
+		ifTrue: [setterSelectorAsString := self setterForClassVariable: anAssignmentNode variable name.]
+		ifFalse: [setterSelectorAsString := self setterForInstanceVariable: anAssignmentNode variable name.].
 	
-	setterSelectorAsString := anAssignmentNode variable name, ':'.
-	setterSelectorAsString := setterSelectorAsString uncapitalized.
 	compiledMethod methodClass methodDict 
 					at: setterSelectorAsString asSymbol 
 					ifPresent: [ :setterCandidate | (self method: setterCandidate isSetterOf: anAssignmentNode variable name) 
 												ifFalse: 	[setterSelectorAsString := anAssignmentNode variable name, '_SETTER_CHANGE_ME:'.]
 							]
-					ifAbsent: [].
+					ifAbsent: [settersToCreate at: anAssignmentNode variable name put: setterSelectorAsString].
 
 	
 	self registerInterval: completeRangesOfassigmentNode withModification: (parameterNeeded parameterName , ' ', setterSelectorAsString, ' ', assigmentValue).
 	readAccessOnInstanceVariables addAll: resultForValue readAccessOnInstanceVariables.
 	writeAccessOnInstanceVariables addAll: resultForValue writeAccessOnInstanceVariables.
+	gettersToCreate addAll: resultForValue gettersToCreate.
+	settersToCreate addAll: resultForValue settersToCreate.
 	
 	anAssignmentNode variable isLiteralVariableNode 
-		ifTrue: [
-			writeAccessOnClassVariables add: anAssignmentNode variable name.
-			]
-		ifFalse: [
-			writeAccessOnInstanceVariables add: anAssignmentNode variable name.
-			]
+		ifTrue: [writeAccessOnClassVariables add: anAssignmentNode variable name.]
+		ifFalse: [writeAccessOnInstanceVariables add: anAssignmentNode variable name.]
 	
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 10/8/2023 03:01:50'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/29/2023 03:05:43'!
 visitInstanceVariableNode: anInstanceVariableNode 
-	| sourceCodeForInterval anInterval |
+	| sourceCodeForInterval anInterval getterToUse |
 	"self halt."
 	anInterval := self firstUnseenIntervalFor: anInstanceVariableNode.
 	(anInstanceVariableNode name = variableToAccesThrough)
 		ifTrue: [sourceCodeForInterval := 'self'.]
 		ifFalse: [
-			sourceCodeForInterval := parameterNeeded parameterName, ' ', anInstanceVariableNode key.
+			getterToUse := self getterForInstanceVariable: anInstanceVariableNode key.
+			sourceCodeForInterval := parameterNeeded parameterName, ' ', getterToUse.
+			(compiledMethod methodClass selectors includes: getterToUse) 
+				ifFalse: [gettersToCreate at: anInstanceVariableNode key put: getterToUse.].
 			readAccessOnInstanceVariables add: anInstanceVariableNode key.].
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 11/26/2023 02:55:24'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/31/2023 02:22:18'!
 visitLiteralVariableNode: aLiteralVariableNode 
-	| sourceCodeForInterval anInterval |
+	| sourceCodeForInterval anInterval getterToUse |
 	"self halt."
 	aLiteralVariableNode isReferencingGlobal ifTrue: [^self].
 	anInterval := self firstUnseenIntervalFor: aLiteralVariableNode.
-	sourceCodeForInterval := parameterNeeded parameterName, ' ', aLiteralVariableNode name uncapitalized.
+	getterToUse := self getterForClassVariable: aLiteralVariableNode name.
+	sourceCodeForInterval := parameterNeeded parameterName, ' ', getterToUse.
+	(compiledMethod methodClass selectors includes: getterToUse) 
+				ifFalse: [gettersToCreate at: aLiteralVariableNode name put: getterToUse.].
+	
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	readAccessOnClassVariables add: aLiteralVariableNode name.! !
 
@@ -294,6 +312,70 @@ firstUnseenIntervalFor: aNode ifAbsent: anAbsentBlock
 	self removeSeenRanges: completeRangesOfassigmentNode.
 	^self filterRangesThatDoNotBelongToTheCurrentNodeIn: completeRangesOfassigmentNode.! !
 
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2023 02:32:16'!
+generateNewGetterFor: anInstanceVariableName 
+	| existentGetters longestGetter |
+	existentGetters := compiledMethod methodClass methodDict keys select: [ :aSelector | 
+				aSelector = (anInstanceVariableName padded: #right to: aSelector size with: $_)
+			].
+	existentGetters ifEmpty: [^anInstanceVariableName].
+	longestGetter := existentGetters detectMax: [ :each | each size].
+	^longestGetter, '_' ! !
+
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/30/2023 18:51:09'!
+generateNewGetterForClassVariable: aClassVariableName 
+	| existentGetters longestGetter newSelector |
+	newSelector := aClassVariableName uncapitalized .
+	existentGetters := compiledMethod methodClass methodDict keys select: [ :aSelector | 
+				aSelector = (newSelector padded: #right to: aSelector size with: $_)
+			].
+	existentGetters ifEmpty: [^newSelector].
+	longestGetter := existentGetters detectMax: [ :each | each size].
+	^longestGetter, '_' ! !
+
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2023 03:24:07'!
+generateNewSetterFor: anInstanceVariableName 
+	| existentSetters longestSetter |
+	existentSetters := compiledMethod methodClass selectors select: [ :aSelector | 
+				aSelector = ((anInstanceVariableName padded: #right to: aSelector size -1  with: $_), ':')
+			].
+	existentSetters ifEmpty: [^anInstanceVariableName, ':'].
+	longestSetter := existentSetters detectMax: [ :each | each size].
+	^(longestSetter copyFrom: 1 to: longestSetter size -1), '_:'.! !
+
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/1/2024 04:10:00'!
+generateNewSetterForClassVariable: aClassVariableName 
+	| existentSetters longestSetter newSelector |
+	newSelector := aClassVariableName uncapitalized .
+	existentSetters := compiledMethod methodClass selectors select: [ :aSelector | 
+				aSelector = ((newSelector padded: #right to: aSelector size -1  with: $_), ':')
+			].
+	existentSetters ifEmpty: [^newSelector, ':'].
+	longestSetter := existentSetters detectMax: [ :each | each size].
+	^(longestSetter copyFrom: 1 to: longestSetter size -1), '_:'.! !
+
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/30/2023 18:49:24'!
+getterForClassVariable: aClassVariableName 
+	| gettersCandidates |
+	gettersCandidates := compiledMethod methodClass selectors select: [ :aSelector | 
+				aSelector ~= compiledMethod selector and: [self method: (compiledMethod methodClass methodDict at: aSelector) isGetterOfClassVariable: aClassVariableName ]
+			].
+	gettersCandidates isEmpty
+		ifTrue: [^self generateNewGetterForClassVariable: aClassVariableName]
+		ifFalse: [^gettersCandidates first] .
+		! !
+
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2023 03:03:48'!
+getterForInstanceVariable: anInstanceVariableName 
+	| gettersCandidates |
+	gettersCandidates := compiledMethod methodClass selectors select: [ :aSelector | 
+				aSelector ~= compiledMethod selector and: [self method: (compiledMethod methodClass methodDict at: aSelector) isGetterOf: anInstanceVariableName ]
+			].
+	gettersCandidates isEmpty
+		ifTrue: [^self generateNewGetterFor: anInstanceVariableName]
+		ifFalse: [^gettersCandidates first] .
+		! !
+
 !CodeForNodeToMove methodsFor: 'private' stamp: 'mc 9/14/2023 00:55:51'!
 initializeNodeInterval
 
@@ -313,6 +395,18 @@ initializeNodeInterval
 initializeOffset
 
 	^ nodeOffsetInSourceCode := nodeInterval first -1! !
+
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/28/2023 01:41:16'!
+method: getterCandidate isGetterOf: anInstanceVariableName 
+	| anInstVarIndex |
+	
+	anInstVarIndex := compiledMethod methodClass allInstVarNames indexOf: anInstanceVariableName.
+	^getterCandidate isReturnField and: [ getterCandidate returnField + 1 = anInstVarIndex ]! !
+
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/30/2023 18:32:44'!
+method: getterCandidate isGetterOfClassVariable: aClassVariableName 
+	^(MethodWorksAsGetterVisitor method: getterCandidate forClassVariable: aClassVariableName) value
+	"^true"! !
 
 !CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/17/2023 23:54:20'!
 method: setterCandidate isSetterOf: anInstVarName 
@@ -342,7 +436,7 @@ newSelector: aMessageNode
 	newSelector := 'CHANGE_ME_super_', (newSelector copyFrom: 2 to: newSelector size).
 	^newSelector! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/17/2023 23:54:28'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2023 04:06:13'!
 newSenderFor: aMessageNode
 	|  newSend argumentsCode argumentIndex replacer replacerResult argumentNode |
 	argumentsCode := OrderedCollection new.
@@ -362,6 +456,8 @@ newSenderFor: aMessageNode
 			ifFalse: [argumentsCode add: replacerResult sourceCode.].
 		writeAccessOnInstanceVariables addAll: replacerResult writeAccessOnInstanceVariables.
 		readAccessOnInstanceVariables addAll: replacerResult readAccessOnInstanceVariables.
+		gettersToCreate addAll: replacerResult gettersToCreate .
+		settersToCreate addAll: replacerResult settersToCreate .
 		argumentIndex := argumentIndex +1].
 	argumentIndex := 1.
 	newSend := ''.
@@ -378,11 +474,32 @@ registerInterval: anInterval withModification: sourceCodeForInterval
 removeSeenRanges: rangesOfNode 
 	^rangesOfNode removeAllSuchThat: [ :aSourceInterval | intervalsToReject anySatisfy: [ :aSourceIntervalToModify | aSourceIntervalToModify includesAllOf: aSourceInterval ] ]! !
 
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/1/2024 04:10:35'!
+setterForClassVariable: aClassVariableName 
+	| settersCandidates |
+	settersCandidates := compiledMethod methodClass selectors select: [ :aSelector | 
+				aSelector ~= compiledMethod selector and: [self method: (compiledMethod methodClass methodDict at: aSelector) isSetterOf: aClassVariableName ]
+			].
+	settersCandidates isEmpty
+		ifTrue: [^self generateNewSetterForClassVariable: aClassVariableName]
+		ifFalse: [^settersCandidates first] .! !
+
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2023 03:12:53'!
+setterForInstanceVariable: anInstanceVariableName 
+	| settersCandidates |
+	settersCandidates := compiledMethod methodClass selectors select: [ :aSelector | 
+				aSelector ~= compiledMethod selector and: [self method: (compiledMethod methodClass methodDict at: aSelector) isSetterOf: anInstanceVariableName ]
+			].
+	settersCandidates isEmpty
+		ifTrue: [^self generateNewSetterFor: anInstanceVariableName]
+		ifFalse: [^settersCandidates first] .
+		! !
+
 !CodeForNodeToMove methodsFor: 'private' stamp: 'mc 5/14/2023 19:51:27'!
 shouldAddParenthesis: argumentNode 
 	^argumentNode isAssignmentNode! !
 
-!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 12/17/2023 23:53:13'!
+!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 12/29/2023 02:46:00'!
 value
 	| newCode newCodeForNode result |
 	"self halt."
@@ -404,7 +521,10 @@ value
 				modifiedWrites: writeAccessOnInstanceVariables
 				modifiedClassReads: readAccessOnClassVariables
 				modifiedClassWrites:writeAccessOnClassVariables
-				hasImplicitSelfReturn: hasImplicitSelfReturn .
+				hasImplicitSelfReturn: hasImplicitSelfReturn 
+				gettersToCreate: gettersToCreate
+				settersToCreate: settersToCreate 
+				sourceClass: compiledMethod methodClass.
 	^result! !
 
 !CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 10/8/2023 02:35:30'!
@@ -426,6 +546,33 @@ for: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughName reject
 		onNode: aNodeToGetCode
 		parameterNeeded: parameterNeeded! !
 
+!MethodWorksAsGetterVisitor methodsFor: 'initialization' stamp: 'mc 12/30/2023 18:39:12'!
+initializeMethod: getterCandidate forClassVariable: aClassVariableName 
+	
+	getterCandidate_CHANGE_ME := getterCandidate.
+	classVariableName := aClassVariableName.
+	methodCanWorkAsGetter := false.! !
+
+!MethodWorksAsGetterVisitor methodsFor: 'as yet unclassified' stamp: 'mc 12/31/2023 01:38:27'!
+value
+	returnMethodIsNotGetterClousure := [^false].
+	returnMethodIsGetterClousure := [^true].
+	getterCandidate_CHANGE_ME methodNode accept: self.
+	^methodCanWorkAsGetter! !
+
+!MethodWorksAsGetterVisitor methodsFor: 'visiting' stamp: 'mc 12/31/2023 02:21:50'!
+visitBlockNode: aBlockNode 
+	(aBlockNode statements size = 1) ifFalse: [returnMethodIsNotGetterClousure value].
+	"(aBlockNode statements first isReturn) ifFalse: [returnMethodIsNotGetterClousure value]."
+	(aBlockNode statements first expr name = classVariableName) 
+		ifFalse: [returnMethodIsNotGetterClousure value]
+		ifTrue: [returnMethodIsGetterClousure value].! !
+
+!MethodWorksAsGetterVisitor class methodsFor: 'instance creation' stamp: 'mc 12/30/2023 18:33:55'!
+method: getterCandidate forClassVariable: aClassVariableName 
+	
+	^self new initializeMethod: getterCandidate forClassVariable: aClassVariableName ! !
+
 !NeedParameterName methodsFor: 'public' stamp: 'mc 8/24/2023 23:53:43'!
 needParameterName
 	^needParameterName! !
@@ -445,9 +592,10 @@ visitLiteralVariableNode: aLiteralVariableNode
 
 	needParameterName := aLiteralVariableNode  isReferencingGlobal not.! !
 
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 12/16/2023 02:19:28'!
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 12/22/2023 09:28:08'!
 visitReturnNode: aReturnNode 
 	"creo que ReturnNode>>isImplicitSelfReturnIn: no funca en donde se devuelve ^self"
+	"self halt"
 	"(aReturnNode isImplicitSelfReturnIn: compiledMethod_CHANGE_ME methodNode)"
 	(self isImplicitSelfReturn: aReturnNode In: compiledMethod methodNode)
 		ifFalse: [super visitReturnNode: aReturnNode ]! !
@@ -684,8 +832,8 @@ test011NameForANewParameterKeywordShouldBeProvidedIfNeeded
 		failsWith: [
 			MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 9/16/2023 01:29:40'!
-test012NameForNewParameterWhenClassVariable
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/20/2023 01:12:54'!
+test012NeedNameForNewParameterWhenClassVariable
 	
 	| sourceClass targetClass |
 	
@@ -704,8 +852,8 @@ test012NameForNewParameterWhenClassVariable
 			MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 9/16/2023 01:29:35'!
-test013NameForNewParameterWhenInstanceVariable
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/20/2023 01:13:08'!
+test013NeedNameForNewParameterWhenInstanceVariable
 	
 	| sourceClass targetClass |
 	
@@ -724,8 +872,8 @@ test013NameForNewParameterWhenInstanceVariable
 			MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 9/16/2023 01:29:29'!
-test014NameForNewParameterWhenSelfReference
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/20/2023 01:13:17'!
+test014NeedNameForNewParameterWhenSelfReference
 	
 	| sourceClass targetClass |
 	
@@ -744,8 +892,8 @@ test014NameForNewParameterWhenSelfReference
 			MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 9/16/2023 01:29:23'!
-test015NameForNewParameterWhenSuperReference
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/20/2023 01:13:27'!
+test015NeedNameForNewParameterWhenSuperReference
 	
 	| sourceClass targetClass |
 	
@@ -1367,7 +1515,7 @@ test110AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheE
 	
 	self assert: 'iv3: anObject ^iv3 := anObject.' equals: (sourceClass sourceCodeAt: #iv3:)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:54:56'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/29/2023 03:25:44'!
 test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheExistentSetter
 	
 	| sourceClass targetClass refactoring |
@@ -1388,8 +1536,8 @@ test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheE
 							parameterName: 'sourceObject').
 	refactoring apply.
 	
-	self assert: 'm1: sourceObject ^sourceObject iv3_SETTER_CHANGE_ME: 1.' equals: (targetClass sourceCodeAt: #m1:).
-	self assert: 'iv3_SETTER_CHANGE_ME: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass sourceCodeAt: #iv3_SETTER_CHANGE_ME:).
+	self assert: 'm1: sourceObject ^sourceObject iv3_: 1.' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'iv3_: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass sourceCodeAt: #iv3_:).
 	self assert: 'm1
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).! !
 
@@ -1416,6 +1564,119 @@ test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGett
 	self assert: 'm1: sourceObject ^sourceObject icv1.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'icv1', String newLineString, String tab, '^Icv1.' equals: (sourceClass sourceCodeAt: #icv1).! !
 
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/30/2023 02:54:41'!
+test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGetter2
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass  subclassOf: Object instanceVariableNames: 'iv1' classVariableNames: 'Icv1' poolDictionaries: '' category: self class classCategoryOfTestData.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'icv1 ^1.' .
+	sourceClass compile: 'm1 ^Icv1.'.
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #m1 
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: (ExtraParameterNameNeeded 
+							parameterName: 'sourceObject').
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^sourceObject icv1_.' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'icv1 ^1.' equals: (sourceClass sourceCodeAt: #icv1).
+	self assert: 'icv1_
+	^Icv1.' equals: (sourceClass sourceCodeAt: #icv1_).! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 1/1/2024 04:24:07'!
+test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGetter3
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self 
+					createClassNamed: #SourceClass
+					subclassOf: Object
+					instanceVariableNames: 'iv1'
+					classVariableNames: 'Icv1'
+					poolDictionaries: ''
+					category: self class classCategoryOfTestData.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'icv1_ ^Icv1.' .
+	sourceClass compile: 'icv1 .' .
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #icv1 
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: NonExtraParameterNameNeeded new.
+	refactoring apply.
+	
+	self assert: 'icv1 .' equals: (targetClass sourceCodeAt: #icv1).
+	self assert: 'icv1_ ^Icv1.' equals: (sourceClass sourceCodeAt: #icv1_).
+	self assert: 'icv1
+	iv1 icv1.' equals: (sourceClass sourceCodeAt: #icv1).! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/31/2023 02:27:41'!
+test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGetter4
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass  subclassOf: Object instanceVariableNames: 'iv1' classVariableNames: 'Icv1' poolDictionaries: '' category: self class classCategoryOfTestData.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'icv1_ ^Icv1.' .
+	sourceClass compile: 'icv1 .' .
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #icv1_
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: (ExtraParameterNameNeeded 
+							parameterName: 'sourceObject').
+	refactoring apply.
+	
+	self assert: 'icv1_: sourceObject ^sourceObject icv1__.' equals: (targetClass sourceCodeAt: #icv1_:).
+	self assert: 'icv1 .' equals: (sourceClass sourceCodeAt: #icv1).
+	self assert: 'icv1_
+	^iv1 icv1_: self.' equals: (sourceClass sourceCodeAt: #icv1_).
+	self assert: 'icv1__
+	^Icv1.' equals: (sourceClass sourceCodeAt: #icv1__).! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/31/2023 02:28:57'!
+test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGetter5
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass  subclassOf: Object instanceVariableNames: 'iv1' classVariableNames: 'Icv1' poolDictionaries: '' category: self class classCategoryOfTestData.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'icv1_ ^Icv1.' .
+	sourceClass compile: 'icv1 ^1+1.' .
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #icv1_
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: (ExtraParameterNameNeeded 
+							parameterName: 'sourceObject').
+	refactoring apply.
+	
+	self assert: 'icv1_: sourceObject ^sourceObject icv1__.' equals: (targetClass sourceCodeAt: #icv1_:).
+	self assert: 'icv1 ^1+1.' equals: (sourceClass sourceCodeAt: #icv1).
+	self assert: 'icv1_
+	^iv1 icv1_: self.' equals: (sourceClass sourceCodeAt: #icv1_).
+	self assert: 'icv1__
+	^Icv1.' equals: (sourceClass sourceCodeAt: #icv1__).! !
+
 !MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:55:20'!
 test113AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateSetter
 	
@@ -1438,6 +1699,34 @@ test113AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateSett
 	
 	self assert: 'm1: sourceObject ^sourceObject icv1: 1.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'icv1: anObject', String newLineString, String tab, '^Icv1 := anObject.' equals: (sourceClass sourceCodeAt: #icv1:).! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/31/2023 03:26:50'!
+test113AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateSetter2
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass  subclassOf: Object instanceVariableNames: 'iv1' classVariableNames: 'Icv1' poolDictionaries: '' category: self class classCategoryOfTestData.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'icv1: anObject ^Icv1 := anObject.'.
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #icv1:
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: (ExtraParameterNameNeededAndExtraKeyword 
+							parameterName: 'sourceObject'
+							extraKeyword: 'originalObject').
+	refactoring apply.
+	
+	self assert: 'icv1: anObject originalObject: sourceObject ^sourceObject icv1_: anObject.' equals: (targetClass sourceCodeAt: #icv1:originalObject:).
+	self assert: 'icv1: anObject
+	^iv1 icv1: anObject originalObject: self.' equals: (sourceClass sourceCodeAt: #icv1:).
+	self assert: 'icv1_: anObject
+	^Icv1 := anObject.' equals: (sourceClass sourceCodeAt: #icv1_:).
+	! !
 
 !MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:55:28'!
 test114ParameterNameShouldBeRespected
@@ -1707,7 +1996,7 @@ test205CanMoveMethodWhenSendsKeywordMessageToSuperWithOneTmpVarAsColaborators
 	self assert: 'm1: sourceObject |asd| ^sourceObject CHANGE_ME_super_increment: asd.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass sourceCodeAt: #CHANGE_ME_super_increment:)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/16/2023 20:10:26'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/28/2023 01:01:14'!
 test206moveGetterShouldNotMakeDoubleRecursion
 	
 	| sourceClass targetClass refactoring |
@@ -1727,8 +2016,41 @@ test206moveGetterShouldNotMakeDoubleRecursion
 							parameterName: 'sourceObject').
 	refactoring apply.
 	
-	self assert: 'iv2: sourceObject ^sourceObject iv2.' equals: (targetClass sourceCodeAt: #iv2:).
+	self assert: 'iv2: sourceObject ^sourceObject iv2_.' equals: (targetClass sourceCodeAt: #iv2:).
+	self assert: 'iv2_
+	^iv2.' equals: (sourceClass sourceCodeAt: #iv2_).
+	self assert: 'iv2
+	^iv1 iv2: self.' equals: (sourceClass sourceCodeAt: #iv2).
 	
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/28/2023 01:04:55'!
+test207moveGetterShouldNotMakeDoubleRecursion
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'iv2 ^1.'.
+	sourceClass compile: 'iv2_ ^iv2.'.
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #iv2_ 
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: (ExtraParameterNameNeeded 
+							parameterName: 'sourceObject').
+	refactoring apply.
+	
+	self assert: 'iv2 ^1.' equals: (sourceClass sourceCodeAt: #iv2).
+	self assert: 'iv2_: sourceObject ^sourceObject iv2__.' equals: (targetClass sourceCodeAt: #iv2_:).
+	self assert: 'iv2__
+	^iv2.' equals: (sourceClass sourceCodeAt: #iv2__).
+	self assert: 'iv2_
+	^iv1 iv2_: self.' equals: (sourceClass sourceCodeAt: #iv2_).
 	
 	! !
 
@@ -1996,7 +2318,7 @@ initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessing
 	collectionOfSendersToChange := aCollectionOfSendersToChange.
 	parameterNeeded := anExtraParameterNeeded ! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 12/13/2023 23:07:02'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 12/29/2023 02:00:26'!
 apply
 	| compiledMethodToMove xxxxreplacerResult selectorInCode codeForDelegation |
 	compiledMethodToMove := sourceClass methodDict at: methodName.
@@ -2004,10 +2326,13 @@ apply
 	
 	
 	targetClass compile: xxxxreplacerResult sourceCode.
+	xxxxreplacerResult createAccessors.
+	"
 	xxxxreplacerResult readAccessOnInstanceVariables do: [ :anInstanceVariable | self createGetterIfNotExistsFor: anInstanceVariable ].
 	xxxxreplacerResult writeAccessOnInstanceVariables do: [ :anInstanceVariable | self createSetterIfNotExistsFor: anInstanceVariable ].
 	xxxxreplacerResult readAccessOnClassVariables do: [ :aClassVariable | self createClassVariableGetterIfNotExistsFor: aClassVariable on: sourceClass ].
 	xxxxreplacerResult writeAccessOnClassVariables do: [ :aClassVariable | self createClassVariableSetterIfNotExistsFor: aClassVariable on: sourceClass].
+	"
 	selectorInCode := parameterNeeded newSenderFor: compiledMethodToMove.
 	
 	codeForDelegation := compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab.
@@ -2032,13 +2357,19 @@ createGetterFor: anInstanceVariable on: aClass
 
 	^aClass compile: anInstanceVariable, String newLineString, String tab, '^', anInstanceVariable, '.'! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/6/2023 00:17:56'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/28/2023 00:40:16'!
 createGetterIfNotExistsFor: anInstanceVariable
 	
 	| getterCandidate |
-	getterCandidate := sourceClass methodDict at: anInstanceVariable asSymbol ifAbsent:[^self createGetterFor: anInstanceVariable on: sourceClass].
-	(getterCandidate isGetterOf: anInstanceVariable at: (sourceClass allInstVarNames indexOf: anInstanceVariable)) 
-		ifFalse: 	[self createGetterFor: anInstanceVariable on: sourceClass]! !
+	anInstanceVariable = methodName 
+		ifTrue:  [
+			sourceClass compile: anInstanceVariable, '_', String newLineString, String tab, '^', anInstanceVariable, '.'
+			]
+		ifFalse: [
+			getterCandidate := sourceClass methodDict at: anInstanceVariable asSymbol ifAbsent:[^self createGetterFor: anInstanceVariable on: sourceClass].
+			(getterCandidate isGetterOf: anInstanceVariable at: (sourceClass allInstVarNames indexOf: anInstanceVariable)) 
+				ifFalse: 	[self createGetterFor: anInstanceVariable on: sourceClass]]
+	! !
 
 !MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/24/2023 23:50:24'!
 createSetterChangeMeFor: anInstanceVariable 
@@ -2357,6 +2688,15 @@ initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSo
 			^liveTypingTypes commonSupertype name asString 
 		]! !
 
+!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 12/29/2023 02:49:36'!
+createAccessors
+	gettersToCreate keysAndValuesDo: [ :anInstanceVariable :aSelector | sourceClass compile: aSelector, String newLineString, String tab, '^', anInstanceVariable, '.' ].
+	settersToCreate keysAndValuesDo: [ :anInstanceVariable :aSelector | sourceClass compile: aSelector, ' anObject', String newLineString, String tab, '^', anInstanceVariable, ' := anObject.' ]! !
+
+!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 12/29/2023 02:53:30'!
+gettersToCreate
+	^gettersToCreate! !
+
 !CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 12/14/2023 00:12:28'!
 hasImplicitSelfReturn
 	
@@ -2370,6 +2710,10 @@ readAccessOnClassVariables
 readAccessOnInstanceVariables
 	^readAccessOnInstanceVariables ! !
 
+!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 12/29/2023 02:53:41'!
+settersToCreate
+	^settersToCreate! !
+
 !CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 4/17/2023 23:03:43'!
 sourceCode
 	^sourceCode ! !
@@ -2382,18 +2726,32 @@ writeAccessOnClassVariables
 writeAccessOnInstanceVariables
 	^writeAccessOnInstanceVariables! !
 
-!CodeForNodeToMoveResult methodsFor: 'initialization' stamp: 'mc 12/13/2023 23:01:04'!
-initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites hasImplicitSelfReturn: aHasImplicitSelfReturn 
+!CodeForNodeToMoveResult methodsFor: 'initialization' stamp: 'mc 12/29/2023 02:45:26'!
+initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites hasImplicitSelfReturn: aHasImplicitSelfReturn gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
 	sourceCode := newCode.
 	readAccessOnInstanceVariables := modifiedReads.
 	writeAccessOnInstanceVariables := modifiedWrites.
 	readAccessOnClassVariables := modifiedClassReads.
 	writeAccessOnClassVariables := modifiedClassWrites.
-	hasImplicitSelfReturn := aHasImplicitSelfReturn.! !
+	hasImplicitSelfReturn := aHasImplicitSelfReturn.
+	gettersToCreate := aGettersToCreate.
+	settersToCreate := aSettersToCreate.
+	sourceClass := aSourceClass.
+	! !
 
-!CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 12/13/2023 23:00:31'!
-newWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites hasImplicitSelfReturn: aHasImplicitSelfReturn 
-	^self new initializeNewWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites  hasImplicitSelfReturn: aHasImplicitSelfReturn ! !
+!CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 12/29/2023 02:44:57'!
+newWith: newCode modifiedReads: modifiedReads modifiedWrites: modifiedWrites modifiedClassReads: modifiedClassReads modifiedClassWrites: modifiedClassWrites hasImplicitSelfReturn: aHasImplicitSelfReturn gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
+	^self new 
+		initializeNewWith: newCode
+		modifiedReads: modifiedReads
+		modifiedWrites: modifiedWrites
+		modifiedClassReads: modifiedClassReads
+		modifiedClassWrites: modifiedClassWrites
+		hasImplicitSelfReturn: aHasImplicitSelfReturn 
+		gettersToCreate: aGettersToCreate
+		settersToCreate: aSettersToCreate
+		sourceClass: aSourceClass
+! !
 
 !MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 11/13/2023 02:04:19'!
 assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
