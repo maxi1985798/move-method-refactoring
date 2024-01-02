@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5981] on 1 January 2024 at 11:10:52 pm'!
+'From Cuis 6.0 [latest update: #5981] on 2 January 2024 at 3:33:51 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 82!
+!provides: 'MoveMethodRefactoring' 1 83!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -312,68 +312,47 @@ firstUnseenIntervalFor: aNode ifAbsent: anAbsentBlock
 	self removeSeenRanges: completeRangesOfassigmentNode.
 	^self filterRangesThatDoNotBelongToTheCurrentNodeIn: completeRangesOfassigmentNode.! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2023 02:32:16'!
-generateNewGetterFor: anInstanceVariableName 
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 02:19:03'!
+generateNewGetterForVariable: aVariableName withSelector: aSelectorForGetter
 	| existentGetters longestGetter |
-	existentGetters := compiledMethod methodClass methodDict keys select: [ :aSelector | 
-				aSelector = (anInstanceVariableName padded: #right to: aSelector size with: $_)
+	
+	existentGetters := compiledMethod methodClass selectors select: [ :aSelector | 
+				aSelector = (aSelectorForGetter padded: #right to: aSelector size with: $_)
 			].
-	existentGetters ifEmpty: [^anInstanceVariableName].
+	existentGetters ifEmpty: [^aSelectorForGetter].
 	longestGetter := existentGetters detectMax: [ :each | each size].
 	^longestGetter, '_' ! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/30/2023 18:51:09'!
-generateNewGetterForClassVariable: aClassVariableName 
-	| existentGetters longestGetter newSelector |
-	newSelector := aClassVariableName uncapitalized .
-	existentGetters := compiledMethod methodClass methodDict keys select: [ :aSelector | 
-				aSelector = (newSelector padded: #right to: aSelector size with: $_)
-			].
-	existentGetters ifEmpty: [^newSelector].
-	longestGetter := existentGetters detectMax: [ :each | each size].
-	^longestGetter, '_' ! !
-
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2023 03:24:07'!
-generateNewSetterFor: anInstanceVariableName 
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 02:18:37'!
+generateNewSetterForVariable: aVariableName withSelector: aSelectorForSetter
 	| existentSetters longestSetter |
+	
 	existentSetters := compiledMethod methodClass selectors select: [ :aSelector | 
-				aSelector = ((anInstanceVariableName padded: #right to: aSelector size -1  with: $_), ':')
+				aSelector = ((aSelectorForSetter padded: #right to: aSelector size -1  with: $_), ':')
 			].
-	existentSetters ifEmpty: [^anInstanceVariableName, ':'].
+	existentSetters ifEmpty: [^aSelectorForSetter, ':'].
 	longestSetter := existentSetters detectMax: [ :each | each size].
 	^(longestSetter copyFrom: 1 to: longestSetter size -1), '_:'.! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/1/2024 04:10:00'!
-generateNewSetterForClassVariable: aClassVariableName 
-	| existentSetters longestSetter newSelector |
-	newSelector := aClassVariableName uncapitalized .
-	existentSetters := compiledMethod methodClass selectors select: [ :aSelector | 
-				aSelector = ((newSelector padded: #right to: aSelector size -1  with: $_), ':')
-			].
-	existentSetters ifEmpty: [^newSelector, ':'].
-	longestSetter := existentSetters detectMax: [ :each | each size].
-	^(longestSetter copyFrom: 1 to: longestSetter size -1), '_:'.! !
-
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/30/2023 18:49:24'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 03:30:45'!
 getterForClassVariable: aClassVariableName 
 	| gettersCandidates |
 	gettersCandidates := compiledMethod methodClass selectors select: [ :aSelector | 
 				aSelector ~= compiledMethod selector and: [self method: (compiledMethod methodClass methodDict at: aSelector) isGetterOfClassVariable: aClassVariableName ]
 			].
-	gettersCandidates isEmpty
-		ifTrue: [^self generateNewGetterForClassVariable: aClassVariableName]
-		ifFalse: [^gettersCandidates first] .
-		! !
+	gettersCandidates 
+		ifEmpty: [^self generateNewGetterForVariable: aClassVariableName withSelector: aClassVariableName uncapitalized]
+		ifNotEmpty: [^gettersCandidates first] .! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2023 03:03:48'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 03:28:58'!
 getterForInstanceVariable: anInstanceVariableName 
 	| gettersCandidates |
 	gettersCandidates := compiledMethod methodClass selectors select: [ :aSelector | 
 				aSelector ~= compiledMethod selector and: [self method: (compiledMethod methodClass methodDict at: aSelector) isGetterOf: anInstanceVariableName ]
 			].
-	gettersCandidates isEmpty
-		ifTrue: [^self generateNewGetterFor: anInstanceVariableName]
-		ifFalse: [^gettersCandidates first] .
+	gettersCandidates 
+		ifEmpty: [^self generateNewGetterForVariable: anInstanceVariableName withSelector: anInstanceVariableName] 
+		ifNotEmpty: [^gettersCandidates first].
 		! !
 
 !CodeForNodeToMove methodsFor: 'private' stamp: 'mc 9/14/2023 00:55:51'!
@@ -474,24 +453,24 @@ registerInterval: anInterval withModification: sourceCodeForInterval
 removeSeenRanges: rangesOfNode 
 	^rangesOfNode removeAllSuchThat: [ :aSourceInterval | intervalsToReject anySatisfy: [ :aSourceIntervalToModify | aSourceIntervalToModify includesAllOf: aSourceInterval ] ]! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/1/2024 04:10:35'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 02:18:06'!
 setterForClassVariable: aClassVariableName 
 	| settersCandidates |
 	settersCandidates := compiledMethod methodClass selectors select: [ :aSelector | 
 				aSelector ~= compiledMethod selector and: [self method: (compiledMethod methodClass methodDict at: aSelector) isSetterOf: aClassVariableName ]
 			].
 	settersCandidates isEmpty
-		ifTrue: [^self generateNewSetterForClassVariable: aClassVariableName]
+		ifTrue: [^self generateNewSetterForVariable: aClassVariableName withSelector: aClassVariableName uncapitalized]
 		ifFalse: [^settersCandidates first] .! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2023 03:12:53'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 02:18:06'!
 setterForInstanceVariable: anInstanceVariableName 
 	| settersCandidates |
 	settersCandidates := compiledMethod methodClass selectors select: [ :aSelector | 
 				aSelector ~= compiledMethod selector and: [self method: (compiledMethod methodClass methodDict at: aSelector) isSetterOf: anInstanceVariableName ]
 			].
 	settersCandidates isEmpty
-		ifTrue: [^self generateNewSetterFor: anInstanceVariableName]
+		ifTrue: [^self generateNewSetterForVariable: anInstanceVariableName withSelector: anInstanceVariableName]
 		ifFalse: [^settersCandidates first] .
 		! !
 
@@ -2318,7 +2297,7 @@ initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessing
 	collectionOfSendersToChange := aCollectionOfSendersToChange.
 	parameterNeeded := anExtraParameterNeeded ! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 12/29/2023 02:00:26'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 1/2/2024 03:32:45'!
 apply
 	| compiledMethodToMove xxxxreplacerResult selectorInCode codeForDelegation |
 	compiledMethodToMove := sourceClass methodDict at: methodName.
@@ -2327,12 +2306,6 @@ apply
 	
 	targetClass compile: xxxxreplacerResult sourceCode.
 	xxxxreplacerResult createAccessors.
-	"
-	xxxxreplacerResult readAccessOnInstanceVariables do: [ :anInstanceVariable | self createGetterIfNotExistsFor: anInstanceVariable ].
-	xxxxreplacerResult writeAccessOnInstanceVariables do: [ :anInstanceVariable | self createSetterIfNotExistsFor: anInstanceVariable ].
-	xxxxreplacerResult readAccessOnClassVariables do: [ :aClassVariable | self createClassVariableGetterIfNotExistsFor: aClassVariable on: sourceClass ].
-	xxxxreplacerResult writeAccessOnClassVariables do: [ :aClassVariable | self createClassVariableSetterIfNotExistsFor: aClassVariable on: sourceClass].
-	"
 	selectorInCode := parameterNeeded newSenderFor: compiledMethodToMove.
 	
 	codeForDelegation := compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab.
