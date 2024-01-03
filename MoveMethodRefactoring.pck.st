@@ -1,6 +1,6 @@
-'From Cuis 6.0 [latest update: #5981] on 2 January 2024 at 3:33:51 am'!
+'From Cuis 6.0 [latest update: #5981] on 3 January 2024 at 2:58:22 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 83!
+!provides: 'MoveMethodRefactoring' 1 85!
 SystemOrganization addCategory: 'MoveMethodRefactoring'!
 
 
@@ -312,42 +312,39 @@ firstUnseenIntervalFor: aNode ifAbsent: anAbsentBlock
 	self removeSeenRanges: completeRangesOfassigmentNode.
 	^self filterRangesThatDoNotBelongToTheCurrentNodeIn: completeRangesOfassigmentNode.! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 02:19:03'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 03:56:37'!
 generateNewGetterForVariable: aVariableName withSelector: aSelectorForGetter
-	| existentGetters longestGetter |
+	| longestGetter |
 	
-	existentGetters := compiledMethod methodClass selectors select: [ :aSelector | 
-				aSelector = (aSelectorForGetter padded: #right to: aSelector size with: $_)
-			].
-	existentGetters ifEmpty: [^aSelectorForGetter].
-	longestGetter := existentGetters detectMax: [ :each | each size].
+	longestGetter := self 
+					longestSelectorWhichSatisfy: [ :aSelector | 
+							aSelector = (aSelectorForGetter padded: #right to: aSelector size with: $_)]
+					ifEmpty: [^aSelectorForGetter].
 	^longestGetter, '_' ! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 02:18:37'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 03:56:42'!
 generateNewSetterForVariable: aVariableName withSelector: aSelectorForSetter
-	| existentSetters longestSetter |
-	
-	existentSetters := compiledMethod methodClass selectors select: [ :aSelector | 
-				aSelector = ((aSelectorForSetter padded: #right to: aSelector size -1  with: $_), ':')
-			].
-	existentSetters ifEmpty: [^aSelectorForSetter, ':'].
-	longestSetter := existentSetters detectMax: [ :each | each size].
+	| longestSetter |
+	longestSetter := self 
+					longestSelectorWhichSatisfy: [ :aSelector | 
+						aSelector = ((aSelectorForSetter padded: #right to: aSelector size -1  with: $_), ':')]
+					ifEmpty: [^aSelectorForSetter, ':'].
 	^(longestSetter copyFrom: 1 to: longestSetter size -1), '_:'.! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 03:30:45'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 03:55:56'!
 getterForClassVariable: aClassVariableName 
 	| gettersCandidates |
-	gettersCandidates := compiledMethod methodClass selectors select: [ :aSelector | 
+	gettersCandidates := self selectorsWhichSatisfy: [ :aSelector | 
 				aSelector ~= compiledMethod selector and: [self method: (compiledMethod methodClass methodDict at: aSelector) isGetterOfClassVariable: aClassVariableName ]
 			].
 	gettersCandidates 
 		ifEmpty: [^self generateNewGetterForVariable: aClassVariableName withSelector: aClassVariableName uncapitalized]
 		ifNotEmpty: [^gettersCandidates first] .! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 03:28:58'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 03:56:09'!
 getterForInstanceVariable: anInstanceVariableName 
 	| gettersCandidates |
-	gettersCandidates := compiledMethod methodClass selectors select: [ :aSelector | 
+	gettersCandidates := self selectorsWhichSatisfy: [ :aSelector | 
 				aSelector ~= compiledMethod selector and: [self method: (compiledMethod methodClass methodDict at: aSelector) isGetterOf: anInstanceVariableName ]
 			].
 	gettersCandidates 
@@ -375,6 +372,15 @@ initializeOffset
 
 	^ nodeOffsetInSourceCode := nodeInterval first -1! !
 
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 03:55:10'!
+longestSelectorWhichSatisfy: aBlock ifEmpty: anEmptyBlock
+	| selectorsWhichSatisfy |
+	
+	selectorsWhichSatisfy := self selectorsWhichSatisfy: aBlock.
+	selectorsWhichSatisfy ifEmpty: [ anEmptyBlock value ].
+	^selectorsWhichSatisfy detectMax: [ :each | each size].
+	! !
+
 !CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/28/2023 01:41:16'!
 method: getterCandidate isGetterOf: anInstanceVariableName 
 	| anInstVarIndex |
@@ -387,13 +393,13 @@ method: getterCandidate isGetterOfClassVariable: aClassVariableName
 	^(MethodWorksAsGetterVisitor method: getterCandidate forClassVariable: aClassVariableName) value
 	"^true"! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/17/2023 23:54:20'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/3/2024 01:36:40'!
 method: setterCandidate isSetterOf: anInstVarName 
 	| anInstVarIndex varIndexCode scanner |
 
 	anInstVarIndex := compiledMethod methodClass allInstVarNames indexOf: anInstVarName.
 
-	setterCandidate selector = (anInstVarName, ':') ifFalse: [ ^false ].
+	"setterCandidate selector = (anInstVarName, ':') ifFalse: [ ^false ]."
 	
 	"I could have use the AST of the method, but parsing the source code could generate errors
 	that it is why I decided to check the bytecodes - Hernan"
@@ -453,20 +459,26 @@ registerInterval: anInterval withModification: sourceCodeForInterval
 removeSeenRanges: rangesOfNode 
 	^rangesOfNode removeAllSuchThat: [ :aSourceInterval | intervalsToReject anySatisfy: [ :aSourceIntervalToModify | aSourceIntervalToModify includesAllOf: aSourceInterval ] ]! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 02:18:06'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 03:55:10'!
+selectorsWhichSatisfy: aBlock
+
+	^ compiledMethod methodClass selectors select: aBlock! !
+
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 23:48:00'!
 setterForClassVariable: aClassVariableName 
 	| settersCandidates |
-	settersCandidates := compiledMethod methodClass selectors select: [ :aSelector | 
+	settersCandidates := self selectorsWhichSatisfy: [ :aSelector | 
 				aSelector ~= compiledMethod selector and: [self method: (compiledMethod methodClass methodDict at: aSelector) isSetterOf: aClassVariableName ]
 			].
 	settersCandidates isEmpty
 		ifTrue: [^self generateNewSetterForVariable: aClassVariableName withSelector: aClassVariableName uncapitalized]
 		ifFalse: [^settersCandidates first] .! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 02:18:06'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/3/2024 02:21:18'!
 setterForInstanceVariable: anInstanceVariableName 
 	| settersCandidates |
-	settersCandidates := compiledMethod methodClass selectors select: [ :aSelector | 
+	"self halt."
+	settersCandidates := self selectorsWhichSatisfy: [ :aSelector | 
 				aSelector ~= compiledMethod selector and: [self method: (compiledMethod methodClass methodDict at: aSelector) isSetterOf: anInstanceVariableName ]
 			].
 	settersCandidates isEmpty
@@ -1519,6 +1531,64 @@ test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheE
 	self assert: 'iv3_: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass sourceCodeAt: #iv3_:).
 	self assert: 'm1
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 1/3/2024 02:46:25'!
+test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheExistentSetter2
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'iv3_2: anObject ^iv3 := anObject.'.
+	sourceClass compile: 'iv3_: anObject ^iv3 := anObject.'.
+	sourceClass compile: 'iv3: anObject ^1.'.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #iv3_:
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: (ExtraParameterNameNeededAndExtraKeyword 
+							parameterName: 'sourceObject'
+							extraKeyword: 'originalObject').
+	refactoring apply.
+	
+	self assert: 'iv3_: anObject originalObject: sourceObject ^sourceObject iv3_2: anObject.' equals: (targetClass sourceCodeAt: #iv3_:originalObject:).
+	self assert: 'iv3: anObject ^1.' equals: (sourceClass sourceCodeAt: #iv3:).
+	self assert: 'iv3_2: anObject ^iv3 := anObject.' equals: (sourceClass sourceCodeAt: #iv3_2:).
+	self assert: 'iv3_: anObject
+	^iv1 iv3_: anObject originalObject: self.' equals: (sourceClass sourceCodeAt: #iv3_:).! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 1/3/2024 02:45:47'!
+test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheExistentSetter3
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'iv3_: anObject ^iv3 := anObject.'.
+	sourceClass compile: 'iv3: anObject ^1.'.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #iv3_:
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: (ExtraParameterNameNeededAndExtraKeyword 
+							parameterName: 'sourceObject'
+							extraKeyword: 'originalObject').
+	refactoring apply.
+	
+	self assert: 'iv3_: anObject originalObject: sourceObject ^sourceObject iv3__: anObject.' equals: (targetClass sourceCodeAt: #iv3_:originalObject:).
+	self assert: 'iv3: anObject ^1.' equals: (sourceClass sourceCodeAt: #iv3:).
+	self assert: 'iv3__: anObject
+	^iv3 := anObject.' equals: (sourceClass sourceCodeAt: #iv3__:).
+	self assert: 'iv3_: anObject
+	^iv1 iv3_: anObject originalObject: self.' equals: (sourceClass sourceCodeAt: #iv3_:).! !
 
 !MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:55:07'!
 test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGetter
