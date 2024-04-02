@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6231] on 2 April 2024 at 12:32:05 am'!
+'From Cuis6.3 [latest update: #6231] on 2 April 2024 at 3:22:05 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 89!
+!provides: 'MoveMethodRefactoring' 1 90!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -480,7 +480,7 @@ setterForInstanceVariable: anInstanceVariableName
 shouldAddParenthesis: argumentNode 
 	^argumentNode isAssignmentNode! !
 
-!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 3/31/2024 02:04:31'!
+!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 4/2/2024 03:20:21'!
 value
 	| newCode newCodeForNode result |
 	"self halt."
@@ -496,7 +496,12 @@ value
 	"self halt."
 	intervalsToModify sort: [ :left :right | left key first < right key first ].
 	newCode := newCodeForNode copyReplacing: intervalsToModify.
-	hasImplicitSelfReturn ifTrue: [ newCode := newCode append: String newLineString, String tab, '^', parameterNeeded parameterName, '.' ].
+	hasImplicitSelfReturn 
+		ifTrue: [ 
+			(newCode last = $.)
+				ifTrue: [newCode := newCode append: String newLineString, String tab, '^', parameterNeeded parameterName, '.' ]
+				ifFalse: [newCode := newCode append: '.', String newLineString, String tab, '^', parameterNeeded parameterName, '.' ].
+			].
 	result := CodeForNodeToMoveResult 
 				newWith: newCode 
 				hasImplicitSelfReturn: hasImplicitSelfReturn 
@@ -2447,6 +2452,29 @@ test401ImplicitReturnShouldBeMoved
 	refactoring apply.
 
 	self assert: 'm1: aSourceObject .
+	^aSourceObject.' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'm1
+	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 4/2/2024 03:12:42'!
+test402ImplicitReturnShouldBeMovedAndAddADot
+	
+	| sourceClass targetClass refactoring |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'm1 1'.
+	
+	refactoring := MoveMethodRefactoring 
+					methodNamed: #m1 
+					from: sourceClass 
+					to: targetClass 
+					accessingThrough: 'iv1' 
+					parameterNeeded: (ExtraParameterNameNeeded parameterName: 'aSourceObject').
+	refactoring apply.
+
+	self assert: 'm1: aSourceObject 1.
 	^aSourceObject.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'm1
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
