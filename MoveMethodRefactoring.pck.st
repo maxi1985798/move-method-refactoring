@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6231] on 6 April 2024 at 2:26:17 am'!
+'From Cuis6.3 [latest update: #6231] on 6 April 2024 at 2:36:27 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 91!
+!provides: 'MoveMethodRefactoring' 1 92!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -480,7 +480,7 @@ setterForInstanceVariable: anInstanceVariableName
 shouldAddParenthesis: argumentNode 
 	^argumentNode isAssignmentNode! !
 
-!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 4/2/2024 03:20:21'!
+!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 4/6/2024 02:34:57'!
 value
 	| newCode newCodeForNode result |
 	"self halt."
@@ -496,15 +496,13 @@ value
 	"self halt."
 	intervalsToModify sort: [ :left :right | left key first < right key first ].
 	newCode := newCodeForNode copyReplacing: intervalsToModify.
-	hasImplicitSelfReturn 
-		ifTrue: [ 
-			(newCode last = $.)
-				ifTrue: [newCode := newCode append: String newLineString, String tab, '^', parameterNeeded parameterName, '.' ]
-				ifFalse: [newCode := newCode append: '.', String newLineString, String tab, '^', parameterNeeded parameterName, '.' ].
+	 
+	hasImplicitSelfReturn	ifTrue: [ 
+			(newCode last = $.) ifFalse: [newCode := newCode append: '.'].
+			newCode := newCode append: String newLineString, String tab, '^', parameterNeeded parameterName, '.'
 			].
 	result := CodeForNodeToMoveResult 
 				newWith: newCode 
-				hasImplicitSelfReturn: hasImplicitSelfReturn 
 				gettersToCreate: gettersToCreate
 				settersToCreate: settersToCreate 
 				sourceClass: compiledMethod methodClass.
@@ -2496,15 +2494,15 @@ initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessing
 	collectionOfSendersToChange := aCollectionOfSendersToChange.
 	parameterNeeded := anExtraParameterNeeded ! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 3/31/2024 02:06:11'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/6/2024 02:28:01'!
 apply
-	| compiledMethodToMove xxxxreplacerResult selectorInCode codeForDelegation |
+	| compiledMethodToMove resultAfterReplaceDependencies selectorInCode codeForDelegation |
 	compiledMethodToMove := sourceClass methodDict at: methodName.
-	xxxxreplacerResult := self replaceDependenciesFromSource: compiledMethodToMove.
+	resultAfterReplaceDependencies := self replaceDependenciesFromSource: compiledMethodToMove.
 	
 	
-	targetClass compile: xxxxreplacerResult sourceCode.
-	xxxxreplacerResult createAccessors.
+	targetClass compile: resultAfterReplaceDependencies sourceCode.
+	resultAfterReplaceDependencies createAccessors.
 	selectorInCode := parameterNeeded newSenderFor: compiledMethodToMove.
 	
 	codeForDelegation := compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab, '^'.
@@ -2802,11 +2800,6 @@ createAccessors
 gettersToCreate
 	^gettersToCreate! !
 
-!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 12/14/2023 00:12:28'!
-hasImplicitSelfReturn
-	
-	^hasImplicitSelfReturn! !
-
 !CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 12/29/2023 02:53:41'!
 settersToCreate
 	^settersToCreate! !
@@ -2816,24 +2809,18 @@ sourceCode
 	^sourceCode
 	! !
 
-!CodeForNodeToMoveResult methodsFor: 'initialization' stamp: 'mc 1/13/2024 04:56:56'!
-initializeNewWith: newCode hasImplicitSelfReturn: aHasImplicitSelfReturn gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
+!CodeForNodeToMoveResult methodsFor: 'initialization' stamp: 'mc 4/6/2024 02:31:35'!
+initializeNewWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
 	sourceCode := newCode.
-	"readAccessOnInstanceVariables := modifiedReads."
-	"writeAccessOnInstanceVariables := modifiedWrites."
-	"readAccessOnClassVariables := modifiedClassReads."
-	"writeAccessOnClassVariables := modifiedClassWrites."
-	hasImplicitSelfReturn := aHasImplicitSelfReturn.
 	gettersToCreate := aGettersToCreate.
 	settersToCreate := aSettersToCreate.
 	sourceClass := aSourceClass.
 	! !
 
-!CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 1/13/2024 04:57:15'!
-newWith: newCode hasImplicitSelfReturn: aHasImplicitSelfReturn gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
+!CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 4/6/2024 02:31:51'!
+newWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
 	^self new 
 		initializeNewWith: newCode
-		hasImplicitSelfReturn: aHasImplicitSelfReturn 
 		gettersToCreate: aGettersToCreate
 		settersToCreate: aSettersToCreate
 		sourceClass: aSourceClass
