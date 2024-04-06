@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6231] on 2 April 2024 at 3:22:05 am'!
+'From Cuis6.3 [latest update: #6231] on 6 April 2024 at 2:26:17 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 90!
+!provides: 'MoveMethodRefactoring' 1 91!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -2514,75 +2514,6 @@ apply
 		ifFalse: [codeForDelegation := codeForDelegation, instanceVariable, ' ', selectorInCode, '.'.].
 	
 	sourceClass compile: codeForDelegation.! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 6/3/2023 00:21:53'!
-createClassVariableGetterIfNotExistsFor: aClassVariable on: aClass
-	^ aClass compile: aClassVariable uncapitalized, String newLineString, String tab, '^', aClassVariable capitalized, '.'! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 11/13/2023 22:35:36'!
-createClassVariableSetterIfNotExistsFor: aClassVariable on: aClass
-
-	^aClass compile: aClassVariable uncapitalized, ': anObject', String newLineString, String tab, '^', aClassVariable capitalized, ' := anObject.'! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 6/3/2023 00:20:32'!
-createGetterFor: anInstanceVariable on: aClass
-
-	^aClass compile: anInstanceVariable, String newLineString, String tab, '^', anInstanceVariable, '.'! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/28/2023 00:40:16'!
-createGetterIfNotExistsFor: anInstanceVariable
-	
-	| getterCandidate |
-	anInstanceVariable = methodName 
-		ifTrue:  [
-			sourceClass compile: anInstanceVariable, '_', String newLineString, String tab, '^', anInstanceVariable, '.'
-			]
-		ifFalse: [
-			getterCandidate := sourceClass methodDict at: anInstanceVariable asSymbol ifAbsent:[^self createGetterFor: anInstanceVariable on: sourceClass].
-			(getterCandidate isGetterOf: anInstanceVariable at: (sourceClass allInstVarNames indexOf: anInstanceVariable)) 
-				ifFalse: 	[self createGetterFor: anInstanceVariable on: sourceClass]]
-	! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/24/2023 23:50:24'!
-createSetterChangeMeFor: anInstanceVariable 
-	^ sourceClass compile: anInstanceVariable, '_SETTER_CHANGE_ME: anObject', String newLineString, String tab, '^', anInstanceVariable, ' := anObject.'! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 6/3/2023 00:25:25'!
-createSetterFor: anInstanceVariable on: aClass
-
-	^aClass compile: anInstanceVariable, ': anObject', String newLineString, String tab, '^', anInstanceVariable, ' := anObject.'! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 11/13/2023 22:36:10'!
-createSetterIfNotExistsFor: anInstanceVariable
-	
-	| setterCandidate |
-	setterCandidate := sourceClass methodDict at: (anInstanceVariable, ':') asSymbol ifAbsent:[^self createSetterFor: anInstanceVariable on: sourceClass].
-	(self method: setterCandidate isSetterOf: anInstanceVariable)
-		ifFalse: 	[self createSetterChangeMeFor: anInstanceVariable]! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/6/2023 01:58:09'!
-method: setterCandidate isSetterOf: anInstVarName 
-	
-	| anInstVarIndex varIndexCode scanner |
-	"self halt."
-	anInstVarIndex := sourceClass allInstVarNames indexOf: anInstVarName.
-	"setterCandidate selector = (anInstanceVariable, ':') ifFalse: [ ^false ].
-	"
-	
-	"^setterCandidate isSetterOf: anInstanceVariable at: varIndex."
-	
-	"self isQuick ifTrue: [ ^false ]."
-	setterCandidate selector = (anInstVarName, ':') ifFalse: [ ^false ].
-	
-	"I could have use the AST of the method, but parsing the source code could generate errors
-	that it is why I decided to check the bytecodes - Hernan"
-	varIndexCode := anInstVarIndex - 1.
-	scanner := InstructionStream on: setterCandidate.
-	scanner nextByte = 16r10 ifFalse: [ ^false ].
-	scanner movePcForward.
-	(setterCandidate writesFieldCode: varIndexCode with: scanner nextByte using: scanner) ifFalse: [ ^false ].
-	scanner movePcForward.
-	^scanner nextByte = 16r7C! !
 
 !MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/17/2023 23:53:38'!
 replaceDependenciesFromSource: compiledMethod
