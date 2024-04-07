@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6231] on 7 April 2024 at 2:11:20 am'!
+'From Cuis6.3 [latest update: #6231] on 7 April 2024 at 2:25:26 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 93!
+!provides: 'MoveMethodRefactoring' 1 94!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -66,7 +66,7 @@ MoveMethodRefactoringTest class
 
 !classDefinition: #MoveMethodRefactoring category: #MoveMethodRefactoring!
 TransferMethod subclass: #MoveMethodRefactoring
-	instanceVariableNames: 'methodName sourceClass targetClass collectionOfSendersToChange instanceVariable parameterNeeded compiledMethodToMove resultAfterReplaceDependencies selectorForDelegation codeForDelegation'
+	instanceVariableNames: 'methodName sourceClass targetClass collectionOfSendersToChange instanceVariableToAccessTarget parameterNeeded compiledMethodToMove resultAfterReplaceDependencies selectorForDelegation codeForDelegation'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -2485,13 +2485,12 @@ initializeClassMethodNamed: aMethodName from: aSourceClass to: aTargetClass para
 	targetClass := aTargetClass.
 	parameterNeeded := anExtraParameterNeeded.! !
 
-!MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 9/3/2023 02:57:54'!
-initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: anInstanceVariable changingSenders: aCollectionOfSendersToChange parameterNeeded: anExtraParameterNeeded 
+!MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 4/7/2024 02:14:28'!
+initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: anInstanceVariable parameterNeeded: anExtraParameterNeeded 
 	methodName := aMethodName.
 	sourceClass := aSourceClass.
 	targetClass := aTargetClass.
-	instanceVariable := anInstanceVariable.
-	collectionOfSendersToChange := aCollectionOfSendersToChange.
+	instanceVariableToAccessTarget := anInstanceVariable.
 	parameterNeeded := anExtraParameterNeeded ! !
 
 !MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/7/2024 02:00:45'!
@@ -2518,22 +2517,22 @@ findMethodToMove
 
 	^ compiledMethodToMove := sourceClass methodDict at: methodName! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 02:02:34'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 02:12:37'!
 replaceDependenciesOnMethodToMove
 	| replacer |
 	
-	replacer := CodeForNodeToMove for: compiledMethodToMove variableToAccesThrough: instanceVariable parameterNeeded: parameterNeeded.
+	replacer := CodeForNodeToMove for: compiledMethodToMove variableToAccesThrough: instanceVariableToAccessTarget parameterNeeded: parameterNeeded.
 	resultAfterReplaceDependencies := replacer value.! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 02:10:23'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 02:12:37'!
 replaceMethodForDelegation
 
 	selectorForDelegation := parameterNeeded newSenderFor: compiledMethodToMove.
 	
 	codeForDelegation := compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab, '^'.
 	
-	sourceClass isMeta ifTrue: [ instanceVariable := (targetClass soleInstance name) ].
-	codeForDelegation := codeForDelegation, instanceVariable, ' ', selectorForDelegation, '.'.
+	sourceClass isMeta ifTrue: [ instanceVariableToAccessTarget := (targetClass soleInstance name) ].
+	codeForDelegation := codeForDelegation, instanceVariableToAccessTarget, ' ', selectorForDelegation, '.'.
 	sourceClass compile: codeForDelegation! !
 
 !MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 12/9/2023 02:34:17'!
@@ -2562,7 +2561,7 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: inst
 		parameterNeeded: NonExtraParameterNameNeeded new
 		! !
 
-!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 1/23/2024 02:43:49'!
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 4/7/2024 02:14:28'!
 methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable parameterNeeded: anExtraParameterNeeded  
 	
 	
@@ -2582,7 +2581,6 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: inst
 		from: sourceClass 
 		to: targetClass 
 		accessingThrough: instanceVariable 
-		changingSenders: OrderedCollection new 
 		parameterNeeded: anExtraParameterNeeded 
 		! !
 
