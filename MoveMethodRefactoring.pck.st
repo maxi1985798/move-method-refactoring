@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6231] on 6 April 2024 at 2:36:27 am'!
+'From Cuis6.3 [latest update: #6231] on 7 April 2024 at 2:11:20 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 92!
+!provides: 'MoveMethodRefactoring' 1 93!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -66,7 +66,7 @@ MoveMethodRefactoringTest class
 
 !classDefinition: #MoveMethodRefactoring category: #MoveMethodRefactoring!
 TransferMethod subclass: #MoveMethodRefactoring
-	instanceVariableNames: 'methodName sourceClass targetClass collectionOfSendersToChange instanceVariable parameterNeeded'
+	instanceVariableNames: 'methodName sourceClass targetClass collectionOfSendersToChange instanceVariable parameterNeeded compiledMethodToMove resultAfterReplaceDependencies selectorForDelegation codeForDelegation'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -2494,30 +2494,47 @@ initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessing
 	collectionOfSendersToChange := aCollectionOfSendersToChange.
 	parameterNeeded := anExtraParameterNeeded ! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/6/2024 02:28:01'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/7/2024 02:00:45'!
 apply
-	| compiledMethodToMove resultAfterReplaceDependencies selectorInCode codeForDelegation |
-	compiledMethodToMove := sourceClass methodDict at: methodName.
-	resultAfterReplaceDependencies := self replaceDependenciesFromSource: compiledMethodToMove.
+	self
+		findMethodToMove;
+		replaceDependenciesOnMethodToMove;
+		compileInTargetClass;
+		createAccessors;
+		replaceMethodForDelegation.! !
+
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 01:51:44'!
+compileInTargetClass
+
+	^ targetClass compile: resultAfterReplaceDependencies sourceCode! !
+
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 01:54:45'!
+createAccessors
+
+	^ resultAfterReplaceDependencies createAccessors! !
+
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 01:53:30'!
+findMethodToMove
+
+	^ compiledMethodToMove := sourceClass methodDict at: methodName! !
+
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 02:02:34'!
+replaceDependenciesOnMethodToMove
+	| replacer |
 	
-	
-	targetClass compile: resultAfterReplaceDependencies sourceCode.
-	resultAfterReplaceDependencies createAccessors.
-	selectorInCode := parameterNeeded newSenderFor: compiledMethodToMove.
+	replacer := CodeForNodeToMove for: compiledMethodToMove variableToAccesThrough: instanceVariable parameterNeeded: parameterNeeded.
+	resultAfterReplaceDependencies := replacer value.! !
+
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 02:10:23'!
+replaceMethodForDelegation
+
+	selectorForDelegation := parameterNeeded newSenderFor: compiledMethodToMove.
 	
 	codeForDelegation := compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab, '^'.
 	
-	sourceClass isMeta 
-		ifTrue: [codeForDelegation := codeForDelegation, (targetClass soleInstance name), ' ', selectorInCode, '.'.]
-		ifFalse: [codeForDelegation := codeForDelegation, instanceVariable, ' ', selectorInCode, '.'.].
-	
-	sourceClass compile: codeForDelegation.! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/17/2023 23:53:38'!
-replaceDependenciesFromSource: compiledMethod
-	| replacer |
-	replacer := CodeForNodeToMove for: compiledMethod variableToAccesThrough: instanceVariable parameterNeeded: parameterNeeded .
-	^replacer value.! !
+	sourceClass isMeta ifTrue: [ instanceVariable := (targetClass soleInstance name) ].
+	codeForDelegation := codeForDelegation, instanceVariable, ' ', selectorForDelegation, '.'.
+	sourceClass compile: codeForDelegation! !
 
 !MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 12/9/2023 02:34:17'!
 classMethodNamed: methodName from: sourceClass to: targetClass parameterNeeded: anExtraParameterNeeded 
