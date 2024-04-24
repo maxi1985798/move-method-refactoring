@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6231] on 7 April 2024 at 2:25:26 am'!
+'From Cuis6.3 [latest update: #6231] on 24 April 2024 at 7:14:46 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 94!
+!provides: 'MoveMethodRefactoring' 1 95!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -167,20 +167,18 @@ initializeFor: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughN
 	gettersToCreate := Dictionary new.
 	settersToCreate := Dictionary new.! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 1/14/2024 18:31:17'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/24/2024 02:50:45'!
 visitAssignmentNode: anAssignmentNode 
-	| assigmentValue completeRangesOfassigmentNode nodeXXXReplacer resultForValue setterSelectorAsString |
+	| assigmentValue completeRangesOfassigmentNode resultForValue setterSelectorAsString |
 	"self halt."
 	anAssignmentNode variable isTemp ifTrue: [anAssignmentNode value accept: self. ^self].
 	completeRangesOfassigmentNode := self firstUnseenIntervalFor: anAssignmentNode.
-	nodeXXXReplacer := CodeForNodeToMove 
+	resultForValue :=			(CodeForNodeToMove 
 					for: compiledMethod
 					variableToAcessThrough: variableToAccesThrough 
 					rejectingIntervals: intervalsToReject 
 					onNode: anAssignmentNode value
-					parameterNeeded: parameterNeeded.
-					
-	resultForValue :=			nodeXXXReplacer value.
+					parameterNeeded: parameterNeeded) value.
 	(((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ])
 		ifTrue: [assigmentValue := '(', resultForValue sourceCode , ')'.] 
 		ifFalse: [assigmentValue := resultForValue sourceCode .].
@@ -230,24 +228,23 @@ visitLiteralVariableNode: aLiteralVariableNode
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 ! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 9/14/2023 01:24:30'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/24/2024 02:55:01'!
 visitMessageNode: aMessageNode 
 	| rangeMessageNode newSend |
 	"self halt."
 	aMessageNode receiver referencesSuper
 		ifTrue:[
+			rangeMessageNode := self firstUnseenIntervalFor: aMessageNode.
 			aMessageNode isKeywordMessageSend
 				ifTrue: [ 
 					newSend := self newSenderFor: aMessageNode.
-					rangeMessageNode := self firstUnseenIntervalFor: aMessageNode.
 					self registerInterval: rangeMessageNode withModification: newSend.
 					self encapsulateSuperColaboration: aMessageNode.
 					]
 				ifFalse: [
-					rangeMessageNode := self firstUnseenIntervalFor: aMessageNode .
-					self registerInterval: rangeMessageNode withModification: (parameterNeeded parameterName, ' CHANGE_ME_super_', aMessageNode selector key asString).
+					self registerInterval: rangeMessageNode withModification: (parameterNeeded parameterName, ' ', (self newSelectorForSuperColaboration: aMessageNode)).
 					"self encapsulateSuperColaboration: aMessageNode."
-					compiledMethod methodClass compile:'CHANGE_ME_super_', aMessageNode selector key asString, String newLineString, String tab, '^super ', aMessageNode selector key asString, '.'.
+					compiledMethod methodClass compile:(self newSelectorForSuperColaboration: aMessageNode), String newLineString, String tab, '^super ', aMessageNode selector key asString, '.'.
 					].
 			
 			]
@@ -277,18 +274,18 @@ compiledMethodAt: aSelector
 
 	^ compiledMethod methodClass compiledMethodAt: aSelector! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 5/12/2023 00:29:21'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/24/2024 02:32:56'!
 encapsulateSuperColaboration: aMessageNode
 	
 	| colaborationEncapsulated indexSourceCode newSelector newSourceCode |
-	newSelector := self newSelector: aMessageNode .
+	newSelector := self newKeywordSelector: aMessageNode .
 	indexSourceCode := 1.
 	newSourceCode := ''.
 	aMessageNode selector key keywords do: [:aKeyword | 
 		newSourceCode := newSourceCode, ' ', aKeyword, ' ', 'arg', indexSourceCode asString. 
 		indexSourceCode := indexSourceCode +1 ].
-	
-	newSourceCode := '^super ', (newSourceCode copyFrom: 2 to: newSourceCode size), '.'.
+	newSourceCode := newSourceCode withBlanksTrimmed.
+	newSourceCode := '^super ', newSourceCode, '.'.
 	colaborationEncapsulated := newSelector, String newLineString, String tab, newSourceCode.
 	compiledMethod methodClass compile: colaborationEncapsulated.! !
 
@@ -403,15 +400,23 @@ method: setterCandidate isSetterOf: anInstVarName
 	scanner movePcForward.
 	^scanner nextByte = 16r7C! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 5/12/2023 00:14:44'!
-newSelector: aMessageNode
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/24/2024 02:29:40'!
+newKeywordSelector: aMessageNode
 	
 	| indexNewSelector newSelector |
 	newSelector := ''.
 	indexNewSelector := 1.
-	aMessageNode selector key keywords do: [:aKeyword | newSelector := newSelector, ' ', aKeyword, ' ', 'arg', indexNewSelector asString. indexNewSelector := indexNewSelector +1 ].
-	newSelector := 'CHANGE_ME_super_', (newSelector copyFrom: 2 to: newSelector size).
+	aMessageNode selector key keywords do: [:aKeyword | 
+		newSelector := newSelector, ' ', aKeyword, ' ', 'arg', indexNewSelector asString.
+		indexNewSelector := indexNewSelector +1 ].
+	newSelector := newSelector withBlanksTrimmed.
+	newSelector := 'CHANGE_ME_super_', newSelector.
 	^newSelector! !
+
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/23/2024 22:50:19'!
+newSelectorForSuperColaboration: aMessageNode
+
+	^ 'CHANGE_ME_super_', aMessageNode selector key asString! !
 
 !CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/14/2024 18:31:03'!
 newSenderFor: aMessageNode
