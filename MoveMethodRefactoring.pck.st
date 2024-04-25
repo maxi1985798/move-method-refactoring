@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6231] on 24 April 2024 at 7:14:46 pm'!
+'From Cuis6.3 [latest update: #6231] on 25 April 2024 at 2:46:48 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 95!
+!provides: 'MoveMethodRefactoring' 1 96!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -563,9 +563,11 @@ method: getterCandidate forClassVariable: aClassVariableName
 needParameterName
 	^needParameterName! !
 
-!NeedParameterName methodsFor: 'public' stamp: 'mc 12/16/2023 02:19:28'!
+!NeedParameterName methodsFor: 'public' stamp: 'mc 4/25/2024 14:38:26'!
 value
-	compiledMethod methodNode accept: self.
+	 | methodNode |
+	methodNode := compiledMethod methodNode.
+	methodNode accept: self.
 	^self needParameterName ! !
 
 !NeedParameterName methodsFor: 'visiting' stamp: 'mc 11/13/2023 02:01:02'!
@@ -578,10 +580,10 @@ visitLiteralVariableNode: aLiteralVariableNode
 
 	needParameterName := aLiteralVariableNode  isReferencingGlobal not.! !
 
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 4/1/2024 23:49:47'!
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 4/25/2024 14:41:47'!
 visitReturnNode: aReturnNode 
 	"creo que ReturnNode>>isImplicitSelfReturnIn: no funca en donde se devuelve ^self"
-	"self halt"
+	"self halt."
 	"(aReturnNode isImplicitSelfReturnIn: compiledMethod methodNode)"
 	(self isImplicitSelfReturn: aReturnNode In: compiledMethod methodNode)
 		ifTrue: [needParameterName := true]
@@ -2460,8 +2462,8 @@ test401ImplicitReturnShouldBeMoved
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 4/2/2024 03:12:42'!
-test402ImplicitReturnShouldBeMovedAndAddADot
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 4/25/2024 14:43:16'!
+test402ImplicitReturnShouldBeMovedAndAddADotInLastWritedSentence
 	
 	| sourceClass targetClass refactoring |
 	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
@@ -2479,6 +2481,28 @@ test402ImplicitReturnShouldBeMovedAndAddADot
 
 	self assert: 'm1: aSourceObject 1.
 	^aSourceObject.' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'm1
+	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 4/25/2024 14:41:32'!
+test403aNonImplicitReturnShouldBeMoved
+	
+	| sourceClass targetClass refactoring |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'm1 ^self'.
+	
+	refactoring := MoveMethodRefactoring 
+					methodNamed: #m1 
+					from: sourceClass 
+					to: targetClass 
+					accessingThrough: 'iv1' 
+					parameterNeeded: (ExtraParameterNameNeeded parameterName: 'aSourceObject').
+	refactoring apply.
+
+	self assert: 'm1: aSourceObject ^aSourceObject' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'm1
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
 	! !
@@ -3022,6 +3046,14 @@ smalltalkEditorMenuOptions
 				#icon 			-> 		#saveAsIcon
 		} asDictionary.
 	}`! !
+
+!ReturnNode methodsFor: '*MoveMethodRefactoring-testing' stamp: 'mc 4/24/2024 19:26:31'!
+isImplicitSelfReturnIn: aMethodNode
+
+	self isReturnSelf ifFalse: [^false]. 
+	aMethodNode completeSourceRangesOf: self ifAbsent: [^true].
+	
+	^false! !
 
 !SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 8/9/2023 15:14:57'!
 contextualMoveMethod
