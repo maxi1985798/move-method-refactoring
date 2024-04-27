@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6169] on 27 April 2024 at 4:52:12 am'!
+'From Cuis6.3 [latest update: #6169] on 27 April 2024 at 6:46:53 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 97!
+!provides: 'MoveMethodRefactoring' 1 98!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -26,7 +26,7 @@ CodeForNodeToMove class
 
 !classDefinition: #MethodWorksAsGetterVisitor category: #MoveMethodRefactoring!
 ParseNodeVisitor subclass: #MethodWorksAsGetterVisitor
-	instanceVariableNames: 'getterCandidate_CHANGE_ME classVariableName methodCanWorkAsGetter returnMethodIsNotGetterClousure returnMethodIsGetterClousure'
+	instanceVariableNames: 'getterCandidate classVariableName returnMethodIsNotGetterClousure returnMethodIsGetterClousure'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -540,24 +540,22 @@ for: compiledMethod variableToAccesThrough: aVariableToAccesoThroughName paramet
 		parameterNeeded: parameterNeeded.
 	! !
 
-!MethodWorksAsGetterVisitor methodsFor: 'initialization' stamp: 'mc 12/30/2023 18:39:12'!
-initializeMethod: getterCandidate forClassVariable: aClassVariableName 
+!MethodWorksAsGetterVisitor methodsFor: 'initialization' stamp: 'mc 4/27/2024 18:22:34'!
+initializeMethod: aGetterCandidate forClassVariable: aClassVariableName 
 	
-	getterCandidate_CHANGE_ME := getterCandidate.
-	classVariableName := aClassVariableName.
-	methodCanWorkAsGetter := false.! !
+	getterCandidate := aGetterCandidate.
+	classVariableName := aClassVariableName.! !
 
-!MethodWorksAsGetterVisitor methodsFor: 'as yet unclassified' stamp: 'mc 12/31/2023 01:38:27'!
+!MethodWorksAsGetterVisitor methodsFor: 'as yet unclassified' stamp: 'mc 4/27/2024 18:22:28'!
 value
 	returnMethodIsNotGetterClousure := [^false].
 	returnMethodIsGetterClousure := [^true].
-	getterCandidate_CHANGE_ME methodNode accept: self.
-	^methodCanWorkAsGetter! !
+	getterCandidate methodNode accept: self.
+	^false! !
 
-!MethodWorksAsGetterVisitor methodsFor: 'visiting' stamp: 'mc 12/31/2023 02:21:50'!
+!MethodWorksAsGetterVisitor methodsFor: 'visiting' stamp: 'mc 4/27/2024 18:20:13'!
 visitBlockNode: aBlockNode 
 	(aBlockNode statements size = 1) ifFalse: [returnMethodIsNotGetterClousure value].
-	"(aBlockNode statements first isReturn) ifFalse: [returnMethodIsNotGetterClousure value]."
 	(aBlockNode statements first expr name = classVariableName) 
 		ifFalse: [returnMethodIsNotGetterClousure value]
 		ifTrue: [returnMethodIsGetterClousure value].! !
