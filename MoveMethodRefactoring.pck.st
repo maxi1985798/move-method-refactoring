@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6231] on 25 April 2024 at 2:46:48 pm'!
+'From Cuis6.3 [latest update: #6169] on 27 April 2024 at 4:52:12 am'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 96!
+!provides: 'MoveMethodRefactoring' 1 97!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -16,7 +16,7 @@ MessageToMoveShouldNotExistOnClass class
 
 !classDefinition: #CodeForNodeToMove category: #MoveMethodRefactoring!
 ParseNodeVisitor subclass: #CodeForNodeToMove
-	instanceVariableNames: 'compiledMethod intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode parameterNeeded variableToAccesThrough hasImplicitSelfReturn gettersToCreate settersToCreate'
+	instanceVariableNames: 'compiledMethod methodNode intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode parameterNeeded variableToAccesThrough hasImplicitSelfReturn gettersToCreate settersToCreate'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -36,7 +36,7 @@ MethodWorksAsGetterVisitor class
 
 !classDefinition: #NeedParameterName category: #MoveMethodRefactoring!
 ParseNodeVisitor subclass: #NeedParameterName
-	instanceVariableNames: 'needParameterName instanceVariableNameToAccessThrough compiledMethod'
+	instanceVariableNames: 'needParameterName instanceVariableNameToAccessThrough compiledMethod methodNode'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -155,9 +155,10 @@ TesisMoveMethodRefactoringMenu class
 	instanceVariableNames: ''!
 
 
-!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 1/20/2024 02:36:48'!
-initializeFor: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: aParameterNeeded 
+!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 4/25/2024 22:36:57'!
+initializeFor: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: aParameterNeeded 
 	compiledMethod := aCompiledMethod.
+	methodNode := aMethodNode.
 	intervalsToReject := aFewIntervalsToReject.
 	node := aNodeToGetCode.
 	intervalsToModify := OrderedCollection new.
@@ -167,7 +168,7 @@ initializeFor: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughN
 	gettersToCreate := Dictionary new.
 	settersToCreate := Dictionary new.! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/24/2024 02:50:45'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/25/2024 22:39:00'!
 visitAssignmentNode: anAssignmentNode 
 	| assigmentValue completeRangesOfassigmentNode resultForValue setterSelectorAsString |
 	"self halt."
@@ -175,6 +176,7 @@ visitAssignmentNode: anAssignmentNode
 	completeRangesOfassigmentNode := self firstUnseenIntervalFor: anAssignmentNode.
 	resultForValue :=			(CodeForNodeToMove 
 					for: compiledMethod
+					methodNode: methodNode
 					variableToAcessThrough: variableToAccesThrough 
 					rejectingIntervals: intervalsToReject 
 					onNode: anAssignmentNode value
@@ -255,9 +257,10 @@ visitMessageNode: aMessageNode
 			].
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/13/2023 22:57:15'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/26/2024 23:08:44'!
 visitReturnNode: aReturnNode 
-	(aReturnNode isImplicitSelfReturnIn: compiledMethod methodNode)
+	"self halt."
+	(aReturnNode isImplicitSelfReturnIn: methodNode)
 		ifTrue: [hasImplicitSelfReturn := true]
 		ifFalse: [super visitReturnNode: aReturnNode]! !
 
@@ -302,12 +305,12 @@ firstIntervalOn: aCollectionOfIntervals
 firstUnseenIntervalFor: aNode 
 	^self firstUnseenIntervalFor: aNode ifAbsent: [] ! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 9/14/2023 01:26:21'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/25/2024 22:42:10'!
 firstUnseenIntervalFor: aNode ifAbsent: anAbsentBlock 
 	
 	| completeRangesOfassigmentNode |
 	
-	completeRangesOfassigmentNode := compiledMethod methodNode completeSourceRangesOf: aNode ifAbsent: anAbsentBlock.
+	completeRangesOfassigmentNode := methodNode completeSourceRangesOf: aNode ifAbsent: anAbsentBlock.
 	self removeSeenRanges: completeRangesOfassigmentNode.
 	^self filterRangesThatDoNotBelongToTheCurrentNodeIn: completeRangesOfassigmentNode.! !
 
@@ -350,7 +353,7 @@ getterForInstanceVariable: anInstanceVariableName
 		ifNotEmpty: [^gettersCandidates first].
 		! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 9/14/2023 00:55:51'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/25/2024 22:42:26'!
 initializeNodeInterval
 
 	| posibleRangesForNode |
@@ -360,7 +363,7 @@ initializeNodeInterval
 			nodeInterval := 1 to: (compiledMethod sourceCode size).
 			]
 		ifFalse:[ 
-			posibleRangesForNode := (compiledMethod methodNode completeSourceRangesOf: node ifAbsent: []).
+			posibleRangesForNode := (methodNode completeSourceRangesOf: node ifAbsent: []).
 			self removeSeenRanges: posibleRangesForNode.
 			nodeInterval := self firstIntervalOn: posibleRangesForNode.
 			]! !
@@ -418,7 +421,7 @@ newSelectorForSuperColaboration: aMessageNode
 
 	^ 'CHANGE_ME_super_', aMessageNode selector key asString! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/14/2024 18:31:03'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/25/2024 22:38:45'!
 newSenderFor: aMessageNode
 	|  newSend argumentsCode argumentIndex replacer replacerResult argumentNode |
 	argumentsCode := OrderedCollection new.
@@ -428,6 +431,7 @@ newSenderFor: aMessageNode
 		argumentNode := aMessageNode argumentsInEvaluationOrder at: argumentIndex.
 		replacer := CodeForNodeToMove 
 					for: compiledMethod
+					methodNode: methodNode
 					variableToAcessThrough: variableToAccesThrough
 					rejectingIntervals: intervalsToReject
 					onNode: argumentNode
@@ -513,24 +517,28 @@ value
 				sourceClass: compiledMethod methodClass.
 	^result! !
 
-!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 10/8/2023 02:35:30'!
-for: compiledMethod variableToAccesThrough: aVariableToAccesoThroughName parameterNeeded: parameterNeeded
-	^self 
-		for: compiledMethod
-		variableToAcessThrough: aVariableToAccesoThroughName 
-		rejectingIntervals: OrderedCollection new
-		onNode: compiledMethod methodNode
-		parameterNeeded: parameterNeeded.
-	! !
-
-!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 10/8/2023 02:36:59'!
-for: aCompiledMethod variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: parameterNeeded
+!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 4/25/2024 22:37:39'!
+for: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: parameterNeeded
 	^self new 
 		initializeFor: aCompiledMethod
+		methodNode: aMethodNode
 		variableToAcessThrough: aVariableToAccesoThroughName
 		rejectingIntervals: aFewIntervalsToReject
 		onNode: aNodeToGetCode
 		parameterNeeded: parameterNeeded! !
+
+!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 4/26/2024 23:06:05'!
+for: compiledMethod variableToAccesThrough: aVariableToAccesoThroughName parameterNeeded: parameterNeeded
+	| methodNode |
+	methodNode := compiledMethod methodNode.
+	^self 
+		for: compiledMethod
+		methodNode: methodNode
+		variableToAcessThrough: aVariableToAccesoThroughName 
+		rejectingIntervals: OrderedCollection new
+		onNode: methodNode
+		parameterNeeded: parameterNeeded.
+	! !
 
 !MethodWorksAsGetterVisitor methodsFor: 'initialization' stamp: 'mc 12/30/2023 18:39:12'!
 initializeMethod: getterCandidate forClassVariable: aClassVariableName 
@@ -563,9 +571,9 @@ method: getterCandidate forClassVariable: aClassVariableName
 needParameterName
 	^needParameterName! !
 
-!NeedParameterName methodsFor: 'public' stamp: 'mc 4/25/2024 14:38:26'!
+!NeedParameterName methodsFor: 'public' stamp: 'mc 4/25/2024 14:52:31'!
 value
-	 | methodNode |
+	  
 	methodNode := compiledMethod methodNode.
 	methodNode accept: self.
 	^self needParameterName ! !
@@ -580,12 +588,10 @@ visitLiteralVariableNode: aLiteralVariableNode
 
 	needParameterName := aLiteralVariableNode  isReferencingGlobal not.! !
 
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 4/25/2024 14:41:47'!
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 4/27/2024 00:09:15'!
 visitReturnNode: aReturnNode 
-	"creo que ReturnNode>>isImplicitSelfReturnIn: no funca en donde se devuelve ^self"
 	"self halt."
-	"(aReturnNode isImplicitSelfReturnIn: compiledMethod methodNode)"
-	(self isImplicitSelfReturn: aReturnNode In: compiledMethod methodNode)
+	(aReturnNode isImplicitSelfReturnIn: methodNode)
 		ifTrue: [needParameterName := true]
 		ifFalse: [super visitReturnNode: aReturnNode ]! !
 
@@ -3047,11 +3053,11 @@ smalltalkEditorMenuOptions
 		} asDictionary.
 	}`! !
 
-!ReturnNode methodsFor: '*MoveMethodRefactoring-testing' stamp: 'mc 4/24/2024 19:26:31'!
+!ReturnNode methodsFor: '*MoveMethodRefactoring-testing' stamp: 'FGJ 10/15/2020 10:19:23'!
 isImplicitSelfReturnIn: aMethodNode
 
 	self isReturnSelf ifFalse: [^false]. 
-	aMethodNode completeSourceRangesOf: self ifAbsent: [^true].
+	aMethodNode encoder rangeForNode: self ifAbsent: [^true].
 	
 	^false! !
 
