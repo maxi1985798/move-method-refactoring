@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6169] on 27 April 2024 at 6:46:53 pm'!
+'From Cuis6.3 [latest update: #6169] on 28 April 2024 at 10:26:35 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 98!
+!provides: 'MoveMethodRefactoring' 1 99!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -168,7 +168,12 @@ initializeFor: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: a
 	gettersToCreate := Dictionary new.
 	settersToCreate := Dictionary new.! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/25/2024 22:39:00'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/28/2024 19:37:58'!
+shouldAddParenthesisOnValueOf: anAssignmentNode
+
+	^ ((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ]! !
+
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/28/2024 19:37:58'!
 visitAssignmentNode: anAssignmentNode 
 	| assigmentValue completeRangesOfassigmentNode resultForValue setterSelectorAsString |
 	"self halt."
@@ -181,7 +186,7 @@ visitAssignmentNode: anAssignmentNode
 					rejectingIntervals: intervalsToReject 
 					onNode: anAssignmentNode value
 					parameterNeeded: parameterNeeded) value.
-	(((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ])
+	(self shouldAddParenthesisOnValueOf: anAssignmentNode)
 		ifTrue: [assigmentValue := '(', resultForValue sourceCode , ')'.] 
 		ifFalse: [assigmentValue := resultForValue sourceCode .].
 	
@@ -3051,14 +3056,6 @@ smalltalkEditorMenuOptions
 		} asDictionary.
 	}`! !
 
-!ReturnNode methodsFor: '*MoveMethodRefactoring-testing' stamp: 'FGJ 10/15/2020 10:19:23'!
-isImplicitSelfReturnIn: aMethodNode
-
-	self isReturnSelf ifFalse: [^false]. 
-	aMethodNode encoder rangeForNode: self ifAbsent: [^true].
-	
-	^false! !
-
 !SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 8/9/2023 15:14:57'!
 contextualMoveMethod
 	"self halt."
@@ -3091,11 +3088,9 @@ contextualMoveMethodOf: aMethodNode in: aSelectedClass
 
 ! !
 
-!BrowserWindow methodsFor: '*MoveMethodRefactoring' stamp: 'mc 9/5/2023 00:43:10'!
+!BrowserWindow methodsFor: '*MoveMethodRefactoring' stamp: 'mc 4/28/2024 20:29:11'!
 moveMethod
 	
-	
-	"self halt."
 	model selectedMessageName ifNotNil: [ :selectorToInline |
 		RefactoringApplier moveMethodApplier
 			createAndValueHandlingExceptionsOn: model
