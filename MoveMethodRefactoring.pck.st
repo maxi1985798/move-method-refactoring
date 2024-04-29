@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6169] on 28 April 2024 at 10:26:35 pm'!
+'From Cuis6.3 [latest update: #6169] on 28 April 2024 at 10:45:08 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 99!
+!provides: 'MoveMethodRefactoring' 1 100!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -173,11 +173,11 @@ shouldAddParenthesisOnValueOf: anAssignmentNode
 
 	^ ((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ]! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/28/2024 19:37:58'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/28/2024 22:43:07'!
 visitAssignmentNode: anAssignmentNode 
 	| assigmentValue completeRangesOfassigmentNode resultForValue setterSelectorAsString |
 	"self halt."
-	anAssignmentNode variable isTemp ifTrue: [anAssignmentNode value accept: self. ^self].
+	anAssignmentNode variable isTemp ifTrue: [^super visitAssignmentNode: anAssignmentNode].
 	completeRangesOfassigmentNode := self firstUnseenIntervalFor: anAssignmentNode.
 	resultForValue :=			(CodeForNodeToMove 
 					for: compiledMethod
