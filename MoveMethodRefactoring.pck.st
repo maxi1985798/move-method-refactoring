@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6169] on 28 April 2024 at 10:45:08 pm'!
+'From Cuis6.3 [latest update: #6169] on 28 April 2024 at 11:02:08 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 100!
+!provides: 'MoveMethodRefactoring' 1 101!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -168,11 +168,6 @@ initializeFor: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: a
 	gettersToCreate := Dictionary new.
 	settersToCreate := Dictionary new.! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/28/2024 19:37:58'!
-shouldAddParenthesisOnValueOf: anAssignmentNode
-
-	^ ((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ]! !
-
 !CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/28/2024 22:43:07'!
 visitAssignmentNode: anAssignmentNode 
 	| assigmentValue completeRangesOfassigmentNode resultForValue setterSelectorAsString |
@@ -205,7 +200,7 @@ visitAssignmentNode: anAssignmentNode
 	settersToCreate addAll: resultForValue settersToCreate.
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 1/13/2024 05:00:42'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/28/2024 22:47:10'!
 visitInstanceVariableNode: anInstanceVariableNode 
 	| sourceCodeForInterval anInterval getterToUse |
 	"self halt."
@@ -217,7 +212,7 @@ visitInstanceVariableNode: anInstanceVariableNode
 			sourceCodeForInterval := parameterNeeded parameterName, ' ', getterToUse.
 			(compiledMethod methodClass selectors includes: getterToUse) 
 				ifFalse: [gettersToCreate at: anInstanceVariableNode key put: getterToUse.].
-			"readAccessOnInstanceVariables add: anInstanceVariableNode key."].
+			].
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	! !
 
@@ -235,7 +230,7 @@ visitLiteralVariableNode: aLiteralVariableNode
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 ! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/24/2024 02:55:01'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/28/2024 22:51:42'!
 visitMessageNode: aMessageNode 
 	| rangeMessageNode newSend |
 	"self halt."
@@ -255,11 +250,7 @@ visitMessageNode: aMessageNode
 					].
 			
 			]
-		ifFalse:[
-			aMessageNode receiver accept: self.
-			aMessageNode selector accept: self.
-			aMessageNode argumentsInEvaluationOrder do: [:argument| argument accept: self]
-			].
+		ifFalse:[ super visitMessageNode: aMessageNode ].
 	! !
 
 !CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/26/2024 23:08:44'!
@@ -493,6 +484,11 @@ setterForInstanceVariable: anInstanceVariableName
 !CodeForNodeToMove methodsFor: 'private' stamp: 'mc 5/14/2023 19:51:27'!
 shouldAddParenthesis: argumentNode 
 	^argumentNode isAssignmentNode! !
+
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/28/2024 19:37:58'!
+shouldAddParenthesisOnValueOf: anAssignmentNode
+
+	^ ((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ]! !
 
 !CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 4/6/2024 02:34:57'!
 value
