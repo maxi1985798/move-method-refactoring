@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6169] on 28 April 2024 at 11:02:08 pm'!
+'From Cuis6.3 [latest update: #6350] on 16 June 2024 at 5:24:58 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 101!
+!provides: 'MoveMethodRefactoring' 1 102!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -46,7 +46,7 @@ NeedParameterName class
 
 !classDefinition: #NeedParameterNameForClassMethod category: #MoveMethodRefactoring!
 ParseNodeVisitor subclass: #NeedParameterNameForClassMethod
-	instanceVariableNames: 'needParameterName'
+	instanceVariableNames: 'needParameterName methodClass'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -155,7 +155,7 @@ TesisMoveMethodRefactoringMenu class
 	instanceVariableNames: ''!
 
 
-!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 4/25/2024 22:36:57'!
+!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 6/15/2024 02:47:10'!
 initializeFor: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: aParameterNeeded 
 	compiledMethod := aCompiledMethod.
 	methodNode := aMethodNode.
@@ -168,7 +168,7 @@ initializeFor: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: a
 	gettersToCreate := Dictionary new.
 	settersToCreate := Dictionary new.! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/28/2024 22:43:07'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:10'!
 visitAssignmentNode: anAssignmentNode 
 	| assigmentValue completeRangesOfassigmentNode resultForValue setterSelectorAsString |
 	"self halt."
@@ -200,7 +200,7 @@ visitAssignmentNode: anAssignmentNode
 	settersToCreate addAll: resultForValue settersToCreate.
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/28/2024 22:47:10'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:10'!
 visitInstanceVariableNode: anInstanceVariableNode 
 	| sourceCodeForInterval anInterval getterToUse |
 	"self halt."
@@ -216,7 +216,7 @@ visitInstanceVariableNode: anInstanceVariableNode
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 1/14/2024 18:31:36'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:10'!
 visitLiteralVariableNode: aLiteralVariableNode 
 	| sourceCodeForInterval anInterval getterToUse |
 	"self halt."
@@ -230,7 +230,7 @@ visitLiteralVariableNode: aLiteralVariableNode
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 ! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/28/2024 22:51:42'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:10'!
 visitMessageNode: aMessageNode 
 	| rangeMessageNode newSend |
 	"self halt."
@@ -253,14 +253,14 @@ visitMessageNode: aMessageNode
 		ifFalse:[ super visitMessageNode: aMessageNode ].
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 4/26/2024 23:08:44'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:10'!
 visitReturnNode: aReturnNode 
 	"self halt."
 	(aReturnNode isImplicitSelfReturnIn: methodNode)
 		ifTrue: [hasImplicitSelfReturn := true]
 		ifFalse: [super visitReturnNode: aReturnNode]! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 9/14/2023 01:21:49'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:10'!
 visitVariableNode: aVariableNode 
 	| anInterval sourceCodeForInterval |
 	"self halt."
@@ -268,12 +268,12 @@ visitVariableNode: aVariableNode
 	sourceCodeForInterval := parameterNeeded parameterName.
 	self registerInterval: anInterval withModification: sourceCodeForInterval.! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/20/2024 03:35:10'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 compiledMethodAt: aSelector
 
 	^ compiledMethod methodClass compiledMethodAt: aSelector! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/24/2024 02:32:56'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 encapsulateSuperColaboration: aMessageNode
 	
 	| colaborationEncapsulated indexSourceCode newSelector newSourceCode |
@@ -288,20 +288,20 @@ encapsulateSuperColaboration: aMessageNode
 	colaborationEncapsulated := newSelector, String newLineString, String tab, newSourceCode.
 	compiledMethod methodClass compile: colaborationEncapsulated.! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 9/10/2023 00:28:47'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 filterRangesThatDoNotBelongToTheCurrentNodeIn: aCollectionOfRanges
 
 	^ self firstIntervalOn: (aCollectionOfRanges select: [ :anInterval | nodeInterval includesAllOf: anInterval ])! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/14/2023 02:12:28'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 firstIntervalOn: aCollectionOfIntervals
 	^aCollectionOfIntervals detectMin: [ :anInterval | anInterval first]! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 9/14/2023 01:52:37'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 firstUnseenIntervalFor: aNode 
 	^self firstUnseenIntervalFor: aNode ifAbsent: [] ! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/25/2024 22:42:10'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 firstUnseenIntervalFor: aNode ifAbsent: anAbsentBlock 
 	
 	| completeRangesOfassigmentNode |
@@ -310,7 +310,7 @@ firstUnseenIntervalFor: aNode ifAbsent: anAbsentBlock
 	self removeSeenRanges: completeRangesOfassigmentNode.
 	^self filterRangesThatDoNotBelongToTheCurrentNodeIn: completeRangesOfassigmentNode.! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/14/2024 23:14:39'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 generateNewGetterForVariable: aVariableName withSelector: aSelectorForGetter
 	| getterCandidate |
 	
@@ -319,7 +319,7 @@ generateNewGetterForVariable: aVariableName withSelector: aSelectorForGetter
 		getterCandidate := (getterCandidate copyFrom: 1 to: getterCandidate size), '_'.].
 	^getterCandidate.! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/15/2024 00:40:15'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 generateNewSetterForVariable: aVariableName withSelector: aSelectorForSetter
 	| setterCandidate |
 	
@@ -328,7 +328,7 @@ generateNewSetterForVariable: aVariableName withSelector: aSelectorForSetter
 		setterCandidate := (setterCandidate copyFrom: 1 to: setterCandidate size -1), '_:'.].
 	^setterCandidate.! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/20/2024 03:35:10'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 getterForClassVariable: aClassVariableName 
 	| gettersCandidates |
 	gettersCandidates := self selectorsWhichSatisfy: [ :aSelector | 
@@ -338,7 +338,7 @@ getterForClassVariable: aClassVariableName
 		ifEmpty: [^self generateNewGetterForVariable: aClassVariableName withSelector: aClassVariableName uncapitalized]
 		ifNotEmpty: [^gettersCandidates first] .! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/20/2024 03:35:10'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 getterForInstanceVariable: anInstanceVariableName 
 	| gettersCandidates |
 	gettersCandidates := self selectorsWhichSatisfy: [ :aSelector | 
@@ -349,7 +349,7 @@ getterForInstanceVariable: anInstanceVariableName
 		ifNotEmpty: [^gettersCandidates first].
 		! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/25/2024 22:42:26'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 initializeNodeInterval
 
 	| posibleRangesForNode |
@@ -364,24 +364,24 @@ initializeNodeInterval
 			nodeInterval := self firstIntervalOn: posibleRangesForNode.
 			]! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/14/2023 02:19:49'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 initializeOffset
 
 	^ nodeOffsetInSourceCode := nodeInterval first -1! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/28/2023 01:41:16'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 method: getterCandidate isGetterOf: anInstanceVariableName 
 	| anInstVarIndex |
 	
 	anInstVarIndex := compiledMethod methodClass allInstVarNames indexOf: anInstanceVariableName.
 	^getterCandidate isReturnField and: [ getterCandidate returnField + 1 = anInstVarIndex ]! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/30/2023 18:32:44'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 method: getterCandidate isGetterOfClassVariable: aClassVariableName 
 	^(MethodWorksAsGetterVisitor method: getterCandidate forClassVariable: aClassVariableName) value
 	"^true"! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/3/2024 01:36:40'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 method: setterCandidate isSetterOf: anInstVarName 
 	| anInstVarIndex varIndexCode scanner |
 
@@ -399,7 +399,7 @@ method: setterCandidate isSetterOf: anInstVarName
 	scanner movePcForward.
 	^scanner nextByte = 16r7C! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/24/2024 02:29:40'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 newKeywordSelector: aMessageNode
 	
 	| indexNewSelector newSelector |
@@ -412,12 +412,12 @@ newKeywordSelector: aMessageNode
 	newSelector := 'CHANGE_ME_super_', newSelector.
 	^newSelector! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/23/2024 22:50:19'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 newSelectorForSuperColaboration: aMessageNode
 
 	^ 'CHANGE_ME_super_', aMessageNode selector key asString! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/25/2024 22:38:45'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 newSenderFor: aMessageNode
 	|  newSend argumentsCode argumentIndex replacer replacerResult argumentNode |
 	argumentsCode := OrderedCollection new.
@@ -445,21 +445,21 @@ newSenderFor: aMessageNode
 	^parameterNeeded parameterName, ' CHANGE_ME_super_', (newSend copyFrom: 2 to: newSend size).
 ! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/14/2023 00:53:08'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 registerInterval: anInterval withModification: sourceCodeForInterval 
 	intervalsToReject add: anInterval.
 	intervalsToModify add: anInterval -> sourceCodeForInterval! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/14/2023 00:53:08'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 removeSeenRanges: rangesOfNode 
 	^rangesOfNode removeAllSuchThat: [ :aSourceInterval | intervalsToReject anySatisfy: [ :aSourceIntervalToModify | aSourceIntervalToModify includesAllOf: aSourceInterval ] ]! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/2/2024 03:55:10'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 selectorsWhichSatisfy: aBlock
 
 	^ compiledMethod methodClass selectors select: aBlock! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/20/2024 03:35:10'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 setterForClassVariable: aClassVariableName 
 	| settersCandidates |
 	settersCandidates := self selectorsWhichSatisfy: [ :aSelector | 
@@ -469,7 +469,7 @@ setterForClassVariable: aClassVariableName
 		ifTrue: [^self generateNewSetterForVariable: aClassVariableName withSelector: aClassVariableName uncapitalized]
 		ifFalse: [^settersCandidates first] .! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/20/2024 03:35:10'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 setterForInstanceVariable: anInstanceVariableName 
 	| settersCandidates |
 	"self halt."
@@ -481,16 +481,16 @@ setterForInstanceVariable: anInstanceVariableName
 		ifFalse: [^settersCandidates first] .
 		! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 5/14/2023 19:51:27'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 shouldAddParenthesis: argumentNode 
 	^argumentNode isAssignmentNode! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 4/28/2024 19:37:58'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:10'!
 shouldAddParenthesisOnValueOf: anAssignmentNode
 
 	^ ((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ]! !
 
-!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 4/6/2024 02:34:57'!
+!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:10'!
 value
 	| newCode newCodeForNode result |
 	"self halt."
@@ -518,7 +518,7 @@ value
 				sourceClass: compiledMethod methodClass.
 	^result! !
 
-!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 4/25/2024 22:37:39'!
+!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:10'!
 for: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: parameterNeeded
 	^self new 
 		initializeFor: aCompiledMethod
@@ -528,7 +528,7 @@ for: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: aVariableTo
 		onNode: aNodeToGetCode
 		parameterNeeded: parameterNeeded! !
 
-!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 4/26/2024 23:06:05'!
+!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:10'!
 for: compiledMethod variableToAccesThrough: aVariableToAccesoThroughName parameterNeeded: parameterNeeded
 	| methodNode |
 	methodNode := compiledMethod methodNode.
@@ -541,71 +541,71 @@ for: compiledMethod variableToAccesThrough: aVariableToAccesoThroughName paramet
 		parameterNeeded: parameterNeeded.
 	! !
 
-!MethodWorksAsGetterVisitor methodsFor: 'initialization' stamp: 'mc 4/27/2024 18:22:34'!
+!MethodWorksAsGetterVisitor methodsFor: 'initialization' stamp: 'mc 6/15/2024 02:47:11'!
 initializeMethod: aGetterCandidate forClassVariable: aClassVariableName 
 	
 	getterCandidate := aGetterCandidate.
 	classVariableName := aClassVariableName.! !
 
-!MethodWorksAsGetterVisitor methodsFor: 'as yet unclassified' stamp: 'mc 4/27/2024 18:22:28'!
+!MethodWorksAsGetterVisitor methodsFor: 'as yet unclassified' stamp: 'mc 6/15/2024 02:47:11'!
 value
 	returnMethodIsNotGetterClousure := [^false].
 	returnMethodIsGetterClousure := [^true].
 	getterCandidate methodNode accept: self.
 	^false! !
 
-!MethodWorksAsGetterVisitor methodsFor: 'visiting' stamp: 'mc 4/27/2024 18:20:13'!
+!MethodWorksAsGetterVisitor methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:11'!
 visitBlockNode: aBlockNode 
 	(aBlockNode statements size = 1) ifFalse: [returnMethodIsNotGetterClousure value].
 	(aBlockNode statements first expr name = classVariableName) 
 		ifFalse: [returnMethodIsNotGetterClousure value]
 		ifTrue: [returnMethodIsGetterClousure value].! !
 
-!MethodWorksAsGetterVisitor class methodsFor: 'instance creation' stamp: 'mc 12/30/2023 18:33:55'!
+!MethodWorksAsGetterVisitor class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:11'!
 method: getterCandidate forClassVariable: aClassVariableName 
 	
 	^self new initializeMethod: getterCandidate forClassVariable: aClassVariableName ! !
 
-!NeedParameterName methodsFor: 'public' stamp: 'mc 8/24/2023 23:53:43'!
+!NeedParameterName methodsFor: 'public' stamp: 'mc 6/15/2024 02:47:11'!
 needParameterName
 	^needParameterName! !
 
-!NeedParameterName methodsFor: 'public' stamp: 'mc 4/25/2024 14:52:31'!
+!NeedParameterName methodsFor: 'public' stamp: 'mc 6/15/2024 02:47:11'!
 value
 	  
 	methodNode := compiledMethod methodNode.
 	methodNode accept: self.
 	^self needParameterName ! !
 
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 11/13/2023 02:01:02'!
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:11'!
 visitInstanceVariableNode: anInstanceVariableNode 
 	
 	needParameterName := needParameterName or: [instanceVariableNameToAccessThrough ~= anInstanceVariableNode name].! !
 
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 11/26/2023 02:53:23'!
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 6/16/2024 16:44:03'!
 visitLiteralVariableNode: aLiteralVariableNode 
 
-	needParameterName := aLiteralVariableNode  isReferencingGlobal not.! !
+	needParameterName := needParameterName or: [aLiteralVariableNode  isReferencingGlobal not].! !
 
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 4/27/2024 00:09:15'!
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:11'!
 visitReturnNode: aReturnNode 
 	"self halt."
 	(aReturnNode isImplicitSelfReturnIn: methodNode)
 		ifTrue: [needParameterName := true]
 		ifFalse: [super visitReturnNode: aReturnNode ]! !
 
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 8/24/2023 23:53:27'!
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:11'!
 visitVariableNode: aVariableNode 
 	needParameterName := true.! !
 
-!NeedParameterName methodsFor: 'initialization' stamp: 'mc 12/16/2023 02:20:37'!
+!NeedParameterName methodsFor: 'initialization' stamp: 'mc 6/15/2024 02:47:11'!
 initializeFor: aCompiledMethod newAccessingThrough: instanceVariable 
 	
 	compiledMethod := aCompiledMethod.
 	instanceVariableNameToAccessThrough := instanceVariable.
 	needParameterName := false.! !
 
-!NeedParameterName methodsFor: 'private' stamp: 'mc 12/15/2023 23:22:39'!
+!NeedParameterName methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:11'!
 isImplicitSelfReturn: aReturnNode In: aMethodNode
 	
 	aReturnNode isReturnSelf ifFalse: [^false]. 
@@ -613,33 +613,37 @@ isImplicitSelfReturn: aReturnNode In: aMethodNode
 	
 	^false! !
 
-!NeedParameterName class methodsFor: 'instance creation' stamp: 'mc 12/12/2023 23:33:47'!
+!NeedParameterName class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:11'!
 for: compiledMethod newAccessingThrough: instanceVariable 
 	
 	^self new initializeFor: compiledMethod newAccessingThrough: instanceVariable ! !
 
-!NeedParameterNameForClassMethod methodsFor: 'accessing' stamp: 'mc 12/9/2023 02:44:10'!
+!NeedParameterNameForClassMethod methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:11'!
 needParameterName
 	^needParameterName! !
 
-!NeedParameterNameForClassMethod methodsFor: 'initialization' stamp: 'mc 12/9/2023 02:45:20'!
-initialize
+!NeedParameterNameForClassMethod methodsFor: 'initialization' stamp: 'mc 6/16/2024 16:26:04'!
+initializeWith: aSourceClass 
 	needParameterName := false.
-	super initialize.! !
+	methodClass := aSourceClass.! !
 
-!NeedParameterNameForClassMethod methodsFor: 'visiting' stamp: 'mc 12/9/2023 03:47:00'!
+!NeedParameterNameForClassMethod methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:11'!
 visitInstanceVariableNode: anInstanceVariableNode 
 	needParameterName := true! !
 
-!NeedParameterNameForClassMethod methodsFor: 'visiting' stamp: 'mc 12/9/2023 02:46:56'!
+!NeedParameterNameForClassMethod methodsFor: 'visiting' stamp: 'mc 6/16/2024 17:05:31'!
 visitLiteralVariableNode: aLiteralVariableNode 
-	needParameterName := true.! !
+	needParameterName := needParameterName or: [aLiteralVariableNode  isReferencingGlobal not].! !
 
-!NeedParameterNameForClassMethod methodsFor: 'visiting' stamp: 'mc 12/9/2023 03:41:54'!
+!NeedParameterNameForClassMethod methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:11'!
 visitVariableNode: aVariableNode 
 	needParameterName := true.! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:16:12'!
+!NeedParameterNameForClassMethod class methodsFor: 'instance creation' stamp: 'mc 6/16/2024 16:26:16'!
+of: sourceClass 
+	^self new initializeWith: sourceClass ! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test001SelectorShouldExistsOnSourceClass
 	
 	| sourceClass targetClass |
@@ -658,7 +662,7 @@ test001SelectorShouldExistsOnSourceClass
 				accessingThrough: 'iv1' ] 
 		failsWith: [MoveMethodRefactoring methodShouldExistsOnSourceClassErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:16:18'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test002SelectorShouldNotExistsOnTargetClass
 	
 	| sourceClass targetClass |
@@ -680,7 +684,7 @@ test002SelectorShouldNotExistsOnTargetClass
 			self assert: anError messageText equals: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:27:54'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test003SelectorWithNewParameterShouldNotExistsOnTargetClass
 	
 	| sourceClass targetClass |
@@ -702,7 +706,7 @@ test003SelectorWithNewParameterShouldNotExistsOnTargetClass
 		failsWith: [
 			MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:27:48'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test004SelectorWithNewParameterAndKeywordShouldNotExistsOnTargetClass
 	
 	| sourceClass targetClass |
@@ -725,7 +729,7 @@ test004SelectorWithNewParameterAndKeywordShouldNotExistsOnTargetClass
 		failsWith: [
 			MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:27:43'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test005TargetClassShouldNotBeNil
 	
 	| sourceClass targetClass |
@@ -744,7 +748,7 @@ test005TargetClassShouldNotBeNil
 				accessingThrough: 'iv1' ] 
 		failsWith: [MoveMethodRefactoring targetClassShouldNotBeNilErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:27:39'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test006SourceClassShouldNotBeNil
 	
 	| sourceClass targetClass |
@@ -763,7 +767,7 @@ test006SourceClassShouldNotBeNil
 				accessingThrough: 'iv1' ] 
 		failsWith: [MoveMethodRefactoring sourceClassShouldNotBeNilErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:27:34'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test007SelectorShouldNotBeNil
 	
 	| sourceClass targetClass |
@@ -782,7 +786,7 @@ test007SelectorShouldNotBeNil
 				accessingThrough: 'iv1' ] 
 		failsWith: [MoveMethodRefactoring methodShouldNotBeNilErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:27:23'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test008InstanceVariableToAccessingThroughShouldNotBeNil
 	
 	| sourceClass targetClass |
@@ -801,7 +805,7 @@ test008InstanceVariableToAccessingThroughShouldNotBeNil
 				accessingThrough: nil ] 
 		failsWith: [MoveMethodRefactoring instanceVariableToAccessingThroughShouldNotBeNilErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:27:17'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test009InstanceVariableToAccessingThroughShouldExistsInSourceClass
 	
 	| sourceClass targetClass |
@@ -821,7 +825,7 @@ test009InstanceVariableToAccessingThroughShouldExistsInSourceClass
 		failsWith: [
 			MoveMethodRefactoring instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/14/2023 01:12:37'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test010NameForANewParameterShouldBeProvidedIfNeeded
 	
 	| sourceClass targetClass |
@@ -841,7 +845,7 @@ test010NameForANewParameterShouldBeProvidedIfNeeded
 		failsWith: [
 			MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:27:12'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test011NameForANewParameterKeywordShouldBeProvidedIfNeeded
 	
 	| sourceClass targetClass |
@@ -863,7 +867,7 @@ test011NameForANewParameterKeywordShouldBeProvidedIfNeeded
 		failsWith: [
 			MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/20/2023 01:12:54'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test012NeedNameForNewParameterWhenClassVariable
 	
 	| sourceClass targetClass |
@@ -883,7 +887,7 @@ test012NeedNameForNewParameterWhenClassVariable
 			MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:26:56'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test013NeedNameForNewParameterWhenInstanceVariable
 	
 	| sourceClass targetClass |
@@ -904,7 +908,7 @@ test013NeedNameForNewParameterWhenInstanceVariable
 			MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:26:52'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test014NeedNameForNewParameterWhenSelfReference
 	
 	| sourceClass targetClass |
@@ -925,7 +929,7 @@ test014NeedNameForNewParameterWhenSelfReference
 			MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:26:46'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test015NeedNameForNewParameterWhenSuperReference
 	
 	| sourceClass targetClass |
@@ -946,7 +950,7 @@ test015NeedNameForNewParameterWhenSuperReference
 			MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:26:40'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test016ShouldNotPassNameForNewParameterWhenIsNotNeeded
 	
 	| sourceClass targetClass |
@@ -969,7 +973,7 @@ test016ShouldNotPassNameForNewParameterWhenIsNotNeeded
 			MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:26:30'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test017ShouldNotPassNameForNewParameterWhenIsNotNeeded
 	
 	| sourceClass targetClass |
@@ -993,7 +997,7 @@ test017ShouldNotPassNameForNewParameterWhenIsNotNeeded
 			MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:28:09'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test018InstanceVariableToAccessingThroughShouldHaveAtLeastOneAssignation
 	
 	| sourceClass targetClass |
@@ -1015,7 +1019,7 @@ test018InstanceVariableToAccessingThroughShouldHaveAtLeastOneAssignation
 		withMessageText: [MoveMethodRefactoring instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: 'iv1'].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:28:16'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test019ClassMethodToMoveShouldNotBeNil
 	
 	| sourceClass targetClass |
@@ -1035,7 +1039,7 @@ test019ClassMethodToMoveShouldNotBeNil
 		failsWith: [MoveMethodRefactoring classMethodToMoveShouldNotBeNilErrorMessage].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:26:16'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test020SourceClassShouldNotBeNil
 	
 	| sourceClass targetClass |
@@ -1055,7 +1059,7 @@ test020SourceClassShouldNotBeNil
 		failsWith: [MoveMethodRefactoring sourceClassShouldNotBeNilErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:26:08'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test021TargetClassShouldNotBeNil
 	
 	| sourceClass targetClass |
@@ -1075,7 +1079,7 @@ test021TargetClassShouldNotBeNil
 		failsWith: [MoveMethodRefactoring targetClassShouldNotBeNilErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:25:44'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test022ClassMethodShouldNotExistsInTarget
 	
 	| sourceClass targetClass |
@@ -1095,7 +1099,7 @@ test022ClassMethodShouldNotExistsInTarget
 		failsWith: [MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:25:36'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test023ClassMethodShouldExistsInSouceClass
 	
 	| sourceClass targetClass |
@@ -1115,7 +1119,7 @@ test023ClassMethodShouldExistsInSouceClass
 		failsWith: [MoveMethodRefactoring classMethodShouldExistsOnSourceClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:25:16'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test024ClassSelectorWithNewParameterShouldNotExistsOnTargetClass
 	
 	| sourceClass targetClass |
@@ -1136,7 +1140,7 @@ test024ClassSelectorWithNewParameterShouldNotExistsOnTargetClass
 		failsWith: [MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:24:25'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test025ClassSelectorWithNewParameterAndKeywordShouldNotExistsOnTargetClass
 	
 	| sourceClass targetClass |
@@ -1158,7 +1162,7 @@ test025ClassSelectorWithNewParameterAndKeywordShouldNotExistsOnTargetClass
 		failsWith: [MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:25:02'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test026ClassSelectorWithNewParameterAndKeywordShouldNotExistsOnTargetClass
 	
 	| sourceClass targetClass |
@@ -1179,7 +1183,7 @@ test026ClassSelectorWithNewParameterAndKeywordShouldNotExistsOnTargetClass
 		failsWith: [MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:24:43'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test027NameForANewParameterShouldBeProvidedIfNeeded
 	
 	| sourceClass targetClass |
@@ -1199,7 +1203,7 @@ test027NameForANewParameterShouldBeProvidedIfNeeded
 		failsWith: [MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:24:36'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test028NameForANewParameterKeywordShouldBeProvidedIfNeeded
 	
 	| sourceClass targetClass |
@@ -1220,7 +1224,7 @@ test028NameForANewParameterKeywordShouldBeProvidedIfNeeded
 		failsWith: [MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:23:59'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test029ShouldNotPassNameForNewParameterWhenIsNotNeeded
 	
 	| sourceClass targetClass |
@@ -1241,7 +1245,7 @@ test029ShouldNotPassNameForNewParameterWhenIsNotNeeded
 		failsWith: [MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 4/2/2024 00:23:13'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test030ShouldNotPassNameForNewParameterWhenIsNotNeeded
 	
 	| sourceClass targetClass |
@@ -1263,7 +1267,7 @@ test030ShouldNotPassNameForNewParameterWhenIsNotNeeded
 		failsWith: [MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:00:02'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test100CanMoveMethodWithoutReferences
 	
 	| sourceClass targetClass refactoring |
@@ -1282,7 +1286,7 @@ test100CanMoveMethodWithoutReferences
 	self deny: (sourceClass includesSelector: #iv1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:00:16'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test101CanMoveMethodWithoutReferences
 	
 	| sourceClass targetClass refactoring |
@@ -1300,7 +1304,7 @@ test101CanMoveMethodWithoutReferences
 	^iv1 m1.' equals: (sourceClass sourceCodeAt: #m1).
 	self deny: (sourceClass includesSelector: #iv1).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:01:32'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test102CanMoveMethodWhenReferencesAnInstanceVariable
 	
 	| sourceClass targetClass refactoring |
@@ -1326,7 +1330,7 @@ test102CanMoveMethodWhenReferencesAnInstanceVariable
 	self assert: 'iv2', String newLineString, String tab, '^iv2.' equals: (sourceClass sourceCodeAt: #iv2).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:01:56'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test103CanMoveMethodWhenReferencesAnInstanceVariableForReading
 	
 	| sourceClass targetClass refactoring |
@@ -1352,7 +1356,7 @@ test103CanMoveMethodWhenReferencesAnInstanceVariableForReading
 	self deny: (sourceClass includesSelector: #iv1).
 	self assert: 'iv3', String newLineString, String tab, '^iv3.' equals: (sourceClass sourceCodeAt: #iv3).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:02:05'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test104CanMoveMethodWhenReferencesTwoInstanceVariableForReading
 	
 	| sourceClass targetClass refactoring |
@@ -1379,7 +1383,7 @@ test104CanMoveMethodWhenReferencesTwoInstanceVariableForReading
 	self assert: 'iv3', String newLineString, String tab, '^iv3.' equals: (sourceClass sourceCodeAt: #iv3).
 	self assert: 'iv4', String newLineString, String tab, '^iv4.' equals: (sourceClass sourceCodeAt: #iv4).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:02:14'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test105CanMoveMethodWhenReferencesAnInstanceVariableForWriting
 	
 	| sourceClass targetClass refactoring |
@@ -1406,7 +1410,7 @@ test105CanMoveMethodWhenReferencesAnInstanceVariableForWriting
 	self assert: 'iv3: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass sourceCodeAt: #iv3:).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 4/2/2024 00:05:20'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test106CanMoveMethodWhenReferencesTwoInstanceVariableForWriting
 	
 	| sourceClass targetClass refactoring |
@@ -1434,7 +1438,7 @@ test106CanMoveMethodWhenReferencesTwoInstanceVariableForWriting
 	self assert: 'iv3: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass sourceCodeAt: #iv3:).
 	self assert: 'iv4: anObject', String newLineString, String tab, '^iv4 := anObject.' equals: (sourceClass sourceCodeAt: #iv4:).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:02:43'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test107CanMoveMethodWhenReferencesInstanceVariableAnd2Params
 	
 	| sourceClass targetClass refactoring |
@@ -1461,7 +1465,7 @@ test107CanMoveMethodWhenReferencesInstanceVariableAnd2Params
 	self deny: (sourceClass includesSelector: #iv1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 4/2/2024 00:06:51'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test107CanMoveMethodWhenReferencesTwoInstanceVariableForWritingAndOneForReading
 	
 	| sourceClass targetClass refactoring |
@@ -1488,7 +1492,7 @@ test107CanMoveMethodWhenReferencesTwoInstanceVariableForWritingAndOneForReading
 	self deny: (sourceClass includesSelector: #iv1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:53:46'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test108CanMoveMethodWhenReferencesAnInstanceVariableAndHasAParameter
 	
 	| sourceClass targetClass refactoring |
@@ -1515,7 +1519,7 @@ test108CanMoveMethodWhenReferencesAnInstanceVariableAndHasAParameter
 	self deny: (sourceClass includesSelector: #iv1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:54:23'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test109AfterMovingMethodWhichReferencesAnInstanceVariableForReadingShouldUseTheExistentGetter
 	
 	| sourceClass targetClass refactoring |
@@ -1542,7 +1546,7 @@ test109AfterMovingMethodWhichReferencesAnInstanceVariableForReadingShouldUseTheE
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
 	self deny: (sourceClass includesSelector: #iv1).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:54:37'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test110AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheExistentSetter
 	
 	| sourceClass targetClass refactoring |
@@ -1565,7 +1569,7 @@ test110AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheE
 	
 	self assert: 'iv3: anObject ^iv3 := anObject.' equals: (sourceClass sourceCodeAt: #iv3:)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/29/2023 03:25:44'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheExistentSetter
 	
 	| sourceClass targetClass refactoring |
@@ -1591,7 +1595,7 @@ test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheE
 	self assert: 'm1
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 1/3/2024 02:46:25'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheExistentSetter2
 	
 	| sourceClass targetClass refactoring |
@@ -1620,7 +1624,7 @@ test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheE
 	self assert: 'iv3_: anObject
 	^iv1 iv3_: anObject originalObject: self.' equals: (sourceClass sourceCodeAt: #iv3_:).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 1/3/2024 02:45:47'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheExistentSetter3
 	
 	| sourceClass targetClass refactoring |
@@ -1649,7 +1653,7 @@ test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheE
 	self assert: 'iv3_: anObject
 	^iv1 iv3_: anObject originalObject: self.' equals: (sourceClass sourceCodeAt: #iv3_:).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 1/14/2024 22:56:20'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheExistentSetter4
 	
 	| sourceClass targetClass refactoring |
@@ -1676,7 +1680,7 @@ test111AfterMovingMethodWhichReferencesAnInstanceVariableForWritingShouldUseTheE
 	self assert: 'iv3_: anObject iv3 := anObject.' equals: (sourceClass sourceCodeAt: #iv3_:).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:55:07'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGetter
 	
 	| sourceClass targetClass refactoring |
@@ -1699,7 +1703,7 @@ test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGett
 	self assert: 'm1: sourceObject ^sourceObject icv1.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'icv1', String newLineString, String tab, '^Icv1.' equals: (sourceClass sourceCodeAt: #icv1).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/30/2023 02:54:41'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGetter2
 	
 	| sourceClass targetClass refactoring |
@@ -1725,7 +1729,7 @@ test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGett
 	self assert: 'icv1_
 	^Icv1.' equals: (sourceClass sourceCodeAt: #icv1_).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 4/2/2024 00:09:57'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGetter3
 	
 	| sourceClass targetClass refactoring |
@@ -1757,7 +1761,7 @@ test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGett
 	self assert: 'icv1
 	^iv1 icv1: self.' equals: (sourceClass sourceCodeAt: #icv1).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/31/2023 02:27:41'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGetter4
 	
 	| sourceClass targetClass refactoring |
@@ -1785,7 +1789,7 @@ test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGett
 	self assert: 'icv1__
 	^Icv1.' equals: (sourceClass sourceCodeAt: #icv1__).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/31/2023 02:28:57'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGetter5
 	
 	| sourceClass targetClass refactoring |
@@ -1813,7 +1817,7 @@ test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGett
 	self assert: 'icv1__
 	^Icv1.' equals: (sourceClass sourceCodeAt: #icv1__).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 1/14/2024 23:11:56'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGetter6
 	
 	| sourceClass targetClass refactoring |
@@ -1841,7 +1845,7 @@ test112AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateGett
 	self assert: 'm1
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:55:20'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test113AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateSetter
 	
 	| sourceClass targetClass refactoring |
@@ -1864,7 +1868,7 @@ test113AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateSett
 	self assert: 'm1: sourceObject ^sourceObject icv1: 1.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'icv1: anObject', String newLineString, String tab, '^Icv1 := anObject.' equals: (sourceClass sourceCodeAt: #icv1:).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/31/2023 03:26:50'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test113AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateSetter2
 	
 	| sourceClass targetClass refactoring |
@@ -1892,7 +1896,7 @@ test113AfterMovingMethodWhichReferencesAnClassVariableForReadingShouldCreateSett
 	^Icv1 := anObject.' equals: (sourceClass sourceCodeAt: #icv1_:).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:55:28'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test114ParameterNameShouldBeRespected
 	
 	| sourceClass targetClass refactoring |
@@ -1920,7 +1924,7 @@ test114ParameterNameShouldBeRespected
 	^iv1 m1: anInt extractIv3From: self.' equals: (sourceClass sourceCodeAt: #m1:).
 	self deny: (sourceClass includesSelector: #iv1).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:55:35'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test115ParameterNameShouldBeRespected
 	
 	| sourceClass targetClass refactoring |
@@ -1947,7 +1951,7 @@ test115ParameterNameShouldBeRespected
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
 	self deny: (sourceClass includesSelector: #iv1).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:55:42'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test116ParameterNameShouldBeRespectedWithSelf
 	
 	| sourceClass targetClass refactoring |
@@ -1970,7 +1974,7 @@ test116ParameterNameShouldBeRespectedWithSelf
 	
 	self assert: 'm1: originalObject ^originalObject justOne.' equals: (targetClass sourceCodeAt: #m1:).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:55:53'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test199TmpVariablesShoulNotBeAffected
 	
 	| sourceClass targetClass refactoring |
@@ -1986,7 +1990,7 @@ test199TmpVariablesShoulNotBeAffected
 	
 	self assert: 'm1 |tmp| ^tmp:=1.' equals: (targetClass sourceCodeAt: #m1).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:56:00'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test200CanMoveMethodWhenSendsMessageToSelf
 	
 	| sourceClass targetClass refactoring |
@@ -2009,7 +2013,7 @@ test200CanMoveMethodWhenSendsMessageToSelf
 	
 	self assert: 'm1: sourceObject ^sourceObject justOne.' equals: (targetClass sourceCodeAt: #m1:).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:56:20'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test200CanMoveMethodWhenSendsUnaryMessageToSuper
 	
 	| sourceClass targetClass refactoring sourceSuperClass |
@@ -2034,7 +2038,7 @@ test200CanMoveMethodWhenSendsUnaryMessageToSuper
 	self assert: 'm1: sourceObject ^sourceObject CHANGE_ME_super_justOne.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'CHANGE_ME_super_justOne', String newLineString, String tab, '^super justOne.' equals: (sourceClass sourceCodeAt: #CHANGE_ME_super_justOne)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:56:30'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test201CanMoveMethodWhenSendsKeywordMessageToSuperWithOneColaborators
 	
 	| sourceClass targetClass refactoring sourceSuperClass |
@@ -2059,7 +2063,7 @@ test201CanMoveMethodWhenSendsKeywordMessageToSuperWithOneColaborators
 	self assert: 'm1: sourceObject ^sourceObject CHANGE_ME_super_increment: 1.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass sourceCodeAt: #CHANGE_ME_super_increment:)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:56:47'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test202CanMoveMethodWhenSendsKeywordMessageToSuperWithTwoColaborators
 	
 	| sourceClass targetClass refactoring sourceSuperClass |
@@ -2084,7 +2088,7 @@ test202CanMoveMethodWhenSendsKeywordMessageToSuperWithTwoColaborators
 	self assert: 'm1: sourceObject ^sourceObject CHANGE_ME_super_increment: 1 andIncrement: 2.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'CHANGE_ME_super_increment: arg1 andIncrement: arg2', String newLineString, String tab, '^super increment: arg1 andIncrement: arg2.' equals: (sourceClass sourceCodeAt: #CHANGE_ME_super_increment:andIncrement:)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:56:54'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test203CanMoveMethodWhenSendsKeywordMessageToSuperWithOneInstVarAsColaborators
 	
 	| sourceClass targetClass refactoring sourceSuperClass |
@@ -2109,7 +2113,7 @@ test203CanMoveMethodWhenSendsKeywordMessageToSuperWithOneInstVarAsColaborators
 	self assert: 'm1: sourceObject ^sourceObject CHANGE_ME_super_increment: sourceObject iv2.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass sourceCodeAt: #CHANGE_ME_super_increment:)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:57:01'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test204CanMoveMethodWhenSendsKeywordMessageToSuperWithOneInstVarAsColaborators
 	
 	| sourceClass targetClass refactoring sourceSuperClass |
@@ -2135,7 +2139,7 @@ test204CanMoveMethodWhenSendsKeywordMessageToSuperWithOneInstVarAsColaborators
 	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass sourceCodeAt: #CHANGE_ME_super_increment:).
 	self assert: 'iv2: anObject', String newLineString, String tab, '^iv2 := anObject.' equals: (sourceClass sourceCodeAt: #iv2:)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:57:08'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test205CanMoveMethodWhenSendsKeywordMessageToSuperWithOneTmpVarAsColaborators
 	
 	| sourceClass targetClass refactoring sourceSuperClass |
@@ -2160,7 +2164,7 @@ test205CanMoveMethodWhenSendsKeywordMessageToSuperWithOneTmpVarAsColaborators
 	self assert: 'm1: sourceObject |asd| ^sourceObject CHANGE_ME_super_increment: asd.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass sourceCodeAt: #CHANGE_ME_super_increment:)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/28/2023 01:01:14'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test206moveGetterShouldNotMakeDoubleRecursion
 	
 	| sourceClass targetClass refactoring |
@@ -2188,7 +2192,7 @@ test206moveGetterShouldNotMakeDoubleRecursion
 	
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/28/2023 01:04:55'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test207moveGetterShouldNotMakeDoubleRecursion
 	
 	| sourceClass targetClass refactoring |
@@ -2218,7 +2222,7 @@ test207moveGetterShouldNotMakeDoubleRecursion
 	
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:57:18'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test300MovingMethodWichUsesAccesingThroughVariableShouldBeRepalcedForSelf
 	
 	| sourceClass targetClass refactoring |
@@ -2244,7 +2248,7 @@ test300MovingMethodWichUsesAccesingThroughVariableShouldBeRepalcedForSelf
 	self deny: (sourceClass includesSelector: #iv1).
 	self assert: 'iv3', String newLineString, String tab, '^iv3.' equals: (sourceClass sourceCodeAt: #iv3).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/23/2023 00:57:25'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test301MovingMethodWichUsesAccesingThroughVariableShouldBeRepalcedForSelf
 	
 	| sourceClass targetClass refactoring |
@@ -2268,7 +2272,7 @@ test301MovingMethodWichUsesAccesingThroughVariableShouldBeRepalcedForSelf
 	^iv1 m1.' equals: (sourceClass sourceCodeAt: #m1).
 	self deny: (sourceClass includesSelector: #iv1).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/24/2023 00:05:26'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test302CanMoveMethodWhenVariableToAccesThroughIsInSuperClass
 	
 	| sourceClass targetClass refactoring sourceSuperClass |
@@ -2290,7 +2294,7 @@ test302CanMoveMethodWhenVariableToAccesThroughIsInSuperClass
 	self assert: 'm1
 	^iv1 m1.' equals: (sourceClass sourceCodeAt: #m1)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/26/2023 02:50:36'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test303AfterMovingMethodWhichReferencesAClassShouldKeepTheClass
 	
 	| sourceClass targetClass refactoring |
@@ -2313,8 +2317,35 @@ test303AfterMovingMethodWhichReferencesAClassShouldKeepTheClass
 	self assert: 'm1
 	^iv1 m1.' equals: (sourceClass sourceCodeAt: #m1)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/3/2023 01:48:51'!
-test304ClassMethodsShouldBleMoverWithoutVariableToAccessTargetClass
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/16/2024 16:41:25'!
+test303AfterMovingMethodWhichReferencesAClassShouldKeepTheClassAndResolveDependencies
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass  subclassOf: Object instanceVariableNames: 'iv1' classVariableNames: 'Icv1' poolDictionaries: '' category: self class classCategoryOfTestData.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'm1
+	self printString.
+	^Array new.'.
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #m1 
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: (ExtraParameterNameNeeded parameterName: 'sourceObject').
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject
+	sourceObject printString.
+	^Array new.' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'm1
+	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1)! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/16/2024 15:33:06'!
+test304CanMoveClassMethodWithoutDependencies
 	
 	| sourceClass targetClass refactoring |
 	
@@ -2333,8 +2364,32 @@ test304ClassMethodsShouldBleMoverWithoutVariableToAccessTargetClass
 	self assert: 'm1
 	^TargetClass m1.' equals: (sourceClass class sourceCodeAt: #m1)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/4/2023 16:51:57'!
-test305ClassMethodsShouldBleMovedWithoutVariableToAccessTargetClass
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/16/2024 16:52:29'!
+test305CanMoveClassMethodWithSelfAndClassReferenceDependencies
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass. 
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class compile: 'm1
+	self printString.
+	^SmallInteger.'.
+	
+	refactoring := MoveMethodRefactoring 
+		classMethodNamed: #m1 
+		from: sourceClass 
+		to: targetClass
+		parameterNeeded: (ExtraParameterNameNeeded parameterName: 'aSourceClassClass').
+	refactoring apply.
+	
+	self assert: 'm1: aSourceClassClass
+	aSourceClassClass printString.
+	^SmallInteger.' equals: (targetClass class sourceCodeAt: #m1:).
+	self assert: 'm1
+	^TargetClass m1: self.' equals: (sourceClass class sourceCodeAt: #m1)! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/16/2024 15:33:50'!
+test305CanMoveClassMethodWithSelfDependencies
 	
 	| sourceClass targetClass refactoring |
 	
@@ -2353,8 +2408,8 @@ test305ClassMethodsShouldBleMovedWithoutVariableToAccessTargetClass
 	self assert: 'm1
 	^TargetClass m1: self.' equals: (sourceClass class sourceCodeAt: #m1)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/6/2023 00:21:02'!
-test306ClassMethodsShouldBleMovedWithoutVariableToAccessTargetClass
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/16/2024 16:19:17'!
+test306CanMoveClassMethodWithSuperUnaryDependencies
 	
 	| sourceClass targetClass refactoring |
 	
@@ -2375,8 +2430,8 @@ test306ClassMethodsShouldBleMovedWithoutVariableToAccessTargetClass
 	self assert: 'CHANGE_ME_super_new
 	^super new.' equals: (sourceClass class sourceCodeAt: #CHANGE_ME_super_new).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/6/2023 00:18:12'!
-test307ClassMethodsShouldBleMovedWithoutVariableToAccessTargetClass
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/16/2024 16:18:02'!
+test307CanMoveClassMethodWithInstVarReadDependencies
 	
 	| sourceClass targetClass refactoring |
 	
@@ -2398,8 +2453,8 @@ test307ClassMethodsShouldBleMovedWithoutVariableToAccessTargetClass
 	self assert: 'm1
 	^TargetClass m1: self.' equals: (sourceClass class sourceCodeAt: #m1)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/6/2023 02:03:52'!
-test308ClassMethodsShouldBleMovedWithoutVariableToAccessTargetClass
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/16/2024 16:18:22'!
+test308CanMoveClassMethodWithInstVarWriteDependencies
 	
 	| sourceClass targetClass refactoring |
 	
@@ -2421,8 +2476,8 @@ test308ClassMethodsShouldBleMovedWithoutVariableToAccessTargetClass
 	self assert: 'm1
 	^TargetClass m1: self.' equals: (sourceClass class sourceCodeAt: #m1)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 12/6/2023 23:48:01'!
-test309ClassMethodsShouldBleMovedWithoutVariableToAccessTargetClass
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/16/2024 16:19:39'!
+test309CanMoveClassMethodWithSuperKeywordDependencies
 	
 	| sourceClass targetClass refactoring sourceSuperClass |
 	sourceSuperClass := self createClassNamed: #SourceSuperClass.
@@ -2444,7 +2499,53 @@ test309ClassMethodsShouldBleMovedWithoutVariableToAccessTargetClass
 	^super increment: arg1.' equals: (sourceClass class sourceCodeAt: #CHANGE_ME_super_increment:).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 3/31/2024 02:03:49'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/16/2024 16:21:28'!
+test310CanMoveClassMethodWithClassReferenceDependencies
+	
+	| sourceClass targetClass refactoring sourceSuperClass |
+	sourceSuperClass := self createClassNamed: #SourceSuperClass.
+	sourceClass := self createClassNamed: #SourceClass subclassOf: sourceSuperClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class compile: 'm1 ^TargetClass onePlusOne.'.	
+	targetClass class compile: 'onePlusOne ^1+1.'.	
+	
+	refactoring := MoveMethodRefactoring 
+		classMethodNamed: #m1
+		from: sourceClass 
+		to: targetClass
+		parameterNeeded: (NonExtraParameterNameNeeded new).
+	refactoring apply.
+
+	self assert: 'm1 ^TargetClass onePlusOne.' equals: (targetClass class sourceCodeAt: #m1).
+	self assert: 'm1
+	^TargetClass m1.' equals: (sourceClass class sourceCodeAt: #m1).
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/16/2024 17:08:19'!
+test311CanMoveClassMethodWithClassVarDependencies
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass subclassOf: Object instanceVariableNames: '' classVariableNames: 'ASD' poolDictionaries: '' category: self class classCategoryOfTestData.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class compile: 'm1 ^ASD onePlusOne.'.	
+	targetClass class compile: 'onePlusOne ^1+1.'.	
+	
+	refactoring := MoveMethodRefactoring 
+		classMethodNamed: #m1
+		from: sourceClass 
+		to: targetClass
+		parameterNeeded: (ExtraParameterNameNeeded parameterName: 'aSourceClass').
+	refactoring apply.
+
+	self assert: 'm1: aSourceClass ^aSourceClass aSD onePlusOne.' equals: (targetClass class sourceCodeAt: #m1:).
+	self assert: 'm1
+	^TargetClass m1: self.' equals: (sourceClass class sourceCodeAt: #m1).
+	self assert: 'aSD
+	^ASD.' equals: (sourceClass class sourceCodeAt: #aSD).
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test401ImplicitReturnShouldBeMoved
 	
 	| sourceClass targetClass refactoring |
@@ -2467,7 +2568,7 @@ test401ImplicitReturnShouldBeMoved
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 4/25/2024 14:43:16'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test402ImplicitReturnShouldBeMovedAndAddADotInLastWritedSentence
 	
 	| sourceClass targetClass refactoring |
@@ -2490,7 +2591,7 @@ test402ImplicitReturnShouldBeMovedAndAddADotInLastWritedSentence
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 4/25/2024 14:41:32'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 6/15/2024 02:47:11'!
 test403aNonImplicitReturnShouldBeMoved
 	
 	| sourceClass targetClass refactoring |
@@ -2512,14 +2613,14 @@ test403aNonImplicitReturnShouldBeMoved
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
 	! !
 
-!MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 12/3/2023 02:51:03'!
+!MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 6/15/2024 02:47:11'!
 initializeClassMethodNamed: aMethodName from: aSourceClass to: aTargetClass parameterNeeded: anExtraParameterNeeded 
 	methodName := aMethodName.
 	sourceClass := aSourceClass.
 	targetClass := aTargetClass.
 	parameterNeeded := anExtraParameterNeeded.! !
 
-!MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 4/7/2024 02:14:28'!
+!MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 6/15/2024 02:47:11'!
 initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: anInstanceVariable parameterNeeded: anExtraParameterNeeded 
 	methodName := aMethodName.
 	sourceClass := aSourceClass.
@@ -2527,7 +2628,7 @@ initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessing
 	instanceVariableToAccessTarget := anInstanceVariable.
 	parameterNeeded := anExtraParameterNeeded ! !
 
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 4/7/2024 02:00:45'!
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 6/15/2024 02:47:11'!
 apply
 	self
 		findMethodToMove;
@@ -2536,29 +2637,29 @@ apply
 		createAccessors;
 		replaceMethodForDelegation.! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 01:51:44'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:11'!
 compileInTargetClass
 
 	^ targetClass compile: resultAfterReplaceDependencies sourceCode! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 01:54:45'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:11'!
 createAccessors
 
 	^ resultAfterReplaceDependencies createAccessors! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 01:53:30'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:11'!
 findMethodToMove
 
 	^ compiledMethodToMove := sourceClass methodDict at: methodName! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 02:12:37'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:11'!
 replaceDependenciesOnMethodToMove
 	| replacer |
 	
 	replacer := CodeForNodeToMove for: compiledMethodToMove variableToAccesThrough: instanceVariableToAccessTarget parameterNeeded: parameterNeeded.
 	resultAfterReplaceDependencies := replacer value.! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 4/7/2024 02:12:37'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:11'!
 replaceMethodForDelegation
 
 	selectorForDelegation := parameterNeeded newSenderFor: compiledMethodToMove.
@@ -2569,7 +2670,7 @@ replaceMethodForDelegation
 	codeForDelegation := codeForDelegation, instanceVariableToAccessTarget, ' ', selectorForDelegation, '.'.
 	sourceClass compile: codeForDelegation! !
 
-!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 12/9/2023 02:34:17'!
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:11'!
 classMethodNamed: methodName from: sourceClass to: targetClass parameterNeeded: anExtraParameterNeeded 
 	(methodName isNil) ifTrue: [ self refactoringError: self classMethodToMoveShouldNotBeNilErrorMessage ].
 	(sourceClass isNil) ifTrue: [ self refactoringError: self sourceClassShouldNotBeNilErrorMessage].
@@ -2584,7 +2685,7 @@ classMethodNamed: methodName from: sourceClass to: targetClass parameterNeeded: 
 	
 	^self new initializeClassMethodNamed: methodName from: sourceClass class to: targetClass class parameterNeeded: anExtraParameterNeeded ! !
 
-!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 9/7/2023 22:56:57'!
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:11'!
 methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable    
 
 	^self 
@@ -2595,7 +2696,7 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: inst
 		parameterNeeded: NonExtraParameterNameNeeded new
 		! !
 
-!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 4/7/2024 02:14:28'!
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:11'!
 methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable parameterNeeded: anExtraParameterNeeded  
 	
 	
@@ -2618,69 +2719,69 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: inst
 		parameterNeeded: anExtraParameterNeeded 
 		! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 12/9/2023 01:30:44'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 classMethodShouldExistsOnSourceClassErrorMessage
 	
 	^'class method should exists on source class'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 12/9/2023 01:01:16'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 classMethodShouldNotExistsOnTargertClassErrorMessage
 	
 	^'class method should not exists on targert class'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 12/8/2023 02:35:10'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 classMethodToMoveShouldNotBeNilErrorMessage
 	^'class method to move should not be nil'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 4/5/2023 02:12:56'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage
 	^'InstanceVariable to accessing through should exists in source class'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 11/23/2023 20:44:43'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: instanceVariableName
 	^'Instance variable ', instanceVariableName, ' should have at least one assignation'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 4/5/2023 02:09:17'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 instanceVariableToAccessingThroughShouldNotBeNilErrorMessage
 	^'InstanceVariable to accessing through should not be nil'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 4/4/2023 00:28:01'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 methodShouldExistsOnSourceClassErrorMessage
 	^'Method should exists on source class'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 4/4/2023 18:59:52'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 methodShouldNotBeNilErrorMessage
 	^'Method should not be nil'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 4/4/2023 01:27:48'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 methodShouldNotExistsOnTargertClassErrorMessage
 	^'Method should not exists on targert class'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 8/25/2023 00:23:07'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 nameForNewParameterKeywordShouldBeProvidedClassErrorMessage
 	^'name for new parameter keyword should be provided'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 9/1/2023 00:16:41'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage
 	^'name for new parameter keyword should not be provided'.! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 8/24/2023 23:10:27'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 nameForNewParameterShouldBeProvidedClassErrorMessage
 	^'name for new parameter should be provided.'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 8/31/2023 23:47:27'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 nameForNewParameterShouldNotBeProvidedClassErrorMessage
 	^'name for new parameter should not be provided.'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 4/4/2023 18:26:41'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 sourceClassShouldNotBeNilErrorMessage
 	^'Source class should not be nil'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 4/4/2023 18:23:46'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 6/15/2024 02:47:11'!
 targetClassShouldNotBeNilErrorMessage
 	^'Target class should not be nil'! !
 
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 11/24/2023 02:12:44'!
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 6/15/2024 02:47:11'!
 existsAssignationOf: instanceVariable inHierarchyOf: sourceClass 
 	| existsAssignation |
 	existsAssignation := false.
@@ -2689,14 +2790,14 @@ existsAssignationOf: instanceVariable inHierarchyOf: sourceClass
 	].
 	^existsAssignation.! !
 
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 12/17/2023 22:37:00'!
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 6/15/2024 02:47:11'!
 needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable 
 	| compiledMethod needParameterNameVisitor |
 	compiledMethod := sourceClass compiledMethodAt: methodName.
 	needParameterNameVisitor := NeedParameterName for: compiledMethod newAccessingThrough: instanceVariable .
 	^needParameterNameVisitor value! !
 
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 12/9/2023 02:42:59'!
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 6/16/2024 16:02:54'!
 needParameterNameToMoveClassMethod: methodName from: sourceClass 
 	
 	| compiledMethod methodNode needParameterName needParameterNameVisitor |
@@ -2704,16 +2805,16 @@ needParameterNameToMoveClassMethod: methodName from: sourceClass
 	compiledMethod := sourceClass class compiledMethodAt: methodName.
 	methodNode := compiledMethod methodNode.
 	needParameterName := false.
-	needParameterNameVisitor := NeedParameterNameForClassMethod new.
+	needParameterNameVisitor := NeedParameterNameForClassMethod of: sourceClass.
 	methodNode accept: needParameterNameVisitor.
 	^needParameterNameVisitor needParameterName! !
 
-!MoveMethodApplier methodsFor: 'initialization' stamp: 'mc 9/7/2023 23:12:10'!
+!MoveMethodApplier methodsFor: 'initialization' stamp: 'mc 6/15/2024 02:47:11'!
 initializeInitializeOn: aModel forMethod: aMethodReference 
 	model := aModel.
 	methodReference := aMethodReference.! !
 
-!MoveMethodApplier methodsFor: 'refactoring - creation' stamp: 'mc 12/7/2023 23:34:11'!
+!MoveMethodApplier methodsFor: 'refactoring - creation' stamp: 'mc 6/16/2024 17:18:19'!
 createRefactoring
 	"self halt."
 	sourceClass isMeta 
@@ -2732,7 +2833,7 @@ createRefactoring
 				parameterNeeded: extraParameter . ]
 ! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 11/13/2023 02:06:51'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 6/16/2024 17:17:23'!
 askExtraParameterIfNeeded
 	
 	| parameterKeyword parameterName |
@@ -2740,14 +2841,14 @@ askExtraParameterIfNeeded
 		ifTrue: [
 			methodToMove isKeyword 
 				ifTrue: [
-					parameterName := self request: 'Enter new parameter name' initialAnswer: 'a', sourceClass name asString.
-					parameterKeyword := self request: 'Enter new parameter keyword' initialAnswer: 'a', sourceClass name asString.
+					parameterName := self request: 'Enter new parameter name' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
+					parameterKeyword := self request: 'Enter new parameter keyword' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
 					extraParameter := ExtraParameterNameNeededAndExtraKeyword 
 										parameterName: parameterName 
 										extraKeyword: parameterKeyword.
 					]
 				ifFalse: [
-					parameterName := self request: 'Enter new parameter name' initialAnswer: 'a', sourceClass name asString.
+					parameterName := self request: 'Enter new parameter name' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
 					extraParameter := ExtraParameterNameNeeded parameterName: parameterName.
 					].
 			]
@@ -2755,7 +2856,7 @@ askExtraParameterIfNeeded
 			extraParameter := NonExtraParameterNameNeeded new.
 			]! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/10/2023 03:38:12'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 6/15/2024 02:47:11'!
 askTargetClassName
 	| targetClassNameTmp initialAnswer |
 	initialAnswer := self initialAnswerForInstanceVariable: accessingThroughinstanceVariableName in: sourceClass.
@@ -2763,7 +2864,7 @@ askTargetClassName
 	targetClassNameTmp := targetClassNameTmp withoutSeparators.
 	targetClass := Smalltalk at: targetClassNameTmp asSymbol ifAbsent: [Refactoring refactoringErrorClass signal: 'Cant find the target class'].! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/7/2023 23:29:52'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 6/15/2024 02:47:11'!
 chooseInstanceVariableToAccessThrough
 	| vars index |
 	"self halt."
@@ -2776,18 +2877,18 @@ chooseInstanceVariableToAccessThrough
 	index = 0 ifTrue: [^self endRequest].
 	accessingThroughinstanceVariableName := vars at: index.! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 8/6/2023 17:42:37'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 6/15/2024 02:47:11'!
 chooseMethodToMove
 	methodToMove := methodReference selector! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/10/2023 23:44:41'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 6/15/2024 02:47:11'!
 initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSourceClass 
 	
 	^''
 		
 	! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 8/30/2023 01:38:48'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 6/15/2024 02:47:11'!
 requestRefactoringParameters
 	self 
 		chooseMethodToMove;
@@ -2797,23 +2898,23 @@ requestRefactoringParameters
 		askExtraParameterIfNeeded.
 		! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 8/6/2023 17:44:36'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 6/15/2024 02:47:11'!
 selectClassWichMethodIsDefined
 	sourceClass := methodReference actualClass ! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 8/6/2023 17:48:35'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 6/15/2024 02:47:11'!
 selectVariableLabel
 	^'Select variable to access through'! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 9/10/2023 14:41:14'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 6/15/2024 02:47:11'!
 showChanges
 	"nothing to inform"! !
 
-!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/6/2023 23:09:15'!
+!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:11'!
 createAndValueHandlingExceptionsOn: aModel forMethod: aMethodReference 
 	self createAndValueHandlingExceptions: [ self initializeOn: aModel forMethod: aMethodReference ].! !
 
-!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 12/11/2023 00:37:44'!
+!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:11'!
 initialize
 	(Smalltalk classNamed: #LiveTyping) ifNotNil: [
 		RefactoringApplier 
@@ -2821,44 +2922,39 @@ initialize
 	].
 	! !
 
-!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 8/6/2023 16:51:50'!
+!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:11'!
 initializeOn: aModel forMethod: aMethodReference 
 	^self new initializeInitializeOn: aModel forMethod: aMethodReference ! !
 
-!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 1/8/2024 00:36:35'!
+!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 6/16/2024 17:23:05'!
 initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSourceClass 
 	
 	| liveTypingTypes |
-	"self halt."
-	sourceClass shouldLiveTypingBeDisabled 
-		ifTrue: [^'']
-		ifFalse: [
-			liveTypingTypes := sourceClass commonSupertypeOfInstanceVariableNamed: accessingThroughinstanceVariableName ifNoTypes: [^''].
-			
-			"typeInfoOfInstanceVariableNamed: accessingThroughinstanceVariableName ifAbsent: [^''].
-			((liveTypingTypes types includes: UndefinedObject) or: [liveTypingTypes types isEmpty]) ifTrue: [^'']."
-			^liveTypingTypes name asString 
-		]! !
+	sourceClass shouldLiveTypingBeDisabled ifTrue: [^''].
+	accessingThroughinstanceVariableName ifNil: [^''].
+	liveTypingTypes := sourceClass commonSupertypeOfInstanceVariableNamed: accessingThroughinstanceVariableName ifNoTypes: [^''].
+	^liveTypingTypes name asString 
+! !
 
-!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 12/29/2023 02:49:36'!
+!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 6/15/2024 02:47:10'!
 createAccessors
 	gettersToCreate keysAndValuesDo: [ :anInstanceVariable :aSelector | sourceClass compile: aSelector, String newLineString, String tab, '^', anInstanceVariable, '.' ].
 	settersToCreate keysAndValuesDo: [ :anInstanceVariable :aSelector | sourceClass compile: aSelector, ' anObject', String newLineString, String tab, '^', anInstanceVariable, ' := anObject.' ]! !
 
-!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 12/29/2023 02:53:30'!
+!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 6/15/2024 02:47:10'!
 gettersToCreate
 	^gettersToCreate! !
 
-!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 12/29/2023 02:53:41'!
+!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 6/15/2024 02:47:10'!
 settersToCreate
 	^settersToCreate! !
 
-!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 3/31/2024 01:59:10'!
+!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 6/15/2024 02:47:10'!
 sourceCode
 	^sourceCode
 	! !
 
-!CodeForNodeToMoveResult methodsFor: 'initialization' stamp: 'mc 4/6/2024 02:31:35'!
+!CodeForNodeToMoveResult methodsFor: 'initialization' stamp: 'mc 6/15/2024 02:47:10'!
 initializeNewWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
 	sourceCode := newCode.
 	gettersToCreate := aGettersToCreate.
@@ -2866,7 +2962,7 @@ initializeNewWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aS
 	sourceClass := aSourceClass.
 	! !
 
-!CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 4/6/2024 02:31:51'!
+!CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:10'!
 newWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
 	^self new 
 		initializeNewWith: newCode
@@ -2875,31 +2971,31 @@ newWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aSettersToCr
 		sourceClass: aSourceClass
 ! !
 
-!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 11/13/2023 02:04:19'!
+!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:11'!
 assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
 
 	self subclassResponsibility! !
 
-!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 12/10/2023 03:05:21'!
+!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:11'!
 assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
 
 	self subclassResponsibility! !
 
-!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 9/7/2023 22:58:23'!
+!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:11'!
 associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection
 
 	self subclassResponsibility! !
 
-!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 9/7/2023 22:58:06'!
+!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:11'!
 newSenderFor: compiledMethodToMove
 
 	self subclassResponsibility! !
 
-!ExtraParameterNameNeeded methodsFor: 'initialization' stamp: 'mc 8/31/2023 02:03:56'!
+!ExtraParameterNameNeeded methodsFor: 'initialization' stamp: 'mc 6/15/2024 02:47:10'!
 initializeParameterName: aParameterName 
 	parameterName := aParameterName.! !
 
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 11/13/2023 01:54:51'!
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:10'!
 assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
 	| needParameter |
 	
@@ -2911,7 +3007,7 @@ assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: 
 	
 	(targetClass includesSelector: (methodName asString, ':') asSymbol ) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage]! !
 
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/10/2023 03:02:26'!
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:10'!
 assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
 	| needParameter |
 	needParameter := MoveMethodRefactoring needParameterNameToMoveClassMethod: methodName from: sourceClass.
@@ -2922,30 +3018,30 @@ assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass
 	
 	(targetClass class includesSelector: (methodName asString, ':') asSymbol) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage]! !
 
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 9/7/2023 22:53:28'!
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:10'!
 associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection  
 	| assoc |
 	assoc := (1 to: aCompiledMethod methodNode selectorLastPosition ) -> (aCompiledMethod methodNode selectorAndArgumentsAsString, ': ', parameterName).
 	aCollection add: assoc.! !
 
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 9/3/2023 02:45:04'!
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:10'!
 newSenderFor: compiledMethodToMove 
 	^compiledMethodToMove methodNode selectorAndArgumentsAsString, ': self'! !
 
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 9/1/2023 00:36:55'!
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:10'!
 parameterName
 	^parameterName! !
 
-!ExtraParameterNameNeeded class methodsFor: 'instance creation' stamp: 'mc 8/31/2023 02:03:38'!
+!ExtraParameterNameNeeded class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:10'!
 parameterName: aParameterName 
 	^self new initializeParameterName: aParameterName ! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'initialization' stamp: 'mc 8/31/2023 01:56:19'!
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'initialization' stamp: 'mc 6/15/2024 02:47:10'!
 initializeParameterName: aParameterName extraKeyword: anExtraKeyword 
 	parameterName := aParameterName.
 	extraKeyword := anExtraKeyword.! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 11/13/2023 01:56:23'!
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:11'!
 assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
 	| needParameter |
 	needParameter := MoveMethodRefactoring needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable..
@@ -2956,7 +3052,7 @@ assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: 
 	
 	(targetClass includesSelector: (methodName asString, extraKeyword, ':') asSymbol ) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage]! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 12/9/2023 20:08:15'!
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:10'!
 assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
 	| needParameter |
 	
@@ -2969,26 +3065,26 @@ assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass
 	
 	(targetClass class includesSelector: (methodName asString, extraKeyword, ':') asSymbol) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage]! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 9/7/2023 22:49:35'!
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:10'!
 associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection  
 	| assoc |
 	assoc := (1 to: aCompiledMethod methodNode selectorLastPosition ) -> (aCompiledMethod methodNode selectorAndArgumentsAsString, ' ', extraKeyword , ': ',  parameterName).
 	aCollection add: assoc! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 9/3/2023 02:49:35'!
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:10'!
 newSenderFor: compiledMethodToMove 
 	^compiledMethodToMove methodNode selectorAndArgumentsAsString, ' ', extraKeyword, ': self'! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 9/1/2023 00:37:56'!
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:10'!
 parameterName
 	^parameterName! !
 
-!ExtraParameterNameNeededAndExtraKeyword class methodsFor: 'instance creation' stamp: 'mc 8/31/2023 01:55:50'!
+!ExtraParameterNameNeededAndExtraKeyword class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:11'!
 parameterName: aParameterName extraKeyword: anExtraKeyword 
 	
 	^self new initializeParameterName: aParameterName extraKeyword: anExtraKeyword! !
 
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/10/2023 03:04:48'!
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:11'!
 assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
 	| needParameter |
 	
@@ -2996,7 +3092,7 @@ assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: 
 	
 	needParameter ifTrue: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage]! !
 
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/9/2023 04:00:17'!
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:11'!
 assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
 	
 	| needParameter |
@@ -3005,15 +3101,15 @@ assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass
 	needParameter ifTrue: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
 	! !
 
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 9/7/2023 22:50:59'!
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:11'!
 associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection 
 	! !
 
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 9/3/2023 02:43:47'!
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:11'!
 newSenderFor: compiledMethodToMove 
 	^compiledMethodToMove methodNode selectorAndArgumentsAsString.! !
 
-!TesisMoveMethodRefactoringMenu class methodsFor: 'as yet unclassified' stamp: 'mc 8/30/2023 01:25:29'!
+!TesisMoveMethodRefactoringMenu class methodsFor: 'as yet unclassified' stamp: 'mc 6/15/2024 02:47:11'!
 messageListMenuOptions
 
 	self flag: #assumesKeyboardShortcuts.
@@ -3029,7 +3125,7 @@ messageListMenuOptions
 		}`.
 	! !
 
-!TesisMoveMethodRefactoringMenu class methodsFor: 'as yet unclassified' stamp: 'mc 8/6/2023 13:13:16'!
+!TesisMoveMethodRefactoringMenu class methodsFor: 'as yet unclassified' stamp: 'mc 6/15/2024 02:47:11'!
 smalltalkEditorCmdShortcutsSpec
 	"
 	SmalltalkEditor initializeCmdShortcuts
@@ -3038,7 +3134,7 @@ smalltalkEditorCmdShortcutsSpec
 		#($7	 #contextualMoveMethod:  'Move Method what is under cursor')
 	)! !
 
-!TesisMoveMethodRefactoringMenu class methodsFor: 'as yet unclassified' stamp: 'mc 9/11/2023 22:12:00'!
+!TesisMoveMethodRefactoringMenu class methodsFor: 'as yet unclassified' stamp: 'mc 6/15/2024 02:47:11'!
 smalltalkEditorMenuOptions
 
 	^`{
