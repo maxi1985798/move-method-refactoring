@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6350] on 16 June 2024 at 5:24:58 pm'!
+'From Cuis6.3 [latest update: #6350] on 17 June 2024 at 3:47:05 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 102!
+!provides: 'MoveMethodRefactoring' 1 103!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -36,7 +36,7 @@ MethodWorksAsGetterVisitor class
 
 !classDefinition: #NeedParameterName category: #MoveMethodRefactoring!
 ParseNodeVisitor subclass: #NeedParameterName
-	instanceVariableNames: 'needParameterName instanceVariableNameToAccessThrough compiledMethod methodNode'
+	instanceVariableNames: 'needParameterName methodNode compiledMethod'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -45,13 +45,23 @@ NeedParameterName class
 	instanceVariableNames: ''!
 
 !classDefinition: #NeedParameterNameForClassMethod category: #MoveMethodRefactoring!
-ParseNodeVisitor subclass: #NeedParameterNameForClassMethod
-	instanceVariableNames: 'needParameterName methodClass'
+NeedParameterName subclass: #NeedParameterNameForClassMethod
+	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'NeedParameterNameForClassMethod class' category: #MoveMethodRefactoring!
 NeedParameterNameForClassMethod class
+	instanceVariableNames: ''!
+
+!classDefinition: #NeedParameterNameForInstanceMethod category: #MoveMethodRefactoring!
+NeedParameterName subclass: #NeedParameterNameForInstanceMethod
+	instanceVariableNames: 'instanceVariableNameToAccessThrough'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'NeedParameterNameForInstanceMethod class' category: #MoveMethodRefactoring!
+NeedParameterNameForInstanceMethod class
 	instanceVariableNames: ''!
 
 !classDefinition: #MoveMethodRefactoringTest category: #MoveMethodRefactoring!
@@ -566,82 +576,54 @@ method: getterCandidate forClassVariable: aClassVariableName
 	
 	^self new initializeMethod: getterCandidate forClassVariable: aClassVariableName ! !
 
-!NeedParameterName methodsFor: 'public' stamp: 'mc 6/15/2024 02:47:11'!
+!NeedParameterName methodsFor: 'private' stamp: 'mc 6/16/2024 18:13:15'!
 needParameterName
 	^needParameterName! !
 
-!NeedParameterName methodsFor: 'public' stamp: 'mc 6/15/2024 02:47:11'!
+!NeedParameterName methodsFor: 'public' stamp: 'mc 6/16/2024 18:13:15'!
 value
 	  
 	methodNode := compiledMethod methodNode.
 	methodNode accept: self.
 	^self needParameterName ! !
 
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:11'!
-visitInstanceVariableNode: anInstanceVariableNode 
-	
-	needParameterName := needParameterName or: [instanceVariableNameToAccessThrough ~= anInstanceVariableNode name].! !
+!NeedParameterName methodsFor: 'initialization' stamp: 'mc 6/17/2024 14:54:14'!
+initializeWith: aCompiledMethod 
+	needParameterName := false.
+	compiledMethod := aCompiledMethod.
+	! !
 
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 6/16/2024 16:44:03'!
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 6/17/2024 15:01:52'!
 visitLiteralVariableNode: aLiteralVariableNode 
 
 	needParameterName := needParameterName or: [aLiteralVariableNode  isReferencingGlobal not].! !
 
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:11'!
-visitReturnNode: aReturnNode 
-	"self halt."
-	(aReturnNode isImplicitSelfReturnIn: methodNode)
-		ifTrue: [needParameterName := true]
-		ifFalse: [super visitReturnNode: aReturnNode ]! !
-
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:11'!
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 6/17/2024 15:01:27'!
 visitVariableNode: aVariableNode 
 	needParameterName := true.! !
-
-!NeedParameterName methodsFor: 'initialization' stamp: 'mc 6/15/2024 02:47:11'!
-initializeFor: aCompiledMethod newAccessingThrough: instanceVariable 
-	
-	compiledMethod := aCompiledMethod.
-	instanceVariableNameToAccessThrough := instanceVariable.
-	needParameterName := false.! !
-
-!NeedParameterName methodsFor: 'private' stamp: 'mc 6/15/2024 02:47:11'!
-isImplicitSelfReturn: aReturnNode In: aMethodNode
-	
-	aReturnNode isReturnSelf ifFalse: [^false]. 
-	aMethodNode completeSourceRangesOf: aReturnNode ifAbsent: [^true].
-	
-	^false! !
-
-!NeedParameterName class methodsFor: 'instance creation' stamp: 'mc 6/15/2024 02:47:11'!
-for: compiledMethod newAccessingThrough: instanceVariable 
-	
-	^self new initializeFor: compiledMethod newAccessingThrough: instanceVariable ! !
-
-!NeedParameterNameForClassMethod methodsFor: 'accessing' stamp: 'mc 6/15/2024 02:47:11'!
-needParameterName
-	^needParameterName! !
-
-!NeedParameterNameForClassMethod methodsFor: 'initialization' stamp: 'mc 6/16/2024 16:26:04'!
-initializeWith: aSourceClass 
-	needParameterName := false.
-	methodClass := aSourceClass.! !
 
 !NeedParameterNameForClassMethod methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:11'!
 visitInstanceVariableNode: anInstanceVariableNode 
 	needParameterName := true! !
 
-!NeedParameterNameForClassMethod methodsFor: 'visiting' stamp: 'mc 6/16/2024 17:05:31'!
-visitLiteralVariableNode: aLiteralVariableNode 
-	needParameterName := needParameterName or: [aLiteralVariableNode  isReferencingGlobal not].! !
+!NeedParameterNameForClassMethod class methodsFor: 'instance creation' stamp: 'mc 6/16/2024 17:57:26'!
+for: compiledMethod
+	^self new initializeWith: compiledMethod ! !
 
-!NeedParameterNameForClassMethod methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:11'!
-visitVariableNode: aVariableNode 
-	needParameterName := true.! !
+!NeedParameterNameForInstanceMethod methodsFor: 'visiting' stamp: 'mc 6/15/2024 02:47:11'!
+visitInstanceVariableNode: anInstanceVariableNode 
+	
+	needParameterName := needParameterName or: [instanceVariableNameToAccessThrough ~= anInstanceVariableNode name].! !
 
-!NeedParameterNameForClassMethod class methodsFor: 'instance creation' stamp: 'mc 6/16/2024 16:26:16'!
-of: sourceClass 
-	^self new initializeWith: sourceClass ! !
+!NeedParameterNameForInstanceMethod methodsFor: 'initialization' stamp: 'mc 6/17/2024 14:57:15'!
+initializeWith: aCompiledMethod newAccessingThrough: instanceVariable 
+	self initializeWith: aCompiledMethod.
+	instanceVariableNameToAccessThrough := instanceVariable.! !
+
+!NeedParameterNameForInstanceMethod class methodsFor: 'instance creation' stamp: 'mc 6/17/2024 14:54:44'!
+for: compiledMethod newAccessingThrough: instanceVariable 
+	
+	^self new initializeWith: compiledMethod newAccessingThrough: instanceVariable ! !
 
 !MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 6/15/2024 02:47:11'!
 test001SelectorShouldExistsOnSourceClass
@@ -2790,24 +2772,21 @@ existsAssignationOf: instanceVariable inHierarchyOf: sourceClass
 	].
 	^existsAssignation.! !
 
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 6/15/2024 02:47:11'!
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 6/16/2024 18:07:07'!
 needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable 
 	| compiledMethod needParameterNameVisitor |
 	compiledMethod := sourceClass compiledMethodAt: methodName.
-	needParameterNameVisitor := NeedParameterName for: compiledMethod newAccessingThrough: instanceVariable .
+	needParameterNameVisitor := NeedParameterNameForInstanceMethod for: compiledMethod newAccessingThrough: instanceVariable .
 	^needParameterNameVisitor value! !
 
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 6/16/2024 16:02:54'!
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 6/16/2024 18:00:37'!
 needParameterNameToMoveClassMethod: methodName from: sourceClass 
 	
-	| compiledMethod methodNode needParameterName needParameterNameVisitor |
+	| compiledMethod needParameterNameVisitor |
 	
 	compiledMethod := sourceClass class compiledMethodAt: methodName.
-	methodNode := compiledMethod methodNode.
-	needParameterName := false.
-	needParameterNameVisitor := NeedParameterNameForClassMethod of: sourceClass.
-	methodNode accept: needParameterNameVisitor.
-	^needParameterNameVisitor needParameterName! !
+	needParameterNameVisitor := NeedParameterNameForClassMethod for: compiledMethod.
+	^needParameterNameVisitor value! !
 
 !MoveMethodApplier methodsFor: 'initialization' stamp: 'mc 6/15/2024 02:47:11'!
 initializeInitializeOn: aModel forMethod: aMethodReference 
