@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6350] on 14 July 2024 at 2:18:40 am'!
+'From Cuis6.3 [latest update: #6350] on 28 July 2024 at 6:22:27 pm'!
 'Description '!
-!provides: 'MoveMethodRefactoring' 1 104!
+!provides: 'MoveMethodRefactoring' 1 105!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -2706,10 +2706,10 @@ classMethodShouldExistsOnSourceClassErrorMessage
 	
 	^'class method should exists on source class'! !
 
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/28/2024 17:21:30'!
 classMethodShouldNotExistsOnTargertClassErrorMessage
 	
-	^'class method should not exists on targert class'! !
+	^'class method should not exists on target class'! !
 
 !MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
 classMethodToMoveShouldNotBeNilErrorMessage
