@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6350] on 9 August 2024 at 12:19:13 am'!
-'Description '!
-!provides: 'MoveMethodRefactoring' 1 106!
+'From Cuis7.1 [latest update: #6578] on 10 August 2024 at 10:06:35 pm'!
+'Description Udated to Cuis 7.1'!
+!provides: 'MoveMethodRefactoring' 1 108!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -2837,11 +2837,11 @@ sourceClassShouldNotBeNilErrorMessage
 targetClassShouldNotBeNilErrorMessage
 	^'Target class should not be nil'! !
 
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'HAW 8/10/2024 21:09:19'!
 existsAssignationOf: instanceVariable inHierarchyOf: sourceClass 
 	| existsAssignation |
 	existsAssignation := false.
-	sourceClass withAllSuperAndSubclassesDoGently: [ :aClassInSourceHierachy |  
+	sourceClass withAllSuperAndSubclassesDo: [ :aClassInSourceHierachy |  
 		existsAssignation := existsAssignation or: [(aClassInSourceHierachy whichSelectorsStoreInto: instanceVariable) notEmpty] 
 	].
 	^existsAssignation.! !
@@ -3169,44 +3169,37 @@ associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection
 newSenderFor: compiledMethodToMove 
 	^compiledMethodToMove methodNode selectorAndArgumentsAsString.! !
 
-!TesisMoveMethodRefactoringMenu class methodsFor: 'as yet unclassified' stamp: 'mc 7/14/2024 02:17:03'!
-messageListMenuOptions
-
-	self flag: #assumesKeyboardShortcuts.
-	^ `{
-			{
-				#submenuOf -> 					RefactoringMenues refactoringsLabel.
-				#itemGroup 			-> 		20.
-				#itemOrder 			-> 		80.
-				#label 			-> 		'move method...'.
-				#selector 			-> 		#moveMethod.
-				#icon 			-> 		#saveAsIcon
-			} asDictionary.
-		}`.
-	! !
-
-!TesisMoveMethodRefactoringMenu class methodsFor: 'as yet unclassified' stamp: 'mc 7/14/2024 02:17:03'!
-smalltalkEditorCmdShortcutsSpec
+!TesisMoveMethodRefactoringMenu class methodsFor: 'menu & kbd shortcuts' stamp: 'jmv 7/30/2024 12:29:21'!
+messageListMenuSpec
 	"
-	SmalltalkEditor initializeCmdShortcuts
+	BrowserWindow at: #messageListMenuSpec registerMenuAndShortcutsSpecProvider:
+		(MessageSend receiver: TesisMoveMethodRefactoringMenu selector: #messageListMenuSpec).
+	Do this in TesisMoveMethodRefactoringMenu class >> initialize
 	"
 	^#(
-		#($7	 #contextualMoveMethod:  'Move Method what is under cursor')
+		#(1119		'move method...' 					nil 		window 			moveMethod 				saveAsIcon)
 	)! !
 
-!TesisMoveMethodRefactoringMenu class methodsFor: 'as yet unclassified' stamp: 'mc 7/14/2024 02:17:03'!
-smalltalkEditorMenuOptions
+!TesisMoveMethodRefactoringMenu class methodsFor: 'menu & kbd shortcuts' stamp: 'jmv 7/30/2024 14:52:15'!
+smalltalkEditorMenuSpec
+	"
+	BrowserWindow at: #SmalltalkEditor registerMenuAndShortcutsSpecProvider:
+		(MessageSend receiver: TesisMoveMethodRefactoringMenu selector: #smalltalkEditorMenuSpec).
+	Do this in TesisMoveMethodRefactoringMenu class >> initialize
+	"
+	^#(
+		#(2170		'Move Method' 					$7 		editor 			contextualMoveMethod
+		 		saveAsIcon							'Move Method what is under cursor')
+	)! !
 
-	^`{
-		{
-				#submenuOf -> RefactoringMenues refactoringsLabel.
-				#itemGroup 		-> 		40.
-				#itemOrder 		-> 		50.
-				#label 			-> 		'Move Method'.
-				#selector 		-> 		#contextualMoveMethod.
-				#icon 			-> 		#saveAsIcon
-		} asDictionary.
-	}`! !
+!TesisMoveMethodRefactoringMenu class methodsFor: 'initialization' stamp: 'jmv 7/30/2024 14:53:09'!
+initialize
+
+	BrowserWindow at: #messageListMenuSpec registerMenuAndShortcutsSpecProvider:
+		(MessageSend receiver: self selector: #messageListMenuSpec).
+
+	BrowserWindow at: #SmalltalkEditor registerMenuAndShortcutsSpecProvider:
+		(MessageSend receiver: TesisMoveMethodRefactoringMenu selector: #smalltalkEditorMenuSpec).! !
 
 !SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 8/9/2023 15:14:57'!
 contextualMoveMethod
@@ -3216,13 +3209,6 @@ contextualMoveMethod
 		self
 			withMethodNodeAndClassDo: [ :methodNode :selectedClass | self contextualMoveMethodOf: methodNode in: selectedClass ]
 			ifErrorsParsing: [ :anError | morph flash ]	]	
-	! !
-
-!SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 8/6/2023 14:13:38'!
-contextualMoveMethod: aKeyboardEvent
-"self halt."
-	self contextualMoveMethod.
-	^true
 	! !
 
 !SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 9/10/2023 19:35:01'!
@@ -3263,3 +3249,4 @@ registerMoveMethodApplier: aMoveMethodApplierClass
 	self registerApplierAt: self moveMethodApplierId with: aMoveMethodApplierClass
 ! !
 MoveMethodApplier initialize!
+TesisMoveMethodRefactoringMenu initialize!
