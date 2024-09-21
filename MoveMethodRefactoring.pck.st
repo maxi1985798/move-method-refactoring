@@ -1,18 +1,8 @@
-'From Cuis7.1 [latest update: #6578] on 10 August 2024 at 10:06:35 pm'!
+'From Cuis7.1 [latest update: #6611] on 21 September 2024 at 6:03:53 pm'!
 'Description Udated to Cuis 7.1'!
 !provides: 'MoveMethodRefactoring' 1 108!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
-
-!classDefinition: #MessageToMoveShouldNotExistOnClass category: #MoveMethodRefactoring!
-RefactoringError subclass: #MessageToMoveShouldNotExistOnClass
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'MoveMethodRefactoring'!
-!classDefinition: 'MessageToMoveShouldNotExistOnClass class' category: #MoveMethodRefactoring!
-MessageToMoveShouldNotExistOnClass class
-	instanceVariableNames: ''!
 
 !classDefinition: #CodeForNodeToMove category: #MoveMethodRefactoring!
 ParseNodeVisitor subclass: #CodeForNodeToMove
@@ -64,44 +54,14 @@ NeedParameterName subclass: #NeedParameterNameForInstanceMethod
 NeedParameterNameForInstanceMethod class
 	instanceVariableNames: ''!
 
-!classDefinition: #MoveMethodRefactoringTest category: #MoveMethodRefactoring!
-RefactoringTest subclass: #MoveMethodRefactoringTest
+!classDefinition: #MessageToMoveShouldNotExistOnClass category: #MoveMethodRefactoring!
+RefactoringError subclass: #MessageToMoveShouldNotExistOnClass
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
-!classDefinition: 'MoveMethodRefactoringTest class' category: #MoveMethodRefactoring!
-MoveMethodRefactoringTest class
-	instanceVariableNames: ''!
-
-!classDefinition: #MoveMethodRefactoring category: #MoveMethodRefactoring!
-TransferMethod subclass: #MoveMethodRefactoring
-	instanceVariableNames: 'methodName sourceClass targetClass collectionOfSendersToChange instanceVariableToAccessTarget parameterNeeded compiledMethodToMove resultAfterReplaceDependencies selectorForDelegation codeForDelegation'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'MoveMethodRefactoring'!
-!classDefinition: 'MoveMethodRefactoring class' category: #MoveMethodRefactoring!
-MoveMethodRefactoring class
-	instanceVariableNames: ''!
-
-!classDefinition: #MoveMethodApplier category: #MoveMethodRefactoring!
-TransferMethodApplier subclass: #MoveMethodApplier
-	instanceVariableNames: 'model methodReference methodToMove sourceClass accessingThroughinstanceVariableName targetClass extraParameter'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'MoveMethodRefactoring'!
-!classDefinition: 'MoveMethodApplier class' category: #MoveMethodRefactoring!
-MoveMethodApplier class
-	instanceVariableNames: ''!
-
-!classDefinition: #MoveMethodWithActualScopeApplier category: #MoveMethodRefactoring!
-MoveMethodApplier subclass: #MoveMethodWithActualScopeApplier
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'MoveMethodRefactoring'!
-!classDefinition: 'MoveMethodWithActualScopeApplier class' category: #MoveMethodRefactoring!
-MoveMethodWithActualScopeApplier class
+!classDefinition: 'MessageToMoveShouldNotExistOnClass class' category: #MoveMethodRefactoring!
+MessageToMoveShouldNotExistOnClass class
 	instanceVariableNames: ''!
 
 !classDefinition: #CodeForNodeToMoveResult category: #MoveMethodRefactoring!
@@ -162,6 +122,46 @@ Object subclass: #TesisMoveMethodRefactoringMenu
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'TesisMoveMethodRefactoringMenu class' category: #MoveMethodRefactoring!
 TesisMoveMethodRefactoringMenu class
+	instanceVariableNames: ''!
+
+!classDefinition: #MoveMethodRefactoring category: #MoveMethodRefactoring!
+TransferMethod subclass: #MoveMethodRefactoring
+	instanceVariableNames: 'methodName sourceClass targetClass collectionOfSendersToChange instanceVariableToAccessTarget parameterNeeded compiledMethodToMove resultAfterReplaceDependencies selectorForDelegation codeForDelegation'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'MoveMethodRefactoring class' category: #MoveMethodRefactoring!
+MoveMethodRefactoring class
+	instanceVariableNames: ''!
+
+!classDefinition: #MoveMethodApplier category: #MoveMethodRefactoring!
+TransferMethodApplier subclass: #MoveMethodApplier
+	instanceVariableNames: 'model methodReference methodToMove sourceClass accessingThroughinstanceVariableName targetClass extraParameter'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'MoveMethodApplier class' category: #MoveMethodRefactoring!
+MoveMethodApplier class
+	instanceVariableNames: ''!
+
+!classDefinition: #MoveMethodWithActualScopeApplier category: #MoveMethodRefactoring!
+MoveMethodApplier subclass: #MoveMethodWithActualScopeApplier
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'MoveMethodWithActualScopeApplier class' category: #MoveMethodRefactoring!
+MoveMethodWithActualScopeApplier class
+	instanceVariableNames: ''!
+
+!classDefinition: #MoveMethodRefactoringTest category: #MoveMethodRefactoring!
+RefactoringTest subclass: #MoveMethodRefactoringTest
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'MoveMethodRefactoringTest class' category: #MoveMethodRefactoring!
+MoveMethodRefactoringTest class
 	instanceVariableNames: ''!
 
 
@@ -624,6 +624,542 @@ initializeWith: aCompiledMethod newAccessingThrough: instanceVariable
 for: compiledMethod newAccessingThrough: instanceVariable 
 	
 	^self new initializeWith: compiledMethod newAccessingThrough: instanceVariable ! !
+
+!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 7/14/2024 02:17:01'!
+createAccessors
+	gettersToCreate keysAndValuesDo: [ :anInstanceVariable :aSelector | sourceClass compile: aSelector, String newLineString, String tab, '^', anInstanceVariable, '.' ].
+	settersToCreate keysAndValuesDo: [ :anInstanceVariable :aSelector | sourceClass compile: aSelector, ' anObject', String newLineString, String tab, '^', anInstanceVariable, ' := anObject.' ]! !
+
+!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 7/14/2024 02:17:01'!
+gettersToCreate
+	^gettersToCreate! !
+
+!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 7/14/2024 02:17:01'!
+settersToCreate
+	^settersToCreate! !
+
+!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 7/14/2024 02:17:01'!
+sourceCode
+	^sourceCode
+	! !
+
+!CodeForNodeToMoveResult methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:01'!
+initializeNewWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
+	sourceCode := newCode.
+	gettersToCreate := aGettersToCreate.
+	settersToCreate := aSettersToCreate.
+	sourceClass := aSourceClass.
+	! !
+
+!CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:01'!
+newWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
+	^self new 
+		initializeNewWith: newCode
+		gettersToCreate: aGettersToCreate
+		settersToCreate: aSettersToCreate
+		sourceClass: aSourceClass
+! !
+
+!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:02'!
+assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
+
+	self subclassResponsibility! !
+
+!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:02'!
+assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
+
+	self subclassResponsibility! !
+
+!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:02'!
+associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection
+
+	self subclassResponsibility! !
+
+!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:02'!
+newSenderFor: compiledMethodToMove
+
+	self subclassResponsibility! !
+
+!ExtraParameterNameNeeded methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:01'!
+initializeParameterName: aParameterName 
+	parameterName := aParameterName.! !
+
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 8/9/2024 00:04:11'!
+assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
+	| needParameter newSelector |
+	
+	needParameter := MoveMethodRefactoring needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable.
+	
+	needParameter ifFalse: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
+	
+	methodName isUnary ifFalse: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage].
+	newSelector := (methodName asString, ':') asSymbol.
+	(targetClass includesSelector: newSelector ) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
+	
+	(targetClass allSelectors includes: newSelector) ifTrue: [Refactoring refactoringWarning: (MoveMethodRefactoring method: newSelector IsGoingToOverrideWarningMessageOn: targetClass )].! !
+
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
+assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
+	| needParameter |
+	needParameter := MoveMethodRefactoring needParameterNameToMoveClassMethod: methodName from: sourceClass.
+	
+	needParameter ifFalse: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
+	
+	(methodName isUnary) ifFalse: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage].
+	
+	(targetClass class includesSelector: (methodName asString, ':') asSymbol) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage]! !
+
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
+associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection  
+	| assoc |
+	assoc := (1 to: aCompiledMethod methodNode selectorLastPosition ) -> (aCompiledMethod methodNode selectorAndArgumentsAsString, ': ', parameterName).
+	aCollection add: assoc.! !
+
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
+newSenderFor: compiledMethodToMove 
+	^compiledMethodToMove methodNode selectorAndArgumentsAsString, ': self'! !
+
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
+parameterName
+	^parameterName! !
+
+!ExtraParameterNameNeeded class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:01'!
+parameterName: aParameterName 
+	^self new initializeParameterName: aParameterName ! !
+
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:01'!
+initializeParameterName: aParameterName extraKeyword: anExtraKeyword 
+	parameterName := aParameterName.
+	extraKeyword := anExtraKeyword.! !
+
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 8/9/2024 00:06:13'!
+assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
+	| needParameter newSelector |
+	needParameter := MoveMethodRefactoring needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable..
+	needParameter ifFalse:[Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
+	
+	methodName isKeyword
+		ifFalse:[Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage].
+	
+	newSelector := (methodName asString, extraKeyword, ':') asSymbol.
+	(targetClass includesSelector: newSelector ) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
+	
+	(targetClass allSelectors includes: newSelector ) ifTrue: [Refactoring refactoringWarning: (MoveMethodRefactoring method: newSelector IsGoingToOverrideWarningMessageOn: targetClass )]! !
+
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:02'!
+assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
+	| needParameter |
+	
+	needParameter := MoveMethodRefactoring needParameterNameToMoveClassMethod: methodName from: sourceClass.
+	
+	needParameter ifFalse:[Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
+	
+	methodName isKeyword
+		ifFalse:[Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage].
+	
+	(targetClass class includesSelector: (methodName asString, extraKeyword, ':') asSymbol) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage]! !
+
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
+associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection  
+	| assoc |
+	assoc := (1 to: aCompiledMethod methodNode selectorLastPosition ) -> (aCompiledMethod methodNode selectorAndArgumentsAsString, ' ', extraKeyword , ': ',  parameterName).
+	aCollection add: assoc! !
+
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
+newSenderFor: compiledMethodToMove 
+	^compiledMethodToMove methodNode selectorAndArgumentsAsString, ' ', extraKeyword, ': self'! !
+
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
+parameterName
+	^parameterName! !
+
+!ExtraParameterNameNeededAndExtraKeyword class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
+parameterName: aParameterName extraKeyword: anExtraKeyword 
+	
+	^self new initializeParameterName: aParameterName extraKeyword: anExtraKeyword! !
+
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 8/8/2024 23:49:34'!
+assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
+	| needParameter |
+	
+	needParameter := MoveMethodRefactoring needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable.
+	
+	needParameter ifTrue: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
+	
+	(targetClass allSelectors includes: methodName) ifTrue: [Refactoring refactoringWarning: (MoveMethodRefactoring method: methodName IsGoingToOverrideWarningMessageOn: targetClass )].! !
+
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:03'!
+assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
+	
+	| needParameter |
+	
+	needParameter := MoveMethodRefactoring needParameterNameToMoveClassMethod: methodName from: sourceClass.
+	needParameter ifTrue: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
+	! !
+
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:03'!
+associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection 
+	! !
+
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:03'!
+newSenderFor: compiledMethodToMove 
+	^compiledMethodToMove methodNode selectorAndArgumentsAsString.! !
+
+!TesisMoveMethodRefactoringMenu class methodsFor: 'menu & kbd shortcuts' stamp: 'jmv 7/30/2024 12:29:21'!
+messageListMenuSpec
+	"
+	BrowserWindow at: #messageListMenuSpec registerMenuAndShortcutsSpecProvider:
+		(MessageSend receiver: TesisMoveMethodRefactoringMenu selector: #messageListMenuSpec).
+	Do this in TesisMoveMethodRefactoringMenu class >> initialize
+	"
+	^#(
+		#(1119		'move method...' 					nil 		window 			moveMethod 				saveAsIcon)
+	)! !
+
+!TesisMoveMethodRefactoringMenu class methodsFor: 'menu & kbd shortcuts' stamp: 'jmv 7/30/2024 14:52:15'!
+smalltalkEditorMenuSpec
+	"
+	BrowserWindow at: #SmalltalkEditor registerMenuAndShortcutsSpecProvider:
+		(MessageSend receiver: TesisMoveMethodRefactoringMenu selector: #smalltalkEditorMenuSpec).
+	Do this in TesisMoveMethodRefactoringMenu class >> initialize
+	"
+	^#(
+		#(2170		'Move Method' 					$7 		editor 			contextualMoveMethod
+		 		saveAsIcon							'Move Method what is under cursor')
+	)! !
+
+!TesisMoveMethodRefactoringMenu class methodsFor: 'initialization' stamp: 'jmv 7/30/2024 14:53:09'!
+initialize
+
+	BrowserWindow at: #messageListMenuSpec registerMenuAndShortcutsSpecProvider:
+		(MessageSend receiver: self selector: #messageListMenuSpec).
+
+	BrowserWindow at: #SmalltalkEditor registerMenuAndShortcutsSpecProvider:
+		(MessageSend receiver: TesisMoveMethodRefactoringMenu selector: #smalltalkEditorMenuSpec).! !
+
+!MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:02'!
+initializeClassMethodNamed: aMethodName from: aSourceClass to: aTargetClass parameterNeeded: anExtraParameterNeeded 
+	methodName := aMethodName.
+	sourceClass := aSourceClass.
+	targetClass := aTargetClass.
+	parameterNeeded := anExtraParameterNeeded.! !
+
+!MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:02'!
+initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: anInstanceVariable parameterNeeded: anExtraParameterNeeded 
+	methodName := aMethodName.
+	sourceClass := aSourceClass.
+	targetClass := aTargetClass.
+	instanceVariableToAccessTarget := anInstanceVariable.
+	parameterNeeded := anExtraParameterNeeded ! !
+
+!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 7/14/2024 02:17:02'!
+apply
+	self
+		findMethodToMove;
+		replaceDependenciesOnMethodToMove;
+		compileInTargetClass;
+		createAccessors;
+		replaceMethodForDelegation.! !
+
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
+compileInTargetClass
+
+	^ targetClass compile: resultAfterReplaceDependencies sourceCode! !
+
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
+createAccessors
+
+	^ resultAfterReplaceDependencies createAccessors! !
+
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
+findMethodToMove
+
+	^ compiledMethodToMove := sourceClass methodDict at: methodName! !
+
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
+replaceDependenciesOnMethodToMove
+	| replacer |
+	
+	replacer := CodeForNodeToMove for: compiledMethodToMove variableToAccesThrough: instanceVariableToAccessTarget parameterNeeded: parameterNeeded.
+	resultAfterReplaceDependencies := replacer value.! !
+
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
+replaceMethodForDelegation
+
+	selectorForDelegation := parameterNeeded newSenderFor: compiledMethodToMove.
+	
+	codeForDelegation := compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab, '^'.
+	
+	sourceClass isMeta ifTrue: [ instanceVariableToAccessTarget := (targetClass soleInstance name) ].
+	codeForDelegation := codeForDelegation, instanceVariableToAccessTarget, ' ', selectorForDelegation, '.'.
+	sourceClass compile: codeForDelegation! !
+
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
+classMethodNamed: methodName from: sourceClass to: targetClass parameterNeeded: anExtraParameterNeeded 
+	(methodName isNil) ifTrue: [ self refactoringError: self classMethodToMoveShouldNotBeNilErrorMessage ].
+	(sourceClass isNil) ifTrue: [ self refactoringError: self sourceClassShouldNotBeNilErrorMessage].
+	(targetClass isNil) ifTrue: [ self refactoringError: self targetClassShouldNotBeNilErrorMessage ].
+	(targetClass class includesSelector: methodName) ifTrue: [ self refactoringError: self classMethodShouldNotExistsOnTargertClassErrorMessage ].
+	(sourceClass class includesSelector: methodName) ifFalse: [ self refactoringError: self classMethodShouldExistsOnSourceClassErrorMessage ].
+
+	anExtraParameterNeeded 
+		assertIfCanMoveClassMethod: methodName
+		from: sourceClass
+		to: targetClass.
+	
+	^self new initializeClassMethodNamed: methodName from: sourceClass class to: targetClass class parameterNeeded: anExtraParameterNeeded ! !
+
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
+methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable    
+
+	^self 
+		methodNamed: methodName 
+		from: sourceClass
+		to: targetClass
+		accessingThrough: instanceVariable
+		parameterNeeded: NonExtraParameterNameNeeded new
+		! !
+
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
+methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable parameterNeeded: anExtraParameterNeeded  
+	
+	
+	(targetClass isNil) ifTrue: [ self refactoringError: self targetClassShouldNotBeNilErrorMessage ].
+	(sourceClass isNil) ifTrue: [ self refactoringError: self sourceClassShouldNotBeNilErrorMessage].
+	(methodName isNil) ifTrue: [ self refactoringError: self methodShouldNotBeNilErrorMessage ].
+	(instanceVariable isNil) ifTrue: [ self refactoringError: self instanceVariableToAccessingThroughShouldNotBeNilErrorMessage ].
+	(sourceClass includesSelector: methodName) ifFalse: [ self refactoringError: self methodShouldExistsOnSourceClassErrorMessage ].
+	(sourceClass allInstVarNames includes: instanceVariable) ifFalse: [ self refactoringError: self instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage ].
+	(targetClass includesSelector: methodName) ifTrue: [ MessageToMoveShouldNotExistOnClass signal: self methodShouldNotExistsOnTargertClassErrorMessage ].
+	anExtraParameterNeeded assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable.
+	
+	(self existsAssignationOf: instanceVariable inHierarchyOf: sourceClass ) ifFalse: [ self refactoringWarning: (self instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: instanceVariable) ].
+	
+	^self new 
+		initializeMethodNamed: methodName 
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: instanceVariable 
+		parameterNeeded: anExtraParameterNeeded 
+		! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+classMethodShouldExistsOnSourceClassErrorMessage
+	
+	^'class method should exists on source class'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/28/2024 17:21:30'!
+classMethodShouldNotExistsOnTargertClassErrorMessage
+	
+	^'class method should not exists on target class'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+classMethodToMoveShouldNotBeNilErrorMessage
+	^'class method to move should not be nil'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage
+	^'InstanceVariable to accessing through should exists in source class'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: instanceVariableName
+	^'Instance variable ', instanceVariableName, ' should have at least one assignation'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+instanceVariableToAccessingThroughShouldNotBeNilErrorMessage
+	^'InstanceVariable to accessing through should not be nil'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 8/7/2024 00:46:46'!
+method: aSelector IsGoingToOverrideWarningMessageOn: aTargetClass
+	^'Method ', aSelector , ' will override a method on class ', aTargetClass name! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+methodShouldExistsOnSourceClassErrorMessage
+	^'Method should exists on source class'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+methodShouldNotBeNilErrorMessage
+	^'Method should not be nil'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+methodShouldNotExistsOnTargertClassErrorMessage
+	^'Method should not exists on targert class'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+nameForNewParameterKeywordShouldBeProvidedClassErrorMessage
+	^'name for new parameter keyword should be provided'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage
+	^'name for new parameter keyword should not be provided'.! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+nameForNewParameterShouldBeProvidedClassErrorMessage
+	^'name for new parameter should be provided.'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+nameForNewParameterShouldNotBeProvidedClassErrorMessage
+	^'name for new parameter should not be provided.'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+sourceClassShouldNotBeNilErrorMessage
+	^'Source class should not be nil'! !
+
+!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
+targetClassShouldNotBeNilErrorMessage
+	^'Target class should not be nil'! !
+
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'HAW 8/10/2024 21:09:19'!
+existsAssignationOf: instanceVariable inHierarchyOf: sourceClass 
+	| existsAssignation |
+	existsAssignation := false.
+	sourceClass withAllSuperAndSubclassesDo: [ :aClassInSourceHierachy |  
+		existsAssignation := existsAssignation or: [(aClassInSourceHierachy whichSelectorsStoreInto: instanceVariable) notEmpty] 
+	].
+	^existsAssignation.! !
+
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 7/14/2024 02:17:02'!
+needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable 
+	| compiledMethod needParameterNameVisitor |
+	compiledMethod := sourceClass compiledMethodAt: methodName.
+	needParameterNameVisitor := NeedParameterNameForInstanceMethod for: compiledMethod newAccessingThrough: instanceVariable .
+	^needParameterNameVisitor value! !
+
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 7/14/2024 02:17:02'!
+needParameterNameToMoveClassMethod: methodName from: sourceClass 
+	
+	| compiledMethod needParameterNameVisitor |
+	
+	compiledMethod := sourceClass class compiledMethodAt: methodName.
+	needParameterNameVisitor := NeedParameterNameForClassMethod for: compiledMethod.
+	^needParameterNameVisitor value! !
+
+!MoveMethodApplier methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:02'!
+initializeInitializeOn: aModel forMethod: aMethodReference 
+	model := aModel.
+	methodReference := aMethodReference.! !
+
+!MoveMethodApplier methodsFor: 'refactoring - creation' stamp: 'mc 7/14/2024 02:17:02'!
+createRefactoring
+	"self halt."
+	sourceClass isMeta 
+		ifTrue: [
+			^MoveMethodRefactoring 
+				classMethodNamed: methodToMove
+				from: sourceClass soleInstance
+				to: targetClass
+				parameterNeeded: extraParameter.]
+		ifFalse: [
+			^MoveMethodRefactoring 
+				methodNamed: methodToMove 
+				from: sourceClass 
+				to: targetClass 
+				accessingThrough: accessingThroughinstanceVariableName 
+				parameterNeeded: extraParameter . ]
+! !
+
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+askExtraParameterIfNeeded
+	
+	| parameterKeyword parameterName |
+	(MoveMethodRefactoring needParameterNameToMove: methodToMove from: sourceClass accessingThrough: accessingThroughinstanceVariableName)
+		ifTrue: [
+			methodToMove isKeyword 
+				ifTrue: [
+					parameterName := self request: 'Enter new parameter name' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
+					parameterKeyword := self request: 'Enter new parameter keyword' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
+					extraParameter := ExtraParameterNameNeededAndExtraKeyword 
+										parameterName: parameterName 
+										extraKeyword: parameterKeyword.
+					]
+				ifFalse: [
+					parameterName := self request: 'Enter new parameter name' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
+					extraParameter := ExtraParameterNameNeeded parameterName: parameterName.
+					].
+			]
+		ifFalse: [
+			extraParameter := NonExtraParameterNameNeeded new.
+			]! !
+
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+askTargetClassName
+	| targetClassNameTmp initialAnswer |
+	initialAnswer := self initialAnswerForInstanceVariable: accessingThroughinstanceVariableName in: sourceClass.
+	targetClassNameTmp := ClassNameRequestMorph request: 'Enter target class name:' initialAnswer: initialAnswer orCancel: requestExitBlock.
+	targetClassNameTmp := targetClassNameTmp withoutSeparators.
+	targetClass := Smalltalk at: targetClassNameTmp asSymbol ifAbsent: [Refactoring refactoringErrorClass signal: 'Cant find the target class'].! !
+
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+chooseInstanceVariableToAccessThrough
+	| vars index |
+	"self halt."
+	sourceClass isMeta ifTrue: [^self].
+	vars := sourceClass allInstVarNames sorted.
+	"vars := vars reject: [ :anInstanceVariable | anInstanceVariable = instanceVariableName ]."
+	vars isEmpty ifTrue: [Refactoring refactoringErrorClass signal: 'There is no instance variable to access through' ].
+	
+	index := (PopUpMenu labelArray: vars lines: #()) startUpWithCaption: self selectVariableLabel.
+	index = 0 ifTrue: [^self endRequest].
+	accessingThroughinstanceVariableName := vars at: index.! !
+
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+chooseMethodToMove
+	methodToMove := methodReference selector! !
+
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSourceClass 
+	
+	^''
+		
+	! !
+
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+requestRefactoringParameters
+	self 
+		chooseMethodToMove;
+		selectClassWichMethodIsDefined;
+		chooseInstanceVariableToAccessThrough;
+		askTargetClassName;
+		askExtraParameterIfNeeded.
+		! !
+
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+selectClassWichMethodIsDefined
+	sourceClass := methodReference actualClass ! !
+
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+selectVariableLabel
+	^'Select variable to access through'! !
+
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+showChanges
+	"nothing to inform"! !
+
+!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
+createAndValueHandlingExceptionsOn: aModel forMethod: aMethodReference 
+	self createAndValueHandlingExceptions: [ self initializeOn: aModel forMethod: aMethodReference ].! !
+
+!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
+initialize
+	(Smalltalk classNamed: #LiveTyping) ifNotNil: [
+		RefactoringApplier 
+			registerMoveMethodApplier: MoveMethodWithActualScopeApplier.
+	].
+	! !
+
+!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
+initializeOn: aModel forMethod: aMethodReference 
+	^self new initializeInitializeOn: aModel forMethod: aMethodReference ! !
+
+!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:03'!
+initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSourceClass 
+	
+	| liveTypingTypes |
+	sourceClass shouldLiveTypingBeDisabled ifTrue: [^''].
+	accessingThroughinstanceVariableName ifNil: [^''].
+	liveTypingTypes := sourceClass commonSupertypeOfInstanceVariableNamed: accessingThroughinstanceVariableName ifNoTypes: [^''].
+	^liveTypingTypes name asString 
+! !
 
 !MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 7/14/2024 02:17:02'!
 test001SelectorShouldExistsOnSourceClass
@@ -2665,541 +3201,13 @@ test403aNonImplicitReturnShouldBeMoved
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1).
 	! !
 
-!MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:02'!
-initializeClassMethodNamed: aMethodName from: aSourceClass to: aTargetClass parameterNeeded: anExtraParameterNeeded 
-	methodName := aMethodName.
-	sourceClass := aSourceClass.
-	targetClass := aTargetClass.
-	parameterNeeded := anExtraParameterNeeded.! !
-
-!MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:02'!
-initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: anInstanceVariable parameterNeeded: anExtraParameterNeeded 
-	methodName := aMethodName.
-	sourceClass := aSourceClass.
-	targetClass := aTargetClass.
-	instanceVariableToAccessTarget := anInstanceVariable.
-	parameterNeeded := anExtraParameterNeeded ! !
-
-!MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 7/14/2024 02:17:02'!
-apply
-	self
-		findMethodToMove;
-		replaceDependenciesOnMethodToMove;
-		compileInTargetClass;
-		createAccessors;
-		replaceMethodForDelegation.! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
-compileInTargetClass
-
-	^ targetClass compile: resultAfterReplaceDependencies sourceCode! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
-createAccessors
-
-	^ resultAfterReplaceDependencies createAccessors! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
-findMethodToMove
-
-	^ compiledMethodToMove := sourceClass methodDict at: methodName! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
-replaceDependenciesOnMethodToMove
-	| replacer |
+!BrowserWindow methodsFor: '*MoveMethodRefactoring' stamp: 'mc 4/28/2024 20:29:11'!
+moveMethod
 	
-	replacer := CodeForNodeToMove for: compiledMethodToMove variableToAccesThrough: instanceVariableToAccessTarget parameterNeeded: parameterNeeded.
-	resultAfterReplaceDependencies := replacer value.! !
-
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
-replaceMethodForDelegation
-
-	selectorForDelegation := parameterNeeded newSenderFor: compiledMethodToMove.
-	
-	codeForDelegation := compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab, '^'.
-	
-	sourceClass isMeta ifTrue: [ instanceVariableToAccessTarget := (targetClass soleInstance name) ].
-	codeForDelegation := codeForDelegation, instanceVariableToAccessTarget, ' ', selectorForDelegation, '.'.
-	sourceClass compile: codeForDelegation! !
-
-!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
-classMethodNamed: methodName from: sourceClass to: targetClass parameterNeeded: anExtraParameterNeeded 
-	(methodName isNil) ifTrue: [ self refactoringError: self classMethodToMoveShouldNotBeNilErrorMessage ].
-	(sourceClass isNil) ifTrue: [ self refactoringError: self sourceClassShouldNotBeNilErrorMessage].
-	(targetClass isNil) ifTrue: [ self refactoringError: self targetClassShouldNotBeNilErrorMessage ].
-	(targetClass class includesSelector: methodName) ifTrue: [ self refactoringError: self classMethodShouldNotExistsOnTargertClassErrorMessage ].
-	(sourceClass class includesSelector: methodName) ifFalse: [ self refactoringError: self classMethodShouldExistsOnSourceClassErrorMessage ].
-
-	anExtraParameterNeeded 
-		assertIfCanMoveClassMethod: methodName
-		from: sourceClass
-		to: targetClass.
-	
-	^self new initializeClassMethodNamed: methodName from: sourceClass class to: targetClass class parameterNeeded: anExtraParameterNeeded ! !
-
-!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
-methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable    
-
-	^self 
-		methodNamed: methodName 
-		from: sourceClass
-		to: targetClass
-		accessingThrough: instanceVariable
-		parameterNeeded: NonExtraParameterNameNeeded new
-		! !
-
-!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
-methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable parameterNeeded: anExtraParameterNeeded  
-	
-	
-	(targetClass isNil) ifTrue: [ self refactoringError: self targetClassShouldNotBeNilErrorMessage ].
-	(sourceClass isNil) ifTrue: [ self refactoringError: self sourceClassShouldNotBeNilErrorMessage].
-	(methodName isNil) ifTrue: [ self refactoringError: self methodShouldNotBeNilErrorMessage ].
-	(instanceVariable isNil) ifTrue: [ self refactoringError: self instanceVariableToAccessingThroughShouldNotBeNilErrorMessage ].
-	(sourceClass includesSelector: methodName) ifFalse: [ self refactoringError: self methodShouldExistsOnSourceClassErrorMessage ].
-	(sourceClass allInstVarNames includes: instanceVariable) ifFalse: [ self refactoringError: self instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage ].
-	(targetClass includesSelector: methodName) ifTrue: [ MessageToMoveShouldNotExistOnClass signal: self methodShouldNotExistsOnTargertClassErrorMessage ].
-	anExtraParameterNeeded assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable.
-	
-	(self existsAssignationOf: instanceVariable inHierarchyOf: sourceClass ) ifFalse: [ self refactoringWarning: (self instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: instanceVariable) ].
-	
-	^self new 
-		initializeMethodNamed: methodName 
-		from: sourceClass 
-		to: targetClass 
-		accessingThrough: instanceVariable 
-		parameterNeeded: anExtraParameterNeeded 
-		! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-classMethodShouldExistsOnSourceClassErrorMessage
-	
-	^'class method should exists on source class'! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/28/2024 17:21:30'!
-classMethodShouldNotExistsOnTargertClassErrorMessage
-	
-	^'class method should not exists on target class'! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-classMethodToMoveShouldNotBeNilErrorMessage
-	^'class method to move should not be nil'! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage
-	^'InstanceVariable to accessing through should exists in source class'! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: instanceVariableName
-	^'Instance variable ', instanceVariableName, ' should have at least one assignation'! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-instanceVariableToAccessingThroughShouldNotBeNilErrorMessage
-	^'InstanceVariable to accessing through should not be nil'! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 8/7/2024 00:46:46'!
-method: aSelector IsGoingToOverrideWarningMessageOn: aTargetClass
-	^'Method ', aSelector , ' will override a method on class ', aTargetClass name! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-methodShouldExistsOnSourceClassErrorMessage
-	^'Method should exists on source class'! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-methodShouldNotBeNilErrorMessage
-	^'Method should not be nil'! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-methodShouldNotExistsOnTargertClassErrorMessage
-	^'Method should not exists on targert class'! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-nameForNewParameterKeywordShouldBeProvidedClassErrorMessage
-	^'name for new parameter keyword should be provided'! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage
-	^'name for new parameter keyword should not be provided'.! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-nameForNewParameterShouldBeProvidedClassErrorMessage
-	^'name for new parameter should be provided.'! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-nameForNewParameterShouldNotBeProvidedClassErrorMessage
-	^'name for new parameter should not be provided.'! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-sourceClassShouldNotBeNilErrorMessage
-	^'Source class should not be nil'! !
-
-!MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
-targetClassShouldNotBeNilErrorMessage
-	^'Target class should not be nil'! !
-
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'HAW 8/10/2024 21:09:19'!
-existsAssignationOf: instanceVariable inHierarchyOf: sourceClass 
-	| existsAssignation |
-	existsAssignation := false.
-	sourceClass withAllSuperAndSubclassesDo: [ :aClassInSourceHierachy |  
-		existsAssignation := existsAssignation or: [(aClassInSourceHierachy whichSelectorsStoreInto: instanceVariable) notEmpty] 
-	].
-	^existsAssignation.! !
-
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 7/14/2024 02:17:02'!
-needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable 
-	| compiledMethod needParameterNameVisitor |
-	compiledMethod := sourceClass compiledMethodAt: methodName.
-	needParameterNameVisitor := NeedParameterNameForInstanceMethod for: compiledMethod newAccessingThrough: instanceVariable .
-	^needParameterNameVisitor value! !
-
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 7/14/2024 02:17:02'!
-needParameterNameToMoveClassMethod: methodName from: sourceClass 
-	
-	| compiledMethod needParameterNameVisitor |
-	
-	compiledMethod := sourceClass class compiledMethodAt: methodName.
-	needParameterNameVisitor := NeedParameterNameForClassMethod for: compiledMethod.
-	^needParameterNameVisitor value! !
-
-!MoveMethodApplier methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:02'!
-initializeInitializeOn: aModel forMethod: aMethodReference 
-	model := aModel.
-	methodReference := aMethodReference.! !
-
-!MoveMethodApplier methodsFor: 'refactoring - creation' stamp: 'mc 7/14/2024 02:17:02'!
-createRefactoring
-	"self halt."
-	sourceClass isMeta 
-		ifTrue: [
-			^MoveMethodRefactoring 
-				classMethodNamed: methodToMove
-				from: sourceClass soleInstance
-				to: targetClass
-				parameterNeeded: extraParameter.]
-		ifFalse: [
-			^MoveMethodRefactoring 
-				methodNamed: methodToMove 
-				from: sourceClass 
-				to: targetClass 
-				accessingThrough: accessingThroughinstanceVariableName 
-				parameterNeeded: extraParameter . ]
-! !
-
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
-askExtraParameterIfNeeded
-	
-	| parameterKeyword parameterName |
-	(MoveMethodRefactoring needParameterNameToMove: methodToMove from: sourceClass accessingThrough: accessingThroughinstanceVariableName)
-		ifTrue: [
-			methodToMove isKeyword 
-				ifTrue: [
-					parameterName := self request: 'Enter new parameter name' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
-					parameterKeyword := self request: 'Enter new parameter keyword' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
-					extraParameter := ExtraParameterNameNeededAndExtraKeyword 
-										parameterName: parameterName 
-										extraKeyword: parameterKeyword.
-					]
-				ifFalse: [
-					parameterName := self request: 'Enter new parameter name' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
-					extraParameter := ExtraParameterNameNeeded parameterName: parameterName.
-					].
-			]
-		ifFalse: [
-			extraParameter := NonExtraParameterNameNeeded new.
-			]! !
-
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
-askTargetClassName
-	| targetClassNameTmp initialAnswer |
-	initialAnswer := self initialAnswerForInstanceVariable: accessingThroughinstanceVariableName in: sourceClass.
-	targetClassNameTmp := ClassNameRequestMorph request: 'Enter target class name:' initialAnswer: initialAnswer orCancel: requestExitBlock.
-	targetClassNameTmp := targetClassNameTmp withoutSeparators.
-	targetClass := Smalltalk at: targetClassNameTmp asSymbol ifAbsent: [Refactoring refactoringErrorClass signal: 'Cant find the target class'].! !
-
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
-chooseInstanceVariableToAccessThrough
-	| vars index |
-	"self halt."
-	sourceClass isMeta ifTrue: [^self].
-	vars := sourceClass allInstVarNames sorted.
-	"vars := vars reject: [ :anInstanceVariable | anInstanceVariable = instanceVariableName ]."
-	vars isEmpty ifTrue: [Refactoring refactoringErrorClass signal: 'There is no instance variable to access through' ].
-	
-	index := (PopUpMenu labelArray: vars lines: #()) startUpWithCaption: self selectVariableLabel.
-	index = 0 ifTrue: [^self endRequest].
-	accessingThroughinstanceVariableName := vars at: index.! !
-
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
-chooseMethodToMove
-	methodToMove := methodReference selector! !
-
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
-initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSourceClass 
-	
-	^''
-		
-	! !
-
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
-requestRefactoringParameters
-	self 
-		chooseMethodToMove;
-		selectClassWichMethodIsDefined;
-		chooseInstanceVariableToAccessThrough;
-		askTargetClassName;
-		askExtraParameterIfNeeded.
-		! !
-
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
-selectClassWichMethodIsDefined
-	sourceClass := methodReference actualClass ! !
-
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
-selectVariableLabel
-	^'Select variable to access through'! !
-
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
-showChanges
-	"nothing to inform"! !
-
-!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
-createAndValueHandlingExceptionsOn: aModel forMethod: aMethodReference 
-	self createAndValueHandlingExceptions: [ self initializeOn: aModel forMethod: aMethodReference ].! !
-
-!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
-initialize
-	(Smalltalk classNamed: #LiveTyping) ifNotNil: [
-		RefactoringApplier 
-			registerMoveMethodApplier: MoveMethodWithActualScopeApplier.
-	].
-	! !
-
-!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
-initializeOn: aModel forMethod: aMethodReference 
-	^self new initializeInitializeOn: aModel forMethod: aMethodReference ! !
-
-!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:03'!
-initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSourceClass 
-	
-	| liveTypingTypes |
-	sourceClass shouldLiveTypingBeDisabled ifTrue: [^''].
-	accessingThroughinstanceVariableName ifNil: [^''].
-	liveTypingTypes := sourceClass commonSupertypeOfInstanceVariableNamed: accessingThroughinstanceVariableName ifNoTypes: [^''].
-	^liveTypingTypes name asString 
-! !
-
-!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 7/14/2024 02:17:01'!
-createAccessors
-	gettersToCreate keysAndValuesDo: [ :anInstanceVariable :aSelector | sourceClass compile: aSelector, String newLineString, String tab, '^', anInstanceVariable, '.' ].
-	settersToCreate keysAndValuesDo: [ :anInstanceVariable :aSelector | sourceClass compile: aSelector, ' anObject', String newLineString, String tab, '^', anInstanceVariable, ' := anObject.' ]! !
-
-!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 7/14/2024 02:17:01'!
-gettersToCreate
-	^gettersToCreate! !
-
-!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 7/14/2024 02:17:01'!
-settersToCreate
-	^settersToCreate! !
-
-!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 7/14/2024 02:17:01'!
-sourceCode
-	^sourceCode
-	! !
-
-!CodeForNodeToMoveResult methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:01'!
-initializeNewWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
-	sourceCode := newCode.
-	gettersToCreate := aGettersToCreate.
-	settersToCreate := aSettersToCreate.
-	sourceClass := aSourceClass.
-	! !
-
-!CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:01'!
-newWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
-	^self new 
-		initializeNewWith: newCode
-		gettersToCreate: aGettersToCreate
-		settersToCreate: aSettersToCreate
-		sourceClass: aSourceClass
-! !
-
-!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:02'!
-assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
-
-	self subclassResponsibility! !
-
-!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:02'!
-assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
-
-	self subclassResponsibility! !
-
-!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:02'!
-associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection
-
-	self subclassResponsibility! !
-
-!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:02'!
-newSenderFor: compiledMethodToMove
-
-	self subclassResponsibility! !
-
-!ExtraParameterNameNeeded methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:01'!
-initializeParameterName: aParameterName 
-	parameterName := aParameterName.! !
-
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 8/9/2024 00:04:11'!
-assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
-	| needParameter newSelector |
-	
-	needParameter := MoveMethodRefactoring needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable.
-	
-	needParameter ifFalse: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
-	
-	methodName isUnary ifFalse: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage].
-	newSelector := (methodName asString, ':') asSymbol.
-	(targetClass includesSelector: newSelector ) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
-	
-	(targetClass allSelectors includes: newSelector) ifTrue: [Refactoring refactoringWarning: (MoveMethodRefactoring method: newSelector IsGoingToOverrideWarningMessageOn: targetClass )].! !
-
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
-assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
-	| needParameter |
-	needParameter := MoveMethodRefactoring needParameterNameToMoveClassMethod: methodName from: sourceClass.
-	
-	needParameter ifFalse: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
-	
-	(methodName isUnary) ifFalse: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage].
-	
-	(targetClass class includesSelector: (methodName asString, ':') asSymbol) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage]! !
-
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
-associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection  
-	| assoc |
-	assoc := (1 to: aCompiledMethod methodNode selectorLastPosition ) -> (aCompiledMethod methodNode selectorAndArgumentsAsString, ': ', parameterName).
-	aCollection add: assoc.! !
-
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
-newSenderFor: compiledMethodToMove 
-	^compiledMethodToMove methodNode selectorAndArgumentsAsString, ': self'! !
-
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
-parameterName
-	^parameterName! !
-
-!ExtraParameterNameNeeded class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:01'!
-parameterName: aParameterName 
-	^self new initializeParameterName: aParameterName ! !
-
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:01'!
-initializeParameterName: aParameterName extraKeyword: anExtraKeyword 
-	parameterName := aParameterName.
-	extraKeyword := anExtraKeyword.! !
-
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 8/9/2024 00:06:13'!
-assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
-	| needParameter newSelector |
-	needParameter := MoveMethodRefactoring needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable..
-	needParameter ifFalse:[Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
-	
-	methodName isKeyword
-		ifFalse:[Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage].
-	
-	newSelector := (methodName asString, extraKeyword, ':') asSymbol.
-	(targetClass includesSelector: newSelector ) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
-	
-	(targetClass allSelectors includes: newSelector ) ifTrue: [Refactoring refactoringWarning: (MoveMethodRefactoring method: newSelector IsGoingToOverrideWarningMessageOn: targetClass )]! !
-
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:02'!
-assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
-	| needParameter |
-	
-	needParameter := MoveMethodRefactoring needParameterNameToMoveClassMethod: methodName from: sourceClass.
-	
-	needParameter ifFalse:[Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
-	
-	methodName isKeyword
-		ifFalse:[Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage].
-	
-	(targetClass class includesSelector: (methodName asString, extraKeyword, ':') asSymbol) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage]! !
-
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
-associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection  
-	| assoc |
-	assoc := (1 to: aCompiledMethod methodNode selectorLastPosition ) -> (aCompiledMethod methodNode selectorAndArgumentsAsString, ' ', extraKeyword , ': ',  parameterName).
-	aCollection add: assoc! !
-
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
-newSenderFor: compiledMethodToMove 
-	^compiledMethodToMove methodNode selectorAndArgumentsAsString, ' ', extraKeyword, ': self'! !
-
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
-parameterName
-	^parameterName! !
-
-!ExtraParameterNameNeededAndExtraKeyword class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
-parameterName: aParameterName extraKeyword: anExtraKeyword 
-	
-	^self new initializeParameterName: aParameterName extraKeyword: anExtraKeyword! !
-
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 8/8/2024 23:49:34'!
-assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
-	| needParameter |
-	
-	needParameter := MoveMethodRefactoring needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable.
-	
-	needParameter ifTrue: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
-	
-	(targetClass allSelectors includes: methodName) ifTrue: [Refactoring refactoringWarning: (MoveMethodRefactoring method: methodName IsGoingToOverrideWarningMessageOn: targetClass )].! !
-
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:03'!
-assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
-	
-	| needParameter |
-	
-	needParameter := MoveMethodRefactoring needParameterNameToMoveClassMethod: methodName from: sourceClass.
-	needParameter ifTrue: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
-	! !
-
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:03'!
-associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection 
-	! !
-
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:03'!
-newSenderFor: compiledMethodToMove 
-	^compiledMethodToMove methodNode selectorAndArgumentsAsString.! !
-
-!TesisMoveMethodRefactoringMenu class methodsFor: 'menu & kbd shortcuts' stamp: 'jmv 7/30/2024 12:29:21'!
-messageListMenuSpec
-	"
-	BrowserWindow at: #messageListMenuSpec registerMenuAndShortcutsSpecProvider:
-		(MessageSend receiver: TesisMoveMethodRefactoringMenu selector: #messageListMenuSpec).
-	Do this in TesisMoveMethodRefactoringMenu class >> initialize
-	"
-	^#(
-		#(1119		'move method...' 					nil 		window 			moveMethod 				saveAsIcon)
-	)! !
-
-!TesisMoveMethodRefactoringMenu class methodsFor: 'menu & kbd shortcuts' stamp: 'jmv 7/30/2024 14:52:15'!
-smalltalkEditorMenuSpec
-	"
-	BrowserWindow at: #SmalltalkEditor registerMenuAndShortcutsSpecProvider:
-		(MessageSend receiver: TesisMoveMethodRefactoringMenu selector: #smalltalkEditorMenuSpec).
-	Do this in TesisMoveMethodRefactoringMenu class >> initialize
-	"
-	^#(
-		#(2170		'Move Method' 					$7 		editor 			contextualMoveMethod
-		 		saveAsIcon							'Move Method what is under cursor')
-	)! !
-
-!TesisMoveMethodRefactoringMenu class methodsFor: 'initialization' stamp: 'jmv 7/30/2024 14:53:09'!
-initialize
-
-	BrowserWindow at: #messageListMenuSpec registerMenuAndShortcutsSpecProvider:
-		(MessageSend receiver: self selector: #messageListMenuSpec).
-
-	BrowserWindow at: #SmalltalkEditor registerMenuAndShortcutsSpecProvider:
-		(MessageSend receiver: TesisMoveMethodRefactoringMenu selector: #smalltalkEditorMenuSpec).! !
+	model selectedMessageName ifNotNil: [ :selectorToInline |
+		RefactoringApplier moveMethodApplier
+			createAndValueHandlingExceptionsOn: model
+			forMethod: (MethodReference class: model selectedClassOrMetaClass selector: selectorToInline )]! !
 
 !SmalltalkEditor methodsFor: '*MoveMethodRefactoring' stamp: 'mc 8/9/2023 15:14:57'!
 contextualMoveMethod
@@ -3226,14 +3234,6 @@ contextualMoveMethodOf: aMethodNode in: aSelectedClass
 
 ! !
 
-!BrowserWindow methodsFor: '*MoveMethodRefactoring' stamp: 'mc 4/28/2024 20:29:11'!
-moveMethod
-	
-	model selectedMessageName ifNotNil: [ :selectorToInline |
-		RefactoringApplier moveMethodApplier
-			createAndValueHandlingExceptionsOn: model
-			forMethod: (MethodReference class: model selectedClassOrMetaClass selector: selectorToInline )]! !
-
 !RefactoringApplier class methodsFor: '*MoveMethodRefactoring' stamp: 'mc 12/11/2023 00:26:05'!
 moveMethodApplier
 	"self halt."
@@ -3248,5 +3248,5 @@ registerMoveMethodApplier: aMoveMethodApplierClass
 
 	self registerApplierAt: self moveMethodApplierId with: aMoveMethodApplierClass
 ! !
-MoveMethodApplier initialize!
 TesisMoveMethodRefactoringMenu initialize!
+MoveMethodApplier initialize!
