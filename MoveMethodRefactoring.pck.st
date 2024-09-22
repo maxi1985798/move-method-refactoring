@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6611] on 21 September 2024 at 6:03:53 pm'!
+'From Cuis7.1 [latest update: #6611] on 22 September 2024 at 3:27:23 am'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 108!
+!provides: 'MoveMethodRefactoring' 1 109!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -240,11 +240,11 @@ visitLiteralVariableNode: aLiteralVariableNode
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 ! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 9/22/2024 02:47:44'!
 visitMessageNode: aMessageNode 
 	| rangeMessageNode newSend |
 	"self halt."
-	aMessageNode receiver referencesSuper
+	(aMessageNode receiver referencesSuper and: (aMessageNode receiver isVariableNode ))
 		ifTrue:[
 			rangeMessageNode := self firstUnseenIntervalFor: aMessageNode.
 			aMessageNode isKeywordMessageSend
@@ -2726,6 +2726,29 @@ test204CanMoveMethodWhenSendsKeywordMessageToSuperWithOneInstVarAsColaborators
 	self assert: 'm1: sourceObject ^sourceObject CHANGE_ME_super_increment: (sourceObject iv2: 1).' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass sourceCodeAt: #CHANGE_ME_super_increment:).
 	self assert: 'iv2: anObject', String newLineString, String tab, '^iv2 := anObject.' equals: (sourceClass sourceCodeAt: #iv2:)! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 9/22/2024 02:50:40'!
+test205CanMoveMethodWhenReferenceSuperIndirectly
+	
+	| sourceClass targetClass refactoring |
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'm1 |asd| ^super printString, 1 asString.'.
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #m1 
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: (ExtraParameterNameNeeded 
+							parameterName: 'sourceObject').
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject |asd| ^sourceObject CHANGE_ME_super_printString, 1 asString.' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'CHANGE_ME_super_printString
+	^super printString.' equals: (sourceClass sourceCodeAt: #CHANGE_ME_super_printString)! !
 
 !MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:03'!
 test205CanMoveMethodWhenSendsKeywordMessageToSuperWithOneTmpVarAsColaborators
