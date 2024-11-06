@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6611] on 22 September 2024 at 3:27:23 am'!
+'From Cuis7.1 [latest update: #6611] on 6 November 2024 at 2:05:37 am'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 109!
+!provides: 'MoveMethodRefactoring' 1 110!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -240,7 +240,7 @@ visitLiteralVariableNode: aLiteralVariableNode
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 ! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 9/22/2024 02:47:44'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 11/6/2024 01:40:01'!
 visitMessageNode: aMessageNode 
 	| rangeMessageNode newSend |
 	"self halt."
@@ -250,6 +250,8 @@ visitMessageNode: aMessageNode
 			aMessageNode isKeywordMessageSend
 				ifTrue: [ 
 					newSend := self newSenderFor: aMessageNode.
+					((methodNode sourceText at: rangeMessageNode first) = $()
+						ifTrue: [newSend := '(', newSend, ')'].
 					self registerInterval: rangeMessageNode withModification: newSend.
 					self encapsulateSuperColaboration: aMessageNode.
 					]
@@ -2773,6 +2775,31 @@ test205CanMoveMethodWhenSendsKeywordMessageToSuperWithOneTmpVarAsColaborators
 	refactoring apply.
 	
 	self assert: 'm1: sourceObject |asd| ^sourceObject CHANGE_ME_super_increment: asd.' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass sourceCodeAt: #CHANGE_ME_super_increment:)! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/6/2024 01:43:41'!
+test206CanMoveMethodWhenSendsKeywordMessageToSuperWithParenthesis
+	
+	| sourceClass targetClass refactoring sourceSuperClass |
+	sourceSuperClass := self createClassNamed: #SourceSuperClass.
+	sourceClass := self createClassNamed: #SourceClass  subclassOf: sourceSuperClass instanceVariableNames: 'iv1 iv3'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceSuperClass compile: 'increment: aSmallinteger ^1+aSmallinteger.'.
+	sourceClass compile: 'increment: aSmallinteger ^2+aSmallinteger.'.
+	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
+	sourceClass compile: 'm1 ^(super increment: 1) + 1.'.
+	
+	
+	refactoring := MoveMethodRefactoring 
+		methodNamed: #m1 
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: 'iv1' 
+		parameterNeeded: (ExtraParameterNameNeeded 
+							parameterName: 'sourceObject').
+	refactoring apply.
+	
+	self assert: 'm1: sourceObject ^(sourceObject CHANGE_ME_super_increment: 1) + 1.' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'CHANGE_ME_super_increment: arg1', String newLineString, String tab, '^super increment: arg1.' equals: (sourceClass sourceCodeAt: #CHANGE_ME_super_increment:)! !
 
 !MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:02'!
