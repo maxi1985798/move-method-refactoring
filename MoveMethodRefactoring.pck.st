@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6611] on 18 November 2024 at 6:57:29 pm'!
+'From Cuis7.1 [latest update: #6611] on 25 November 2024 at 2:39:08 am'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 112!
+!provides: 'MoveMethodRefactoring' 1 113!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -265,7 +265,7 @@ visitMessageNode: aMessageNode
 		ifFalse:[ super visitMessageNode: aMessageNode ].
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 11/11/2024 02:31:42'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 11/25/2024 02:17:17'!
 visitMethodNode: aMethodNode 
 	| parameterIndex implementorMethodNode parameterToRemovePosition selectorToRemovePosition argumentsCollection |
 	"moving to a parameter should change selector"
@@ -283,7 +283,10 @@ visitMethodNode: aMethodNode
 		self writeAfterParameterIn: newSourceStream from: originalSource removing: parameterToRemovePosition ]."
 	(argumentsCollection size = 1)
 		ifTrue: [
-			self registerInterval: (selectorToRemovePosition last to: parameterToRemovePosition last) withModification: ''.
+			(parameterNeeded isKindOf: ExtraParameterNameNeeded) 
+			ifTrue: [self registerInterval: parameterToRemovePosition withModification: parameterNeeded parameterName.]
+			ifFalse: [self registerInterval: (selectorToRemovePosition last to: parameterToRemovePosition last) withModification: ''.]
+			
 		]
 		ifFalse: [
 			(argumentsCollection last name = variableToAccesThrough)
@@ -581,7 +584,7 @@ writeBeforeKeywordIn: newSourceStream from: originalSource removing: selectorToR
 	newSourceStream nextPutAll: (originalSource copyFrom: 1 to: selectorToRemovePosition first - 1)
 ! !
 
-!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 11/10/2024 11:18:06'!
+!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 11/25/2024 02:22:24'!
 value
 	| newCode newCodeForNode result |
 	"self halt."
@@ -591,7 +594,7 @@ value
 	intervalsToModify := intervalsToModify collect: [ :anAssociation | (anAssociation key - nodeOffsetInSourceCode) -> anAssociation value ].
 	newCodeForNode := compiledMethod sourceCode copyFrom: nodeInterval first to: nodeInterval last.
 	
-	(node isMethodNode) ifTrue: [
+	((node isMethodNode) and: [(methodNode argumentNames includes: variableToAccesThrough) not]) ifTrue: [
 		parameterNeeded associationToModifySelectorAndArgumentsOn: compiledMethod addOn: intervalsToModify
 		].
 	"self halt."
@@ -802,6 +805,12 @@ associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection
 !ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
 newSenderFor: compiledMethodToMove 
 	^compiledMethodToMove methodNode selectorAndArgumentsAsString, ': self'! !
+
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 11/25/2024 02:33:15'!
+newSenderFor: compiledMethodToMove usingParameter: parameterName2 
+	
+	^compiledMethodToMove methodNode selector, ' self'
+	! !
 
 !ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
 parameterName
@@ -3468,7 +3477,7 @@ test504CanMoveMethodUsingSecondParameterAsAccessThrougVariable
 	^aTargetClass m1: anInt1 m111: anInt2.' equals: (sourceClass sourceCodeAt: #m1:m11:m111:).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/11/2024 02:39:47'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/25/2024 02:35:02'!
 test505CanMoveMethodWithIntVarUsingParameterAsAccessThrougVariable
 	
 	| sourceClass targetClass refactoring |
@@ -3487,7 +3496,7 @@ test505CanMoveMethodWithIntVarUsingParameterAsAccessThrougVariable
 					parameterNeeded: (ExtraParameterNameNeeded parameterName: 'sourceObject').
 	refactoring apply.
 	
-	self assert: 'm1: sourceObject ^self m2: sourceObject' equals: (targetClass sourceCodeAt: #m1:).
+	self assert: 'm1: sourceObject ^self m2: sourceObject iv1' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'm1: aTargetClass
 	^aTargetClass m1: self.' equals: (sourceClass sourceCodeAt: #m1:).
 	! !
