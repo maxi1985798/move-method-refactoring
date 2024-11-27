@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6611] on 25 November 2024 at 2:39:08 am'!
+'From Cuis7.1 [latest update: #6611] on 27 November 2024 at 1:24:49 am'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 113!
+!provides: 'MoveMethodRefactoring' 1 114!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -265,22 +265,19 @@ visitMessageNode: aMessageNode
 		ifFalse:[ super visitMessageNode: aMessageNode ].
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 11/25/2024 02:17:17'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 11/27/2024 01:24:35'!
 visitMethodNode: aMethodNode 
-	| parameterIndex implementorMethodNode parameterToRemovePosition selectorToRemovePosition argumentsCollection |
+	| parameterIndex parameterToRemovePosition selectorToRemovePosition argumentsCollection |
 	"moving to a parameter should change selector"
-	(methodNode argumentNames includes: variableToAccesThrough) ifFalse: [^super visitMethodNode: aMethodNode ].
+	(methodNode argumentNames includes: variableToAccesThrough) ifFalse: [
+		parameterNeeded associationToModifySelectorAndArgumentsOn: compiledMethod addOn: intervalsToModify.
+		^super visitMethodNode: aMethodNode ].
 	argumentsCollection := methodNode arguments.
 	parameterIndex := argumentsCollection findFirst: [ :aParameterNode | aParameterNode name = variableToAccesThrough ].
 	
-	implementorMethodNode := methodNode .
-	selectorToRemovePosition := implementorMethodNode selectorKeywordPositionAt: parameterIndex.
-	parameterToRemovePosition := implementorMethodNode parameterDefinitionPositionAt: parameterIndex.
-	
-	"originalSource := methodNode sourceText ."
-	"newSource :=s String streamContents: [ :newSourceStream |
-		self writeBeforeKeywordIn: newSourceStream from: originalSource removing: selectorToRemovePosition.
-		self writeAfterParameterIn: newSourceStream from: originalSource removing: parameterToRemovePosition ]."
+	selectorToRemovePosition := methodNode selectorKeywordPositionAt: parameterIndex.
+	parameterToRemovePosition := methodNode parameterDefinitionPositionAt: parameterIndex.
+
 	(argumentsCollection size = 1)
 		ifTrue: [
 			(parameterNeeded isKindOf: ExtraParameterNameNeeded) 
@@ -294,18 +291,9 @@ visitMethodNode: aMethodNode
 				self registerInterval: (selectorToRemovePosition first -1 to: parameterToRemovePosition last) withModification: ''.
 				]
 			ifFalse:[
-				(argumentsCollection first name = variableToAccesThrough)
-				ifTrue:[
-					self registerInterval: (selectorToRemovePosition first to: parameterToRemovePosition last+1) withModification: ''.
-					]
-				ifFalse: [
-					self registerInterval: (selectorToRemovePosition first to: parameterToRemovePosition last+1) withModification: ''.
-				
-					].
+				self registerInterval: (selectorToRemovePosition first to: parameterToRemovePosition last+1) withModification: ''.
 				].	
 			].
-			
-			
 	
 	^super visitMethodNode: aMethodNode ! !
 
@@ -555,36 +543,7 @@ shouldAddParenthesisOnValueOf: anAssignmentNode
 
 	^ ((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ]! !
 
-!CodeForNodeToMove methodsFor: 'aux' stamp: 'mc 11/9/2024 03:03:39'!
-lastSeparatorIndexIn: senderSourceCode startingFrom: aPosition
-
-	| lastPosition senderSourceCodeSize |
-	
-	lastPosition := aPosition.
-	senderSourceCodeSize := senderSourceCode size.
-	[ lastPosition := lastPosition + 1.
-	lastPosition <= senderSourceCodeSize and: [ (senderSourceCode at: lastPosition) isSeparator ]] whileTrue. 
-
-	^lastPosition - 1! !
-
-!CodeForNodeToMove methodsFor: 'aux' stamp: 'mc 11/9/2024 03:02:54'!
-writeAfterParameterIn: newSourceStream from: originalSource removing: parameterToRemovePosition
-	
-	| afterParameterPosition |
-	
-	afterParameterPosition := parameterToRemovePosition last.
-	"isLastParameter ifFalse: [ afterParameterPosition := self lastSeparatorIndexIn: originalSource startingFrom: afterParameterPosition ]."
-	afterParameterPosition := self lastSeparatorIndexIn: originalSource startingFrom: afterParameterPosition.
-	
-	newSourceStream nextPutAll: (originalSource copyFrom: afterParameterPosition + 1 to: originalSource size) 	! !
-
-!CodeForNodeToMove methodsFor: 'aux' stamp: 'mc 11/9/2024 02:35:20'!
-writeBeforeKeywordIn: newSourceStream from: originalSource removing: selectorToRemovePosition
-
-	newSourceStream nextPutAll: (originalSource copyFrom: 1 to: selectorToRemovePosition first - 1)
-! !
-
-!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 11/25/2024 02:22:24'!
+!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 11/26/2024 02:40:37'!
 value
 	| newCode newCodeForNode result |
 	"self halt."
@@ -594,14 +553,10 @@ value
 	intervalsToModify := intervalsToModify collect: [ :anAssociation | (anAssociation key - nodeOffsetInSourceCode) -> anAssociation value ].
 	newCodeForNode := compiledMethod sourceCode copyFrom: nodeInterval first to: nodeInterval last.
 	
-	((node isMethodNode) and: [(methodNode argumentNames includes: variableToAccesThrough) not]) ifTrue: [
-		parameterNeeded associationToModifySelectorAndArgumentsOn: compiledMethod addOn: intervalsToModify
-		].
-	"self halt."
 	intervalsToModify sort: [ :left :right | left key first < right key first ].
 	newCode := newCodeForNode copyReplacing: intervalsToModify.
 	 
-	hasImplicitSelfReturn	ifTrue: [ 
+	hasImplicitSelfReturn 	ifTrue: [ 
 			(newCode last = $.) ifFalse: [newCode := newCode append: '.'].
 			newCode := newCode append: String newLineString, String tab, '^', parameterNeeded parameterName, '.'
 			].
@@ -1003,28 +958,17 @@ replaceDependenciesOnMethodToMove
 	replacer := CodeForNodeToMove for: compiledMethodToMove variableToAccesThrough: instanceVariableToAccessTarget parameterNeeded: parameterNeeded.
 	resultAfterReplaceDependencies := replacer value.! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 11/10/2024 21:55:52'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 11/26/2024 02:59:51'!
 replaceMethodForDelegation
 	
 	(compiledMethodToMove methodNode argumentNames includes: instanceVariableToAccessTarget)
-		ifFalse: [
-			messageSendForDelegation := parameterNeeded newSenderFor: compiledMethodToMove.
-
-			codeForDelegation := compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab, '^'.
-
-			sourceClass isMeta ifTrue: [ instanceVariableToAccessTarget := (targetClass soleInstance name) ].
-			codeForDelegation := codeForDelegation, instanceVariableToAccessTarget, ' ', messageSendForDelegation, '.'.
-			sourceClass compile: codeForDelegation			]
-		ifTrue: [
-			messageSendForDelegation := parameterNeeded newSenderFor: compiledMethodToMove usingParameter: instanceVariableToAccessTarget.
-			
-			codeForDelegation := compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab, '^'.
-			
-			sourceClass isMeta ifTrue: [ instanceVariableToAccessTarget := (targetClass soleInstance name) ].
-			codeForDelegation := codeForDelegation, instanceVariableToAccessTarget, ' ', messageSendForDelegation, '.'.
-			sourceClass compile: codeForDelegation			
-			].
-	! !
+		ifFalse: [messageSendForDelegation := parameterNeeded newSenderFor: compiledMethodToMove.	]
+		ifTrue: [messageSendForDelegation := parameterNeeded newSenderFor: compiledMethodToMove usingParameter: instanceVariableToAccessTarget.].
+	codeForDelegation := compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab, '^'.
+	
+	sourceClass isMeta ifTrue: [ instanceVariableToAccessTarget := (targetClass soleInstance name) ].
+	codeForDelegation := codeForDelegation, instanceVariableToAccessTarget, ' ', messageSendForDelegation, '.'.
+	sourceClass compile: codeForDelegation				! !
 
 !MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
 classMethodNamed: methodName from: sourceClass to: targetClass parameterNeeded: anExtraParameterNeeded 
