@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6611] on 27 November 2024 at 1:24:49 am'!
+'From Cuis7.1 [latest update: #6611] on 3 December 2024 at 6:57:24 pm'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 114!
+!provides: 'MoveMethodRefactoring' 1 115!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -265,9 +265,9 @@ visitMessageNode: aMessageNode
 		ifFalse:[ super visitMessageNode: aMessageNode ].
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 11/27/2024 01:24:35'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 11/28/2024 01:50:31'!
 visitMethodNode: aMethodNode 
-	| parameterIndex parameterToRemovePosition selectorToRemovePosition argumentsCollection |
+	| parameterIndex selectorToRemovePosition parameterToRemovePosition argumentsCollection assoc |
 	"moving to a parameter should change selector"
 	(methodNode argumentNames includes: variableToAccesThrough) ifFalse: [
 		parameterNeeded associationToModifySelectorAndArgumentsOn: compiledMethod addOn: intervalsToModify.
@@ -286,13 +286,8 @@ visitMethodNode: aMethodNode
 			
 		]
 		ifFalse: [
-			(argumentsCollection last name = variableToAccesThrough)
-			ifTrue:[
-				self registerInterval: (selectorToRemovePosition first -1 to: parameterToRemovePosition last) withModification: ''.
-				]
-			ifFalse:[
-				self registerInterval: (selectorToRemovePosition first to: parameterToRemovePosition last+1) withModification: ''.
-				].	
+			assoc := parameterNeeded associationToModifySelectorAndArgumentsOn: compiledMethod withParameter: variableToAccesThrough .
+			self registerInterval: assoc key withModification: assoc value .
 			].
 	
 	^super visitMethodNode: aMethodNode ! !
@@ -813,9 +808,55 @@ associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection
 	assoc := (1 to: aCompiledMethod methodNode selectorLastPosition ) -> (aCompiledMethod methodNode selectorAndArgumentsAsString, ' ', extraKeyword , ': ',  parameterName).
 	aCollection add: assoc! !
 
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 11/28/2024 01:14:17'!
+associationToModifySelectorAndArgumentsOn: aCompiledMethod withParameter: parameterInCompiledMethod  
+	| keywords newSelectorAndArguments parameterIndex parameters |
+	parameters := aCompiledMethod methodNode argumentNames.
+	parameterIndex := parameters findFirst: [ :aParameterName | aParameterName = parameterInCompiledMethod ].
+	
+	keywords := aCompiledMethod selector keywords asOrderedCollection removeIndex: parameterIndex.
+	keywords add: extraKeyword, ':'.
+	
+	parameters := parameters removeIndex: parameterIndex.
+	parameters add: parameterName .
+	newSelectorAndArguments := String streamContents: [ :messageStream |
+		keywords 
+			with: parameters 
+			do: [ :aKeyword :aParameter | 
+				messageStream nextPutAll: aKeyword;
+								nextPut:  Character space;
+								nextPutAll: aParameter] 
+			separatedBy: [ messageStream nextPut: Character space ].
+	 ].
+
+	^(1 to: aCompiledMethod methodNode selectorLastPosition ) -> newSelectorAndArguments.! !
+
 !ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
 newSenderFor: compiledMethodToMove 
 	^compiledMethodToMove methodNode selectorAndArgumentsAsString, ' ', extraKeyword, ': self'! !
+
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 11/27/2024 02:34:08'!
+newSenderFor: compiledMethodToMove usingParameter: parameterName2 
+
+	| parameters parameterIndex keywords |
+	parameters := compiledMethodToMove methodNode argumentNames.
+	parameterIndex := parameters findFirst: [ :aParameterName | aParameterName = parameterName2 ].
+	
+	
+	keywords := compiledMethodToMove selector keywords asOrderedCollection removeIndex: parameterIndex.
+	keywords add: extraKeyword, ':'.
+	
+	parameters := parameters removeIndex: parameterIndex.
+	parameters add: 'self'.
+	^String streamContents: [ :messageStream |
+		keywords 
+			with: parameters 
+			do: [ :aKeyword :aParameter | 
+				messageStream nextPutAll: aKeyword;
+								nextPut:  Character space;
+								nextPutAll: aParameter] 
+			separatedBy: [ messageStream nextPut: Character space ].
+	 ].! !
 
 !ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
 parameterName
@@ -849,36 +890,50 @@ assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass
 associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection 
 	! !
 
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 11/29/2024 00:48:20'!
+associationToModifySelectorAndArgumentsOn: aCompiledMethod withParameter: parameterInCompiledMethod  
+
+	^(1 to: aCompiledMethod methodNode selectorLastPosition ) -> (self selectorAndArgumentsOf: aCompiledMethod withoutParameter: parameterInCompiledMethod ).
+	! !
+
 !NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:03'!
 newSenderFor: compiledMethodToMove 
 	^compiledMethodToMove methodNode selectorAndArgumentsAsString.! !
 
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 11/11/2024 02:08:14'!
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 11/29/2024 00:50:14'!
 newSenderFor: compiledMethodToMove usingParameter: parameterName 
-	| implementorMethodNode argumentsAsStringCollection parameterIndex selectorToRemovePosition parameterToRemovePosition originalSelectorAndArguments |
-	"moving to a parameter should change selector"
-	implementorMethodNode := compiledMethodToMove methodNode.
-	argumentsAsStringCollection := implementorMethodNode arguments.
-	parameterIndex := argumentsAsStringCollection findFirst: [ :aParameterNode | aParameterNode name = parameterName ].
-	
-	selectorToRemovePosition := implementorMethodNode selectorKeywordPositionAt: parameterIndex.
-	parameterToRemovePosition := implementorMethodNode parameterDefinitionPositionAt: parameterIndex.
-	
-	originalSelectorAndArguments := compiledMethodToMove methodNode selectorAndArgumentsAsString.
-	
-	(argumentsAsStringCollection size = 1)
+
+	| originalSelector |
+
+	(compiledMethodToMove methodNode argumentNames size = 1)
 		ifTrue: [
-			^originalSelectorAndArguments copyFrom: 1 to: selectorToRemovePosition size -1.	
+			originalSelector := compiledMethodToMove selector.
+			^originalSelector asString copyFrom: 1 to: originalSelector size -1
 		]
 		ifFalse: [
-			(argumentsAsStringCollection last name = parameterName) ifTrue:[
-				^originalSelectorAndArguments copyFrom: 1 to: selectorToRemovePosition first -2.		
-				].
-			(argumentsAsStringCollection first name = parameterName) ifTrue:[
-				^originalSelectorAndArguments copyFrom: parameterToRemovePosition last +2 to: originalSelectorAndArguments size.
-				].
-			^(originalSelectorAndArguments copyFrom: 1 to: selectorToRemovePosition first-1), (originalSelectorAndArguments copyFrom: parameterToRemovePosition last +2 to: originalSelectorAndArguments size).
-			]! !
+			^self selectorAndArgumentsOf: compiledMethodToMove withoutParameter: parameterName  
+		]! !
+
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 11/29/2024 00:47:39'!
+selectorAndArgumentsOf: aCompiledMethod withoutParameter: parameterInCompiledMethod  
+	| keywords parameterIndex parameters |
+	parameters := aCompiledMethod methodNode argumentNames.
+	parameterIndex := parameters findFirst: [ :aParameterName | aParameterName = parameterInCompiledMethod ].
+	
+	keywords := aCompiledMethod selector keywords asOrderedCollection removeIndex: parameterIndex.
+	
+	parameters := parameters removeIndex: parameterIndex.
+	
+	^String streamContents: [ :messageStream |
+		keywords 
+			with: parameters 
+			do: [ :aKeyword :aParameter | 
+				messageStream nextPutAll: aKeyword;
+								nextPut:  Character space;
+								nextPutAll: aParameter] 
+			separatedBy: [ messageStream nextPut: Character space ].
+	 ].
+	! !
 
 !TesisMoveMethodRefactoringMenu class methodsFor: 'menu & kbd shortcuts' stamp: 'jmv 7/30/2024 12:29:21'!
 messageListMenuSpec
@@ -1157,26 +1212,32 @@ askExtraParameterIfNeeded
 			extraParameter := NonExtraParameterNameNeeded new.
 			]! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 18:22:22'!
 askTargetClassName
 	| targetClassNameTmp initialAnswer |
+	"self halt."
 	initialAnswer := self initialAnswerForInstanceVariable: accessingThroughinstanceVariableName in: sourceClass.
 	targetClassNameTmp := ClassNameRequestMorph request: 'Enter target class name:' initialAnswer: initialAnswer orCancel: requestExitBlock.
 	targetClassNameTmp := targetClassNameTmp withoutSeparators.
 	targetClass := Smalltalk at: targetClassNameTmp asSymbol ifAbsent: [Refactoring refactoringErrorClass signal: 'Cant find the target class'].! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 01:49:52'!
 chooseInstanceVariableToAccessThrough
-	| vars index |
+	| vars index methodArgumentNames variableToMoveMethod |
 	"self halt."
 	sourceClass isMeta ifTrue: [^self].
 	vars := sourceClass allInstVarNames sorted.
+	methodArgumentNames := methodReference methodNode argumentNames sorted.
+	variableToMoveMethod := OrderedCollection new.
+	variableToMoveMethod addAll: vars.
+	variableToMoveMethod addAll: methodArgumentNames.
+	"variableToMoveMethod := vars union: methodArgumentNames."
 	"vars := vars reject: [ :anInstanceVariable | anInstanceVariable = instanceVariableName ]."
 	vars isEmpty ifTrue: [Refactoring refactoringErrorClass signal: 'There is no instance variable to access through' ].
-	
-	index := (PopUpMenu labelArray: vars lines: #()) startUpWithCaption: self selectVariableLabel.
+	"methodArgumentNames addAll: vars "
+	index := (PopUpMenu labelArray: variableToMoveMethod lines: {vars size}) startUpWithCaption: self selectVariableLabel.
 	index = 0 ifTrue: [^self endRequest].
-	accessingThroughinstanceVariableName := vars at: index.! !
+	accessingThroughinstanceVariableName := variableToMoveMethod at: index.! !
 
 !MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
 chooseMethodToMove
@@ -1227,13 +1288,20 @@ initialize
 initializeOn: aModel forMethod: aMethodReference 
 	^self new initializeInitializeOn: aModel forMethod: aMethodReference ! !
 
-!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:03'!
+!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 18:19:03'!
 initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSourceClass 
 	
 	| liveTypingTypes |
+	"self halt ."
 	sourceClass shouldLiveTypingBeDisabled ifTrue: [^''].
 	accessingThroughinstanceVariableName ifNil: [^''].
+	(methodReference methodNode argumentNames includes: accessingThroughinstanceVariableName) ifTrue: [^(sourceClass>>methodToMove typeInfoOfVariableNamed: accessingThroughinstanceVariableName ifAbsent: [^'']) commonSupertype name asString].
 	liveTypingTypes := sourceClass commonSupertypeOfInstanceVariableNamed: accessingThroughinstanceVariableName ifNoTypes: [^''].
+	"
+	(sourceClass>>methodToMove typesOfVariableNamed: accessingThroughinstanceVariableName ifAbsent: ['']) comm.
+	sourceClass>>methodToMove typeInfoOfVariableNamed: accessingThroughinstanceVariableName ifAbsent: [^''].
+	sourceClass>>methodToMove typeInfoOfVariableNamed: accessingThroughinstanceVariableName ifAbsent: [^''].
+	"
 	^liveTypingTypes name asString 
 ! !
 
@@ -3421,8 +3489,8 @@ test504CanMoveMethodUsingSecondParameterAsAccessThrougVariable
 	^aTargetClass m1: anInt1 m111: anInt2.' equals: (sourceClass sourceCodeAt: #m1:m11:m111:).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/25/2024 02:35:02'!
-test505CanMoveMethodWithIntVarUsingParameterAsAccessThrougVariable
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/27/2024 01:31:21'!
+test505CanMoveMethodWithInstVarUsingParameterAsAccessThrougVariable
 	
 	| sourceClass targetClass refactoring |
 	
@@ -3443,6 +3511,30 @@ test505CanMoveMethodWithIntVarUsingParameterAsAccessThrougVariable
 	self assert: 'm1: sourceObject ^self m2: sourceObject iv1' equals: (targetClass sourceCodeAt: #m1:).
 	self assert: 'm1: aTargetClass
 	^aTargetClass m1: self.' equals: (sourceClass sourceCodeAt: #m1:).
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 11/27/2024 01:44:17'!
+test506CanMoveMethodWithInstVarUsingLastParameterAsAccessThrougVariable
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	targetClass compile: 'm2: anInt ^1' .
+	sourceClass compile: 'm1: arg1 m2: aTargetClass ^aTargetClass m2: iv1' .
+	
+	
+	refactoring := MoveMethodRefactoring 
+					methodNamed: #m1:m2:
+					from: sourceClass 
+					to: targetClass 
+					accessingThrough: 'aTargetClass' 
+					parameterNeeded: (ExtraParameterNameNeededAndExtraKeyword parameterName: 'sourceObject' extraKeyword: 'withObject').
+	refactoring apply.
+	
+	self assert: 'm1: arg1 withObject: sourceObject ^self m2: sourceObject iv1' equals: (targetClass sourceCodeAt: #m1:withObject:).
+	self assert: 'm1: arg1 m2: aTargetClass
+	^aTargetClass m1: arg1 withObject: self.' equals: (sourceClass sourceCodeAt: #m1:m2:).
 	! !
 
 !BrowserWindow methodsFor: '*MoveMethodRefactoring' stamp: 'mc 4/28/2024 20:29:11'!
