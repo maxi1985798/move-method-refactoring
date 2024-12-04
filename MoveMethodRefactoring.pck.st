@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6611] on 3 December 2024 at 6:57:24 pm'!
+'From Cuis7.1 [latest update: #6611] on 4 December 2024 at 3:57:51 pm'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 115!
+!provides: 'MoveMethodRefactoring' 1 116!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -136,7 +136,7 @@ MoveMethodRefactoring class
 
 !classDefinition: #MoveMethodApplier category: #MoveMethodRefactoring!
 TransferMethodApplier subclass: #MoveMethodApplier
-	instanceVariableNames: 'model methodReference methodToMove sourceClass accessingThroughinstanceVariableName targetClass extraParameter'
+	instanceVariableNames: 'model methodReference methodToMove sourceClass accessingThroughVariableName targetClass extraParameter'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -1170,7 +1170,7 @@ initializeInitializeOn: aModel forMethod: aMethodReference
 	model := aModel.
 	methodReference := aMethodReference.! !
 
-!MoveMethodApplier methodsFor: 'refactoring - creation' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodApplier methodsFor: 'refactoring - creation' stamp: 'mc 12/3/2024 18:59:19'!
 createRefactoring
 	"self halt."
 	sourceClass isMeta 
@@ -1185,15 +1185,15 @@ createRefactoring
 				methodNamed: methodToMove 
 				from: sourceClass 
 				to: targetClass 
-				accessingThrough: accessingThroughinstanceVariableName 
+				accessingThrough: accessingThroughVariableName 
 				parameterNeeded: extraParameter . ]
 ! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 18:59:19'!
 askExtraParameterIfNeeded
 	
 	| parameterKeyword parameterName |
-	(MoveMethodRefactoring needParameterNameToMove: methodToMove from: sourceClass accessingThrough: accessingThroughinstanceVariableName)
+	(MoveMethodRefactoring needParameterNameToMove: methodToMove from: sourceClass accessingThrough: accessingThroughVariableName)
 		ifTrue: [
 			methodToMove isKeyword 
 				ifTrue: [
@@ -1212,17 +1212,21 @@ askExtraParameterIfNeeded
 			extraParameter := NonExtraParameterNameNeeded new.
 			]! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 18:22:22'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 18:59:19'!
 askTargetClassName
 	| targetClassNameTmp initialAnswer |
 	"self halt."
-	initialAnswer := self initialAnswerForInstanceVariable: accessingThroughinstanceVariableName in: sourceClass.
+	initialAnswer := self initialAnswerForInstanceVariable: accessingThroughVariableName in: sourceClass.
 	targetClassNameTmp := ClassNameRequestMorph request: 'Enter target class name:' initialAnswer: initialAnswer orCancel: requestExitBlock.
 	targetClassNameTmp := targetClassNameTmp withoutSeparators.
 	targetClass := Smalltalk at: targetClassNameTmp asSymbol ifAbsent: [Refactoring refactoringErrorClass signal: 'Cant find the target class'].! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 01:49:52'!
-chooseInstanceVariableToAccessThrough
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+chooseMethodToMove
+	methodToMove := methodReference selector! !
+
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 19:00:12'!
+chooseVariableToAccessThrough
 	| vars index methodArgumentNames variableToMoveMethod |
 	"self halt."
 	sourceClass isMeta ifTrue: [^self].
@@ -1237,25 +1241,21 @@ chooseInstanceVariableToAccessThrough
 	"methodArgumentNames addAll: vars "
 	index := (PopUpMenu labelArray: variableToMoveMethod lines: {vars size}) startUpWithCaption: self selectVariableLabel.
 	index = 0 ifTrue: [^self endRequest].
-	accessingThroughinstanceVariableName := variableToMoveMethod at: index.! !
+	accessingThroughVariableName := variableToMoveMethod at: index.! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
-chooseMethodToMove
-	methodToMove := methodReference selector! !
-
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
-initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSourceClass 
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 19:01:03'!
+initialAnswerForInstanceVariable: anAccessingThroughVariableName in: aSourceClass 
 	
 	^''
 		
 	! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 19:00:12'!
 requestRefactoringParameters
 	self 
 		chooseMethodToMove;
 		selectClassWichMethodIsDefined;
-		chooseInstanceVariableToAccessThrough;
+		chooseVariableToAccessThrough;
 		askTargetClassName;
 		askExtraParameterIfNeeded.
 		! !
@@ -1288,15 +1288,15 @@ initialize
 initializeOn: aModel forMethod: aMethodReference 
 	^self new initializeInitializeOn: aModel forMethod: aMethodReference ! !
 
-!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 18:19:03'!
-initialAnswerForInstanceVariable: anAccessingThroughinstanceVariableName in: aSourceClass 
+!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 18:59:19'!
+initialAnswerForInstanceVariable: anAccessingThroughVariableName in: aSourceClass 
 	
 	| liveTypingTypes |
 	"self halt ."
 	sourceClass shouldLiveTypingBeDisabled ifTrue: [^''].
-	accessingThroughinstanceVariableName ifNil: [^''].
-	(methodReference methodNode argumentNames includes: accessingThroughinstanceVariableName) ifTrue: [^(sourceClass>>methodToMove typeInfoOfVariableNamed: accessingThroughinstanceVariableName ifAbsent: [^'']) commonSupertype name asString].
-	liveTypingTypes := sourceClass commonSupertypeOfInstanceVariableNamed: accessingThroughinstanceVariableName ifNoTypes: [^''].
+	accessingThroughVariableName ifNil: [^''].
+	(methodReference methodNode argumentNames includes: accessingThroughVariableName) ifTrue: [^(sourceClass>>methodToMove typeInfoOfVariableNamed: accessingThroughVariableName ifAbsent: [^'']) commonSupertype name asString].
+	liveTypingTypes := sourceClass commonSupertypeOfInstanceVariableNamed: accessingThroughVariableName ifNoTypes: [^''].
 	"
 	(sourceClass>>methodToMove typesOfVariableNamed: accessingThroughinstanceVariableName ifAbsent: ['']) comm.
 	sourceClass>>methodToMove typeInfoOfVariableNamed: accessingThroughinstanceVariableName ifAbsent: [^''].
