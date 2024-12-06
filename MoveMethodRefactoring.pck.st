@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6611] on 4 December 2024 at 3:57:51 pm'!
+'From Cuis7.1 [latest update: #6611] on 6 December 2024 at 9:25:02 am'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 116!
+!provides: 'MoveMethodRefactoring' 1 117!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -775,19 +775,35 @@ initializeParameterName: aParameterName extraKeyword: anExtraKeyword
 	parameterName := aParameterName.
 	extraKeyword := anExtraKeyword.! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 8/9/2024 00:06:13'!
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 12/6/2024 00:17:28'!
 assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
-	| needParameter newSelector |
+	| needParameter newSelector methodArgumentNames keywords parameterIndex parameters |
 	needParameter := MoveMethodRefactoring needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable..
 	needParameter ifFalse:[Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
+	methodArgumentNames := (sourceClass>>methodName) methodNode argumentNames.
+	(methodArgumentNames includes: instanceVariable)
+		ifFalse: [
+			methodName isKeyword ifFalse:[Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage].
+
+			newSelector := (methodName asString, extraKeyword, ':') asSymbol.
+			(targetClass includesSelector: newSelector ) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
 	
-	methodName isKeyword
-		ifFalse:[Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage].
-	
-	newSelector := (methodName asString, extraKeyword, ':') asSymbol.
-	(targetClass includesSelector: newSelector ) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
-	
-	(targetClass allSelectors includes: newSelector ) ifTrue: [Refactoring refactoringWarning: (MoveMethodRefactoring method: newSelector IsGoingToOverrideWarningMessageOn: targetClass )]! !
+			(targetClass allSelectors includes: newSelector ) ifTrue: [Refactoring refactoringWarning: (MoveMethodRefactoring method: newSelector IsGoingToOverrideWarningMessageOn: targetClass )]
+			] 
+		ifTrue: [
+			methodArgumentNames size = 1 ifTrue: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage].
+			
+			parameters := (sourceClass>>methodName) methodNode argumentNames.
+			parameterIndex := parameters findFirst: [ :aParameterName | aParameterName = instanceVariable ].
+			
+			keywords := (sourceClass>>methodName) selector keywords asOrderedCollection removeIndex: parameterIndex.
+			keywords add: extraKeyword, ':'.
+			
+			newSelector := (keywords inject: '' into: [ :accum :keyword | accum, keyword ]) asSymbol.
+			(targetClass includesSelector: newSelector ) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
+			
+			].
+	! !
 
 !ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:02'!
 assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass 
@@ -1051,7 +1067,7 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: inst
 		parameterNeeded: NonExtraParameterNameNeeded new
 		! !
 
-!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 11/8/2024 00:41:21'!
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 12/5/2024 23:59:45'!
 methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable parameterNeeded: anExtraParameterNeeded  
 	
 	
@@ -1061,6 +1077,7 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: inst
 	(instanceVariable isNil) ifTrue: [ self refactoringError: self instanceVariableToAccessingThroughShouldNotBeNilErrorMessage ].
 	(sourceClass includesSelector: methodName) ifFalse: [ self refactoringError: self methodShouldExistsOnSourceClassErrorMessage ].
 	((sourceClass allInstVarNames includes: instanceVariable) or: [((sourceClass>>methodName) methodNode ) hasLocallyArgumentNamed: instanceVariable ]) ifFalse: [ self refactoringError: self instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage ].
+	"check this line. i think this should be deleted"
 	(targetClass includesSelector: methodName) ifTrue: [ MessageToMoveShouldNotExistOnClass signal: self methodShouldNotExistsOnTargertClassErrorMessage ].
 	anExtraParameterNeeded assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable.
 	
@@ -1189,7 +1206,7 @@ createRefactoring
 				parameterNeeded: extraParameter . ]
 ! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 18:59:19'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/5/2024 23:35:17'!
 askExtraParameterIfNeeded
 	
 	| parameterKeyword parameterName |
@@ -1197,11 +1214,28 @@ askExtraParameterIfNeeded
 		ifTrue: [
 			methodToMove isKeyword 
 				ifTrue: [
-					parameterName := self request: 'Enter new parameter name' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
-					parameterKeyword := self request: 'Enter new parameter keyword' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
-					extraParameter := ExtraParameterNameNeededAndExtraKeyword 
-										parameterName: parameterName 
-										extraKeyword: parameterKeyword.
+					(methodReference methodNode argumentNames includes: accessingThroughVariableName)
+						ifTrue: [
+							(methodReference methodNode argumentNames size = 1)
+								ifTrue: [
+									parameterName := self request: 'Enter new parameter name' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
+									extraParameter := ExtraParameterNameNeeded parameterName: parameterName.
+									]
+								ifFalse: [
+									parameterName := self request: 'Enter new parameter name' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
+									parameterKeyword := self request: 'Enter new parameter keyword' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
+									extraParameter := ExtraParameterNameNeededAndExtraKeyword 
+														parameterName: parameterName 
+														extraKeyword: parameterKeyword.
+									]
+							]
+						ifFalse: [
+							parameterName := self request: 'Enter new parameter name' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
+							parameterKeyword := self request: 'Enter new parameter keyword' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
+							extraParameter := ExtraParameterNameNeededAndExtraKeyword 
+												parameterName: parameterName 
+												extraKeyword: parameterKeyword.
+							]
 					]
 				ifFalse: [
 					parameterName := self request: 'Enter new parameter name' initialAnswer: ('a', sourceClass name asString) withoutSeparators.
@@ -1250,8 +1284,9 @@ initialAnswerForInstanceVariable: anAccessingThroughVariableName in: aSourceClas
 		
 	! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 19:00:12'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/6/2024 09:23:09'!
 requestRefactoringParameters
+	"self halt."
 	self 
 		chooseMethodToMove;
 		selectClassWichMethodIsDefined;
@@ -1998,6 +2033,50 @@ test033SelectorWithNewParameterAndKeywordShouldNotExistsOnTargetSuperClass
 				parameterNeeded: (ExtraParameterNameNeededAndExtraKeyword parameterName: 'originalObject'  extraKeyword: 'originalObject') ]  
 		raise: self refactoringWarning 
 		withMessageText: [MoveMethodRefactoring method: #m1:originalObject: IsGoingToOverrideWarningMessageOn: targetClass].! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/5/2024 01:53:33'!
+test040WheDestinationIsParameterShouldNotPassNameForNewParameterWhenIsNotNeeded
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'm1: aTargetObject ^iv1.'.
+	
+	self 
+		assertCreation: [
+			MoveMethodRefactoring 
+				methodNamed: #m1:
+				from: sourceClass
+				to: targetClass
+				accessingThrough: 'aTargetObject'
+				parameterNeeded: (ExtraParameterNameNeededAndExtraKeyword parameterName: 'sourceObject' extraKeyword: 'withSourceObject').]  
+		failsWith: [MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/6/2024 00:19:46'!
+test041WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetClass
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	targetClass compile: 'm1: arg1 withParam: arg2 ^1.'.
+	sourceClass compile: 'm1: arg1 m2: aTargetObject ^self.'.
+	
+	self 
+		assertCreation: [
+			MoveMethodRefactoring 
+				methodNamed: #m1:m2:
+				from: sourceClass
+				to: targetClass
+				accessingThrough: 'aTargetObject'
+				parameterNeeded: (ExtraParameterNameNeededAndExtraKeyword parameterName: 'arg2' extraKeyword: 'withParam' )
+				
+				] 
+		failsWith: [
+			MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
+		! !
 
 !MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:02'!
 test100CanMoveMethodWithoutReferences
