@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6611] on 6 December 2024 at 9:25:02 am'!
+'From Cuis7.1 [latest update: #6611] on 14 December 2024 at 4:23:37 pm'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 117!
+!provides: 'MoveMethodRefactoring' 1 118!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -1323,20 +1323,16 @@ initialize
 initializeOn: aModel forMethod: aMethodReference 
 	^self new initializeInitializeOn: aModel forMethod: aMethodReference ! !
 
-!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 18:59:19'!
+!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/14/2024 16:22:32'!
 initialAnswerForInstanceVariable: anAccessingThroughVariableName in: aSourceClass 
 	
 	| liveTypingTypes |
 	"self halt ."
 	sourceClass shouldLiveTypingBeDisabled ifTrue: [^''].
 	accessingThroughVariableName ifNil: [^''].
-	(methodReference methodNode argumentNames includes: accessingThroughVariableName) ifTrue: [^(sourceClass>>methodToMove typeInfoOfVariableNamed: accessingThroughVariableName ifAbsent: [^'']) commonSupertype name asString].
+	(methodReference methodNode argumentNames includes: accessingThroughVariableName) ifTrue: [^((sourceClass>>methodToMove typeInfoOfVariableNamed: accessingThroughVariableName ifAbsent: [^'']) commonSupertypeIfNoTypes: [^'']) name asString].
 	liveTypingTypes := sourceClass commonSupertypeOfInstanceVariableNamed: accessingThroughVariableName ifNoTypes: [^''].
-	"
-	(sourceClass>>methodToMove typesOfVariableNamed: accessingThroughinstanceVariableName ifAbsent: ['']) comm.
-	sourceClass>>methodToMove typeInfoOfVariableNamed: accessingThroughinstanceVariableName ifAbsent: [^''].
-	sourceClass>>methodToMove typeInfoOfVariableNamed: accessingThroughinstanceVariableName ifAbsent: [^''].
-	"
+	
 	^liveTypingTypes name asString 
 ! !
 
