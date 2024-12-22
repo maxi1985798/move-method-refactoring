@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6611] on 17 December 2024 at 2:33:11 am'!
+'From Cuis7.1 [latest update: #6611] on 22 December 2024 at 2:13:28 am'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 119!
+!provides: 'MoveMethodRefactoring' 1 120!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -52,16 +52,6 @@ NeedParameterName subclass: #NeedParameterNameForInstanceMethod
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'NeedParameterNameForInstanceMethod class' category: #MoveMethodRefactoring!
 NeedParameterNameForInstanceMethod class
-	instanceVariableNames: ''!
-
-!classDefinition: #MessageToMoveShouldNotExistOnClass category: #MoveMethodRefactoring!
-RefactoringError subclass: #MessageToMoveShouldNotExistOnClass
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'MoveMethodRefactoring'!
-!classDefinition: 'MessageToMoveShouldNotExistOnClass class' category: #MoveMethodRefactoring!
-MessageToMoveShouldNotExistOnClass class
 	instanceVariableNames: ''!
 
 !classDefinition: #CodeForNodeToMoveResult category: #MoveMethodRefactoring!
@@ -885,7 +875,7 @@ parameterName: aParameterName extraKeyword: anExtraKeyword
 	
 	^self new initializeParameterName: aParameterName extraKeyword: anExtraKeyword! !
 
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/17/2024 02:26:50'!
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/17/2024 02:44:20'!
 assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable 
 	| needParameter methodArgumentNames newSelector |
 	
@@ -896,6 +886,7 @@ assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: 
 	methodArgumentNames := (sourceClass>>methodName) methodNode argumentNames.
 	(methodArgumentNames includes: instanceVariable)
 		ifFalse: [
+			(targetClass includesSelector: methodName) ifTrue: [ Refactoring refactoringError: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage ].
 			(targetClass allSelectors includes: methodName) ifTrue: [Refactoring refactoringWarning: (MoveMethodRefactoring method: methodName IsGoingToOverrideWarningMessageOn: targetClass )].			
 			]
 		ifTrue: [
@@ -1091,7 +1082,7 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: inst
 		parameterNeeded: NonExtraParameterNameNeeded new
 		! !
 
-!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 12/5/2024 23:59:45'!
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 12/22/2024 02:13:11'!
 methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable parameterNeeded: anExtraParameterNeeded  
 	
 	
@@ -1101,8 +1092,7 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: inst
 	(instanceVariable isNil) ifTrue: [ self refactoringError: self instanceVariableToAccessingThroughShouldNotBeNilErrorMessage ].
 	(sourceClass includesSelector: methodName) ifFalse: [ self refactoringError: self methodShouldExistsOnSourceClassErrorMessage ].
 	((sourceClass allInstVarNames includes: instanceVariable) or: [((sourceClass>>methodName) methodNode ) hasLocallyArgumentNamed: instanceVariable ]) ifFalse: [ self refactoringError: self instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage ].
-	"check this line. i think this should be deleted"
-	(targetClass includesSelector: methodName) ifTrue: [ MessageToMoveShouldNotExistOnClass signal: self methodShouldNotExistsOnTargertClassErrorMessage ].
+	
 	anExtraParameterNeeded assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable.
 	
 	((self existsAssignationOf: instanceVariable inHierarchyOf: sourceClass) or: [((sourceClass>>methodName) methodNode ) hasLocallyArgumentNamed: instanceVariable ] ) ifFalse: [ self refactoringWarning: (self instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: instanceVariable) ].
@@ -1379,7 +1369,7 @@ test001SelectorShouldExistsOnSourceClass
 				accessingThrough: 'iv1' ] 
 		failsWith: [MoveMethodRefactoring methodShouldExistsOnSourceClassErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/17/2024 02:40:26'!
 test002SelectorShouldNotExistsOnTargetClass
 	
 	| sourceClass targetClass |
@@ -1389,16 +1379,17 @@ test002SelectorShouldNotExistsOnTargetClass
 	sourceClass compile: 'm1 ^1' .
 	targetClass compile: 'm1 ^1' .
 	
-	self 
-		should: [
+	
+	self
+		assertCreation: [
 			MoveMethodRefactoring 
-				methodNamed: #m1
-				from: sourceClass
-				to: targetClass
-				accessingThrough: 'iv1' ] 
-		raise: MessageToMoveShouldNotExistOnClass
-		withExceptionDo: [ :anError | 
-			self assert: anError messageText equals: MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
+				methodNamed: #m1 
+				from: sourceClass 
+				to: targetClass 
+				accessingThrough: 'iv1'] 
+		failsWith: [
+			MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
+	
 	! !
 
 !MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 7/14/2024 02:17:02'!
