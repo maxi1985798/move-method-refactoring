@@ -1,12 +1,12 @@
-'From Cuis7.1 [latest update: #6611] on 22 December 2024 at 2:13:28 am'!
+'From Cuis7.1 [latest update: #6611] on 26 December 2024 at 1:09:24 am'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 120!
+!provides: 'MoveMethodRefactoring' 1 121!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
 !classDefinition: #CodeForNodeToMove category: #MoveMethodRefactoring!
 ParseNodeVisitor subclass: #CodeForNodeToMove
-	instanceVariableNames: 'compiledMethod methodNode intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode parameterNeeded variableToAccesThrough hasImplicitSelfReturn gettersToCreate settersToCreate'
+	instanceVariableNames: 'compiledMethod methodNode intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode parameterNeeded variableToAccesThrough hasImplicitSelfReturn gettersToCreate settersToCreate targetClass'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -56,7 +56,7 @@ NeedParameterNameForInstanceMethod class
 
 !classDefinition: #CodeForNodeToMoveResult category: #MoveMethodRefactoring!
 Object subclass: #CodeForNodeToMoveResult
-	instanceVariableNames: 'sourceCode hasImplicitSelfReturn gettersToCreate sourceClass settersToCreate'
+	instanceVariableNames: 'sourceCode hasImplicitSelfReturn gettersToCreate sourceClass settersToCreate targetClass'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -155,8 +155,8 @@ MoveMethodRefactoringTest class
 	instanceVariableNames: ''!
 
 
-!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:01'!
-initializeFor: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: aParameterNeeded 
+!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 12/25/2024 04:07:42'!
+initializeFor: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: aParameterNeeded targetClass: aTargetClass.
 	compiledMethod := aCompiledMethod.
 	methodNode := aMethodNode.
 	intervalsToReject := aFewIntervalsToReject.
@@ -166,9 +166,10 @@ initializeFor: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: a
 	variableToAccesThrough := aVariableToAccesoThroughName.
 	hasImplicitSelfReturn := false.
 	gettersToCreate := Dictionary new.
-	settersToCreate := Dictionary new.! !
+	settersToCreate := Dictionary new.
+	targetClass := aTargetClass ! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/25/2024 04:07:14'!
 visitAssignmentNode: anAssignmentNode 
 	| assigmentValue completeRangesOfassigmentNode resultForValue setterSelectorAsString |
 	"self halt."
@@ -180,7 +181,8 @@ visitAssignmentNode: anAssignmentNode
 					variableToAcessThrough: variableToAccesThrough 
 					rejectingIntervals: intervalsToReject 
 					onNode: anAssignmentNode value
-					parameterNeeded: parameterNeeded) value.
+					parameterNeeded: parameterNeeded
+					targetClass: targetClass) value.
 	(self shouldAddParenthesisOnValueOf: anAssignmentNode)
 		ifTrue: [assigmentValue := '(', resultForValue sourceCode , ')'.] 
 		ifFalse: [assigmentValue := resultForValue sourceCode .].
@@ -455,7 +457,7 @@ newSelectorForSuperColaboration: aMessageNode
 
 	^ 'CHANGE_ME_super_', aMessageNode selector key asString! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/25/2024 04:06:59'!
 newSenderFor: aMessageNode
 	|  newSend argumentsCode argumentIndex replacer replacerResult argumentNode |
 	argumentsCode := OrderedCollection new.
@@ -469,7 +471,8 @@ newSenderFor: aMessageNode
 					variableToAcessThrough: variableToAccesThrough
 					rejectingIntervals: intervalsToReject
 					onNode: argumentNode
-					parameterNeeded: parameterNeeded.
+					parameterNeeded: parameterNeeded
+					targetClass: targetClass.
 		replacerResult := replacer value.
 		(self shouldAddParenthesis: argumentNode) 
 			ifTrue: [argumentsCode add: '(', replacerResult sourceCode, ')'.]
@@ -528,7 +531,7 @@ shouldAddParenthesisOnValueOf: anAssignmentNode
 
 	^ ((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ]! !
 
-!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 11/26/2024 02:40:37'!
+!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 12/25/2024 12:52:33'!
 value
 	| newCode newCodeForNode result |
 	"self halt."
@@ -549,21 +552,23 @@ value
 				newWith: newCode 
 				gettersToCreate: gettersToCreate
 				settersToCreate: settersToCreate 
-				sourceClass: compiledMethod methodClass.
+				sourceClass: compiledMethod methodClass
+				targetClass: targetClass.
 	^result! !
 
-!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:01'!
-for: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: parameterNeeded
+!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 12/25/2024 04:06:35'!
+for: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: parameterNeeded targetClass: aTargetClass.
 	^self new 
 		initializeFor: aCompiledMethod
 		methodNode: aMethodNode
 		variableToAcessThrough: aVariableToAccesoThroughName
 		rejectingIntervals: aFewIntervalsToReject
 		onNode: aNodeToGetCode
-		parameterNeeded: parameterNeeded! !
+		parameterNeeded: parameterNeeded
+		targetClass: aTargetClass.! !
 
-!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:01'!
-for: compiledMethod variableToAccesThrough: aVariableToAccesoThroughName parameterNeeded: parameterNeeded
+!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 12/25/2024 04:05:55'!
+for: compiledMethod variableToAccesThrough: aVariableToAccesoThroughName parameterNeeded: parameterNeeded targetClass: aTargetClass
 	| methodNode |
 	methodNode := compiledMethod methodNode.
 	^self 
@@ -572,7 +577,8 @@ for: compiledMethod variableToAccesThrough: aVariableToAccesoThroughName paramet
 		variableToAcessThrough: aVariableToAccesoThroughName 
 		rejectingIntervals: OrderedCollection new
 		onNode: methodNode
-		parameterNeeded: parameterNeeded.
+		parameterNeeded: parameterNeeded
+		targetClass: aTargetClass.
 	! !
 
 !MethodWorksAsGetterVisitor methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:02'!
@@ -649,6 +655,10 @@ for: compiledMethod newAccessingThrough: instanceVariable
 	
 	^self new initializeWith: compiledMethod newAccessingThrough: instanceVariable ! !
 
+!CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 12/25/2024 12:51:52'!
+compileInTargetClass
+	^targetClass compile: self sourceCode! !
+
 !CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 7/14/2024 02:17:01'!
 createAccessors
 	gettersToCreate keysAndValuesDo: [ :anInstanceVariable :aSelector | sourceClass compile: aSelector, String newLineString, String tab, '^', anInstanceVariable, '.' ].
@@ -667,21 +677,23 @@ sourceCode
 	^sourceCode
 	! !
 
-!CodeForNodeToMoveResult methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:01'!
-initializeNewWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
+!CodeForNodeToMoveResult methodsFor: 'initialization' stamp: 'mc 12/25/2024 12:53:15'!
+initializeNewWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass targetClass: aTargetClass
 	sourceCode := newCode.
 	gettersToCreate := aGettersToCreate.
 	settersToCreate := aSettersToCreate.
 	sourceClass := aSourceClass.
+	targetClass := aTargetClass 
 	! !
 
-!CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:01'!
-newWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass
+!CodeForNodeToMoveResult class methodsFor: 'instance creation' stamp: 'mc 12/25/2024 12:52:58'!
+newWith: newCode gettersToCreate: aGettersToCreate settersToCreate: aSettersToCreate sourceClass: aSourceClass targetClass: aTargetClass
 	^self new 
 		initializeNewWith: newCode
 		gettersToCreate: aGettersToCreate
 		settersToCreate: aSettersToCreate
 		sourceClass: aSourceClass
+		targetClass: aTargetClass
 ! !
 
 !MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:02'!
@@ -703,6 +715,26 @@ associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection
 newSenderFor: compiledMethodToMove
 
 	self subclassResponsibility! !
+
+!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 12/26/2024 00:32:16'!
+selectorAndArgumentsOf: aCompiledMethod withoutParameter: parameterInCompiledMethod  
+	| keywords parameterIndex parameters |
+	parameters := aCompiledMethod methodNode argumentNames.
+	parameterIndex := parameters findFirst: [ :aParameterName | aParameterName = parameterInCompiledMethod ].
+	
+	keywords := aCompiledMethod selector keywords asOrderedCollection removeIndex: parameterIndex.
+	parameters := parameters removeIndex: parameterIndex.
+	
+	^String streamContents: [ :messageStream |
+		keywords 
+			with: parameters 
+			do: [ :aKeyword :aParameter | 
+				messageStream nextPutAll: aKeyword;
+								nextPut:  Character space;
+								nextPutAll: aParameter] 
+			separatedBy: [ messageStream nextPut: Character space ].
+	 ].
+	! !
 
 !ExtraParameterNameNeeded methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:01'!
 initializeParameterName: aParameterName 
@@ -816,26 +848,13 @@ associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection
 	assoc := (1 to: aCompiledMethod methodNode selectorLastPosition ) -> (aCompiledMethod methodNode selectorAndArgumentsAsString, ' ', extraKeyword , ': ',  parameterName).
 	aCollection add: assoc! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 11/28/2024 01:14:17'!
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 12/26/2024 00:33:59'!
 associationToModifySelectorAndArgumentsOn: aCompiledMethod withParameter: parameterInCompiledMethod  
-	| keywords newSelectorAndArguments parameterIndex parameters |
-	parameters := aCompiledMethod methodNode argumentNames.
-	parameterIndex := parameters findFirst: [ :aParameterName | aParameterName = parameterInCompiledMethod ].
+	| newSelectorAndArguments |
 	
-	keywords := aCompiledMethod selector keywords asOrderedCollection removeIndex: parameterIndex.
-	keywords add: extraKeyword, ':'.
-	
-	parameters := parameters removeIndex: parameterIndex.
-	parameters add: parameterName .
-	newSelectorAndArguments := String streamContents: [ :messageStream |
-		keywords 
-			with: parameters 
-			do: [ :aKeyword :aParameter | 
-				messageStream nextPutAll: aKeyword;
-								nextPut:  Character space;
-								nextPutAll: aParameter] 
-			separatedBy: [ messageStream nextPut: Character space ].
-	 ].
+	newSelectorAndArguments := self selectorAndArgumentsOf: aCompiledMethod withoutParameter: parameterInCompiledMethod.
+
+	newSelectorAndArguments := newSelectorAndArguments, ' ', extraKeyword, ': ', parameterName.
 
 	^(1 to: aCompiledMethod methodNode selectorLastPosition ) -> newSelectorAndArguments.! !
 
@@ -843,28 +862,14 @@ associationToModifySelectorAndArgumentsOn: aCompiledMethod withParameter: parame
 newSenderFor: compiledMethodToMove 
 	^compiledMethodToMove methodNode selectorAndArgumentsAsString, ' ', extraKeyword, ': self'! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 11/27/2024 02:34:08'!
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 12/26/2024 00:42:25'!
 newSenderFor: compiledMethodToMove usingParameter: parameterName2 
 
-	| parameters parameterIndex keywords |
-	parameters := compiledMethodToMove methodNode argumentNames.
-	parameterIndex := parameters findFirst: [ :aParameterName | aParameterName = parameterName2 ].
-	
-	
-	keywords := compiledMethodToMove selector keywords asOrderedCollection removeIndex: parameterIndex.
-	keywords add: extraKeyword, ':'.
-	
-	parameters := parameters removeIndex: parameterIndex.
-	parameters add: 'self'.
-	^String streamContents: [ :messageStream |
-		keywords 
-			with: parameters 
-			do: [ :aKeyword :aParameter | 
-				messageStream nextPutAll: aKeyword;
-								nextPut:  Character space;
-								nextPutAll: aParameter] 
-			separatedBy: [ messageStream nextPut: Character space ].
-	 ].! !
+	| newSelectorAndArguments |
+
+	newSelectorAndArguments := self selectorAndArgumentsOf: compiledMethodToMove withoutParameter: parameterName2.
+
+	^newSelectorAndArguments, ' ', extraKeyword, ': self'.! !
 
 !ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
 parameterName
@@ -945,27 +950,6 @@ newSenderFor: compiledMethodToMove usingParameter: parameterName
 			^self selectorAndArgumentsOf: compiledMethodToMove withoutParameter: parameterName  
 		]! !
 
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 11/29/2024 00:47:39'!
-selectorAndArgumentsOf: aCompiledMethod withoutParameter: parameterInCompiledMethod  
-	| keywords parameterIndex parameters |
-	parameters := aCompiledMethod methodNode argumentNames.
-	parameterIndex := parameters findFirst: [ :aParameterName | aParameterName = parameterInCompiledMethod ].
-	
-	keywords := aCompiledMethod selector keywords asOrderedCollection removeIndex: parameterIndex.
-	
-	parameters := parameters removeIndex: parameterIndex.
-	
-	^String streamContents: [ :messageStream |
-		keywords 
-			with: parameters 
-			do: [ :aKeyword :aParameter | 
-				messageStream nextPutAll: aKeyword;
-								nextPut:  Character space;
-								nextPutAll: aParameter] 
-			separatedBy: [ messageStream nextPut: Character space ].
-	 ].
-	! !
-
 !TesisMoveMethodRefactoringMenu class methodsFor: 'menu & kbd shortcuts' stamp: 'jmv 7/30/2024 12:29:21'!
 messageListMenuSpec
 	"
@@ -1022,10 +1006,10 @@ apply
 		createAccessors;
 		replaceMethodForDelegation.! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/25/2024 12:51:05'!
 compileInTargetClass
 
-	^ targetClass compile: resultAfterReplaceDependencies sourceCode! !
+	^resultAfterReplaceDependencies compileInTargetClass! !
 
 !MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
 createAccessors
@@ -1037,11 +1021,11 @@ findMethodToMove
 
 	^ compiledMethodToMove := sourceClass methodDict at: methodName! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/25/2024 04:05:01'!
 replaceDependenciesOnMethodToMove
 	| replacer |
 	
-	replacer := CodeForNodeToMove for: compiledMethodToMove variableToAccesThrough: instanceVariableToAccessTarget parameterNeeded: parameterNeeded.
+	replacer := CodeForNodeToMove for: compiledMethodToMove variableToAccesThrough: instanceVariableToAccessTarget parameterNeeded: parameterNeeded targetClass: targetClass.
 	resultAfterReplaceDependencies := replacer value.! !
 
 !MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 11/26/2024 02:59:51'!
