@@ -1,12 +1,12 @@
-'From Cuis7.1 [latest update: #6611] on 28 December 2024 at 11:53:34 pm'!
+'From Cuis7.1 [latest update: #6611] on 31 December 2024 at 7:15:19 pm'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 122!
+!provides: 'MoveMethodRefactoring' 1 123!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
 !classDefinition: #CodeForNodeToMove category: #MoveMethodRefactoring!
 ParseNodeVisitor subclass: #CodeForNodeToMove
-	instanceVariableNames: 'compiledMethod methodNode intervalsToReject node intervalsToModify nodeInterval nodeOffsetInSourceCode parameterNeeded variableToAccesThrough hasImplicitSelfReturn targetClass methodToCompileOnSourceClass previewModifications'
+	instanceVariableNames: 'methodNode node intervalsToModify nodeInterval nodeOffsetInSourceCode parameterNeeded variableToAccesThrough hasImplicitSelfReturn targetClass methodToCompileOnSourceClass previewModifications'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -56,7 +56,7 @@ NeedParameterNameForInstanceMethod class
 
 !classDefinition: #CodeForNodeToMoveResult category: #MoveMethodRefactoring!
 Object subclass: #CodeForNodeToMoveResult
-	instanceVariableNames: 'sourceCode hasImplicitSelfReturn sourceClass targetClass methodsToCompileOnSourceClass'
+	instanceVariableNames: 'sourceCode sourceClass targetClass methodsToCompileOnSourceClass'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -116,7 +116,7 @@ TesisMoveMethodRefactoringMenu class
 
 !classDefinition: #MoveMethodRefactoring category: #MoveMethodRefactoring!
 TransferMethod subclass: #MoveMethodRefactoring
-	instanceVariableNames: 'methodName sourceClass targetClass collectionOfSendersToChange instanceVariableToAccessTarget parameterNeeded compiledMethodToMove resultAfterReplaceDependencies messageSendForDelegation codeForDelegation'
+	instanceVariableNames: 'methodName sourceClass targetClass instanceVariableToAccessTarget parameterNeeded compiledMethodToMove resultAfterReplaceDependencies messageSendForDelegation codeForDelegation methodNodeToMove'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -155,11 +155,9 @@ MoveMethodRefactoringTest class
 	instanceVariableNames: ''!
 
 
-!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 12/28/2024 03:45:08'!
-initializeFor: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: aParameterNeeded targetClass: aTargetClass usingPreview: aPreviewModifications.
-	compiledMethod := aCompiledMethod.
+!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 12/31/2024 03:39:47'!
+initializeFor: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName onNode: aNodeToGetCode parameterNeeded: aParameterNeeded targetClass: aTargetClass usingPreview: aPreviewModifications.
 	methodNode := aMethodNode.
-	intervalsToReject := aFewIntervalsToReject.
 	node := aNodeToGetCode.
 	intervalsToModify := OrderedCollection new.
 	parameterNeeded := aParameterNeeded.
@@ -169,17 +167,15 @@ initializeFor: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: a
 	methodToCompileOnSourceClass := Set new.
 	previewModifications := aPreviewModifications! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/28/2024 04:23:07'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/31/2024 03:27:29'!
 visitAssignmentNode: anAssignmentNode 
 	| assigmentValue completeRangesOfassigmentNode resultForValue setterSelectorAsString |
 	"self halt."
 	anAssignmentNode variable isTemp ifTrue: [^super visitAssignmentNode: anAssignmentNode].
 	completeRangesOfassigmentNode := self firstUnseenIntervalFor: anAssignmentNode.
 	resultForValue :=			(CodeForNodeToMove 
-					for: compiledMethod
 					methodNode: methodNode
 					variableToAcessThrough: variableToAccesThrough 
-					rejectingIntervals: intervalsToReject 
 					onNode: anAssignmentNode value
 					parameterNeeded: parameterNeeded
 					targetClass: targetClass
@@ -192,7 +188,7 @@ visitAssignmentNode: anAssignmentNode
 		ifTrue: [setterSelectorAsString := self setterForClassVariable: anAssignmentNode variable name.]
 		ifFalse: [setterSelectorAsString := self setterForInstanceVariable: anAssignmentNode variable name.].
 	
-	compiledMethod methodClass methodDict 
+	methodNode methodClass methodDict 
 					at: setterSelectorAsString asSymbol 
 					ifPresent: [ :aMethod | ]
 					ifAbsent: [
@@ -204,7 +200,7 @@ visitAssignmentNode: anAssignmentNode
 	methodToCompileOnSourceClass addAll: resultForValue methodToCompileOnSourceClass.
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/28/2024 03:44:51'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/30/2024 03:39:02'!
 visitInstanceVariableNode: anInstanceVariableNode 
 	| sourceCodeForInterval anInterval getterToUse |
 	"self halt."
@@ -214,16 +210,15 @@ visitInstanceVariableNode: anInstanceVariableNode
 		ifFalse: [
 			getterToUse := self getterForInstanceVariable: anInstanceVariableNode key.
 			sourceCodeForInterval := parameterNeeded parameterName, ' ', getterToUse.
-			(compiledMethod methodClass selectors includes: getterToUse) 
+			(methodNode methodClass selectors includes: getterToUse) 
 				ifFalse: [
-					"gettersToCreate at: anInstanceVariableNode key put: getterToUse."
 					methodToCompileOnSourceClass add: (getterToUse, String newLineString, String tab, '^', anInstanceVariableNode key, '.').
 					].
 			].
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/28/2024 03:44:57'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/29/2024 17:03:25'!
 visitLiteralVariableNode: aLiteralVariableNode 
 	| sourceCodeForInterval anInterval getterToUse |
 	"self halt."
@@ -231,7 +226,7 @@ visitLiteralVariableNode: aLiteralVariableNode
 	anInterval := self firstUnseenIntervalFor: aLiteralVariableNode.
 	getterToUse := self getterForClassVariable: aLiteralVariableNode name.
 	sourceCodeForInterval := parameterNeeded parameterName, ' ', getterToUse.
-	(compiledMethod methodClass selectors includes: getterToUse) 
+	(methodNode methodClass selectors includes: getterToUse) 
 				ifFalse: [
 					methodToCompileOnSourceClass add: (getterToUse, String newLineString, String tab, '^', aLiteralVariableNode name, '.').
 					].
@@ -239,7 +234,7 @@ visitLiteralVariableNode: aLiteralVariableNode
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 ! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/26/2024 02:01:13'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/31/2024 03:32:44'!
 visitMessageNode: aMessageNode 
 	| rangeMessageNode newSend |
 	"self halt."
@@ -256,45 +251,34 @@ visitMessageNode: aMessageNode
 					]
 				ifFalse: [
 					self registerInterval: rangeMessageNode withModification: (parameterNeeded parameterName, ' ', (self newSelectorForSuperColaboration: aMessageNode)).
-					"self encapsulateSuperColaboration: aMessageNode."
 					methodToCompileOnSourceClass add: (self newSelectorForSuperColaboration: aMessageNode), String newLineString, String tab, '^super ', aMessageNode selector key asString, '.'.
-					"compiledMethod methodClass compile:(self newSelectorForSuperColaboration: aMessageNode), String newLineString, String tab, '^super ', aMessageNode selector key asString, '.'."
 					].
 			
 			]
 		ifFalse:[ super visitMessageNode: aMessageNode ].
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/26/2024 01:49:03'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/31/2024 19:09:09'!
 visitMethodNode: aMethodNode 
-	| parameterIndex selectorToRemovePosition parameterToRemovePosition argumentsCollection assoc |
+	| assoc |
 	"moving to a parameter should change selector"
-	(methodNode argumentNames includes: variableToAccesThrough) ifFalse: [
-		parameterNeeded associationToModifySelectorAndArgumentsOn: compiledMethod addOn: intervalsToModify.
-		^super visitMethodNode: aMethodNode].
-	argumentsCollection := methodNode arguments.
-	parameterIndex := argumentsCollection findFirst: [ :aParameterNode | aParameterNode name = variableToAccesThrough ].
-	
-	selectorToRemovePosition := methodNode selectorKeywordPositionAt: parameterIndex.
-	parameterToRemovePosition := methodNode parameterDefinitionPositionAt: parameterIndex.
-
-	(argumentsCollection size = 1)
-		ifTrue: [
-			(parameterNeeded isKindOf: ExtraParameterNameNeeded) 
-			ifTrue: [self registerInterval: parameterToRemovePosition withModification: parameterNeeded parameterName.]
-			ifFalse: [self registerInterval: (selectorToRemovePosition last to: parameterToRemovePosition last) withModification: ''.]
-			
+	(methodNode argumentNames includes: variableToAccesThrough) 
+	ifTrue: [
+		assoc := parameterNeeded associationToModifySelectorAndArgumentsOn: methodNode withParameter: variableToAccesThrough.
+		self registerInterval: assoc key withModification: assoc value .	
 		]
-		ifFalse: [
-			assoc := parameterNeeded associationToModifySelectorAndArgumentsOn: compiledMethod withParameter: variableToAccesThrough .
-			self registerInterval: assoc key withModification: assoc value .
-			].
+	ifFalse: [
+		parameterNeeded associationToModifySelectorAndArgumentsOn: methodNode addOn: intervalsToModify.
+		].
 	
-	^super visitMethodNode: aMethodNode ! !
+	^super visitMethodNode: aMethodNode 
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 7/14/2024 02:17:01'!
+
+! !
+
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/30/2024 03:41:06'!
 visitReturnNode: aReturnNode 
-	"self halt."
+	
 	(aReturnNode isImplicitSelfReturnIn: methodNode)
 		ifTrue: [hasImplicitSelfReturn := true]
 		ifFalse: [super visitReturnNode: aReturnNode]! !
@@ -316,12 +300,12 @@ visitVariableNode: aVariableNode
 	sourceCodeForInterval := parameterNeeded parameterName.
 	self registerInterval: anInterval withModification: sourceCodeForInterval.! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2024 16:51:11'!
 compiledMethodAt: aSelector
 
-	^ compiledMethod methodClass compiledMethodAt: aSelector! !
+	^ methodNode methodClass compiledMethodAt: aSelector! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/26/2024 02:01:51'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/31/2024 03:39:35'!
 encapsulateSuperColaboration: aMessageNode
 	
 	| colaborationEncapsulated indexSourceCode newSelector newSourceCode |
@@ -334,8 +318,7 @@ encapsulateSuperColaboration: aMessageNode
 	newSourceCode := newSourceCode withBlanksTrimmed.
 	newSourceCode := '^super ', newSourceCode, '.'.
 	colaborationEncapsulated := newSelector, String newLineString, String tab, newSourceCode.
-	methodToCompileOnSourceClass add: colaborationEncapsulated.
-	"compiledMethod methodClass compile: colaborationEncapsulated."! !
+	methodToCompileOnSourceClass add: colaborationEncapsulated.! !
 
 !CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
 filterRangesThatDoNotBelongToTheCurrentNodeIn: aCollectionOfRanges
@@ -359,53 +342,53 @@ firstUnseenIntervalFor: aNode ifAbsent: anAbsentBlock
 	self removeSeenRanges: completeRangesOfassigmentNode.
 	^self filterRangesThatDoNotBelongToTheCurrentNodeIn: completeRangesOfassigmentNode.! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2024 16:53:12'!
 generateNewGetterForVariable: aVariableName withSelector: aSelectorForGetter
 	| getterCandidate |
 	
 	getterCandidate := aSelectorForGetter.
-	[compiledMethod methodClass selectors includes: getterCandidate] whileTrue: [
+	[methodNode methodClass selectors includes: getterCandidate] whileTrue: [
 		getterCandidate := (getterCandidate copyFrom: 1 to: getterCandidate size), '_'.].
 	^getterCandidate.! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2024 16:53:16'!
 generateNewSetterForVariable: aVariableName withSelector: aSelectorForSetter
 	| setterCandidate |
 	
 	setterCandidate := aSelectorForSetter, ':'.
-	[compiledMethod methodClass selectors includes: setterCandidate] whileTrue: [
+	[methodNode methodClass selectors includes: setterCandidate] whileTrue: [
 		setterCandidate := (setterCandidate copyFrom: 1 to: setterCandidate size -1), '_:'.].
 	^setterCandidate.! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2024 16:53:39'!
 getterForClassVariable: aClassVariableName 
 	| gettersCandidates |
 	gettersCandidates := self selectorsWhichSatisfy: [ :aSelector | 
-				aSelector ~= compiledMethod selector and: [self method: (self compiledMethodAt: aSelector) isGetterOfClassVariable: aClassVariableName ]
+				aSelector ~= methodNode selector and: [self method: (self compiledMethodAt: aSelector) isGetterOfClassVariable: aClassVariableName ]
 			].
 	gettersCandidates 
 		ifEmpty: [^self generateNewGetterForVariable: aClassVariableName withSelector: aClassVariableName uncapitalized]
 		ifNotEmpty: [^gettersCandidates first] .! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2024 16:55:21'!
 getterForInstanceVariable: anInstanceVariableName 
 	| gettersCandidates |
 	gettersCandidates := self selectorsWhichSatisfy: [ :aSelector | 
-				aSelector ~= compiledMethod selector and: [self method: (self compiledMethodAt: aSelector) isGetterOf: anInstanceVariableName ]
+				aSelector ~= methodNode selector and: [self method: (self compiledMethodAt: aSelector) isGetterOf: anInstanceVariableName ]
 			].
 	gettersCandidates 
 		ifEmpty: [^self generateNewGetterForVariable: anInstanceVariableName withSelector: anInstanceVariableName] 
 		ifNotEmpty: [^gettersCandidates first].
 		! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2024 16:55:52'!
 initializeNodeInterval
 
 	| posibleRangesForNode |
 
 	node isMethodNode 
 		ifTrue:[ 
-			nodeInterval := 1 to: (compiledMethod sourceCode size).
+			nodeInterval := 1 to: (methodNode sourceText size).
 			]
 		ifFalse:[ 
 			posibleRangesForNode := (methodNode completeSourceRangesOf: node ifAbsent: []).
@@ -418,23 +401,22 @@ initializeOffset
 
 	^ nodeOffsetInSourceCode := nodeInterval first -1! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2024 16:59:57'!
 method: getterCandidate isGetterOf: anInstanceVariableName 
 	| anInstVarIndex |
 	
-	anInstVarIndex := compiledMethod methodClass allInstVarNames indexOf: anInstanceVariableName.
+	anInstVarIndex := methodNode methodClass allInstVarNames indexOf: anInstanceVariableName.
 	^getterCandidate isReturnField and: [ getterCandidate returnField + 1 = anInstVarIndex ]! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/31/2024 03:39:57'!
 method: getterCandidate isGetterOfClassVariable: aClassVariableName 
-	^(MethodWorksAsGetterVisitor method: getterCandidate forClassVariable: aClassVariableName) value
-	"^true"! !
+	^(MethodWorksAsGetterVisitor method: getterCandidate forClassVariable: aClassVariableName) value! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2024 17:00:02'!
 method: setterCandidate isSetterOf: anInstVarName 
 	| anInstVarIndex varIndexCode scanner |
 
-	anInstVarIndex := compiledMethod methodClass allInstVarNames indexOf: anInstVarName.
+	anInstVarIndex := methodNode methodClass allInstVarNames indexOf: anInstVarName.
 
 	"setterCandidate selector = (anInstVarName, ':') ifFalse: [ ^false ]."
 	
@@ -466,7 +448,7 @@ newSelectorForSuperColaboration: aMessageNode
 
 	^ 'CHANGE_ME_super_', aMessageNode selector key asString! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/28/2024 04:26:39'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/31/2024 03:27:29'!
 newSenderFor: aMessageNode
 	|  newSend argumentsCode argumentIndex replacer replacerResult argumentNode |
 	argumentsCode := OrderedCollection new.
@@ -475,10 +457,8 @@ newSenderFor: aMessageNode
 	aMessageNode selector key keywords do: [ :aKeyword | 
 		argumentNode := aMessageNode argumentsInEvaluationOrder at: argumentIndex.
 		replacer := CodeForNodeToMove 
-					for: compiledMethod
 					methodNode: methodNode
 					variableToAcessThrough: variableToAccesThrough
-					rejectingIntervals: intervalsToReject
 					onNode: argumentNode
 					parameterNeeded: parameterNeeded
 					targetClass: targetClass
@@ -495,40 +475,42 @@ newSenderFor: aMessageNode
 	^parameterNeeded parameterName, ' CHANGE_ME_super_', (newSend copyFrom: 2 to: newSend size).
 ! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/31/2024 03:49:19'!
 registerInterval: anInterval withModification: sourceCodeForInterval 
-	intervalsToReject add: anInterval.
 	intervalsToModify add: anInterval -> sourceCodeForInterval! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/31/2024 03:22:01'!
 removeSeenRanges: rangesOfNode 
-	^rangesOfNode removeAllSuchThat: [ :aSourceInterval | intervalsToReject anySatisfy: [ :aSourceIntervalToModify | aSourceIntervalToModify includesAllOf: aSourceInterval ] ]! !
+	| someIntervalsToExclude |
+	someIntervalsToExclude := intervalsToModify collect: [ :anAssociation | anAssociation key].
+	^rangesOfNode removeAllSuchThat: [ :aSourceInterval | 
+	someIntervalsToExclude anySatisfy: [ :aSourceIntervalToModify | aSourceIntervalToModify includesAllOf: aSourceInterval ] ]! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/29/2024 17:00:13'!
 selectorsWhichSatisfy: aBlock
 
-	^ compiledMethod methodClass selectors select: aBlock! !
+	^ methodNode methodClass selectors select: aBlock! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/31/2024 03:45:35'!
 setterForClassVariable: aClassVariableName 
 	| settersCandidates |
 	settersCandidates := self selectorsWhichSatisfy: [ :aSelector | 
-				aSelector ~= compiledMethod selector and: [self method: (self compiledMethodAt: aSelector) isSetterOf: aClassVariableName ]
+				aSelector ~= methodNode selector and: [self method: (self compiledMethodAt: aSelector) isSetterOf: aClassVariableName ]
 			].
-	settersCandidates isEmpty
-		ifTrue: [^self generateNewSetterForVariable: aClassVariableName withSelector: aClassVariableName uncapitalized]
-		ifFalse: [^settersCandidates first] .! !
+	settersCandidates 
+		ifEmpty: [^self generateNewSetterForVariable: aClassVariableName withSelector: aClassVariableName uncapitalized]
+		ifNotEmpty: [^settersCandidates first]
+! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/31/2024 03:48:21'!
 setterForInstanceVariable: anInstanceVariableName 
 	| settersCandidates |
-	"self halt."
 	settersCandidates := self selectorsWhichSatisfy: [ :aSelector | 
-				aSelector ~= compiledMethod selector and: [self method: (self compiledMethodAt: aSelector) isSetterOf: anInstanceVariableName ]
+				aSelector ~= methodNode selector and: [self method: (self compiledMethodAt: aSelector) isSetterOf: anInstanceVariableName ]
 			].
-	settersCandidates isEmpty
-		ifTrue: [^self generateNewSetterForVariable: anInstanceVariableName withSelector: anInstanceVariableName]
-		ifFalse: [^settersCandidates first] .
+	settersCandidates 
+		ifEmpty: [^self generateNewSetterForVariable: anInstanceVariableName withSelector: anInstanceVariableName]
+		ifNotEmpty: [^settersCandidates first] . 
 		! !
 
 !CodeForNodeToMove methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:01'!
@@ -540,15 +522,14 @@ shouldAddParenthesisOnValueOf: anAssignmentNode
 
 	^ ((anAssignmentNode value isMessageNode and: [anAssignmentNode value isKeywordMessageSend])) or: [anAssignmentNode value isAssignmentNode ]! !
 
-!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 12/28/2024 04:29:24'!
+!CodeForNodeToMove methodsFor: 'accessing' stamp: 'mc 12/31/2024 03:40:27'!
 value
 	| newCode newCodeForNode |
-	"self halt."
 	self initializeNodeInterval.
 	self initializeOffset.
 	node accept: self.
 	intervalsToModify := intervalsToModify collect: [ :anAssociation | (anAssociation key - nodeOffsetInSourceCode) -> anAssociation value ].
-	newCodeForNode := compiledMethod sourceCode copyFrom: nodeInterval first to: nodeInterval last.
+	newCodeForNode := methodNode sourceText copyFrom: nodeInterval first to: nodeInterval last.
 	
 	intervalsToModify sort: [ :left :right | left key first < right key first ].
 	newCode := newCodeForNode copyReplacing: intervalsToModify.
@@ -559,17 +540,15 @@ value
 			].
 	^CodeForNodeToMoveResult 
 				newWith: newCode 
-				sourceClass: compiledMethod methodClass
+				sourceClass: methodNode methodClass
 				targetClass: targetClass
 				methodsToCompileOnSourceClass: methodToCompileOnSourceClass! !
 
-!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 12/27/2024 01:57:47'!
-for: aCompiledMethod methodNode: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName rejectingIntervals: aFewIntervalsToReject onNode: aNodeToGetCode parameterNeeded: parameterNeeded targetClass: aTargetClass usingPreview: previewModifications.
+!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 12/31/2024 03:27:29'!
+methodNode: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName onNode: aNodeToGetCode parameterNeeded: parameterNeeded targetClass: aTargetClass usingPreview: previewModifications.
 	^self new 
-		initializeFor: aCompiledMethod
-		methodNode: aMethodNode
+		initializeFor: aMethodNode
 		variableToAcessThrough: aVariableToAccesoThroughName
-		rejectingIntervals: aFewIntervalsToReject
 		onNode: aNodeToGetCode
 		parameterNeeded: parameterNeeded
 		targetClass: aTargetClass
@@ -704,13 +683,13 @@ newSenderFor: compiledMethodToMove
 
 	self subclassResponsibility! !
 
-!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 12/26/2024 00:32:16'!
-selectorAndArgumentsOf: aCompiledMethod withoutParameter: parameterInCompiledMethod  
+!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 12/29/2024 17:09:24'!
+selectorAndArgumentsOf: aMethodNode withoutParameter: parameterInCompiledMethod  
 	| keywords parameterIndex parameters |
-	parameters := aCompiledMethod methodNode argumentNames.
+	parameters := aMethodNode argumentNames.
 	parameterIndex := parameters findFirst: [ :aParameterName | aParameterName = parameterInCompiledMethod ].
 	
-	keywords := aCompiledMethod selector keywords asOrderedCollection removeIndex: parameterIndex.
+	keywords := aMethodNode selector keywords asOrderedCollection removeIndex: parameterIndex.
 	parameters := parameters removeIndex: parameterIndex.
 	
 	^String streamContents: [ :messageStream |
@@ -756,20 +735,28 @@ assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass
 	
 	(targetClass class includesSelector: (methodName asString, ':') asSymbol) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage]! !
 
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
-associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection  
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/29/2024 17:08:23'!
+associationToModifySelectorAndArgumentsOn: aMethodNode addOn: aCollection  
 	| assoc |
-	assoc := (1 to: aCompiledMethod methodNode selectorLastPosition ) -> (aCompiledMethod methodNode selectorAndArgumentsAsString, ': ', parameterName).
+	assoc := (1 to: aMethodNode selectorLastPosition ) -> (aMethodNode selectorAndArgumentsAsString, ': ', parameterName).
 	aCollection add: assoc.! !
 
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
-newSenderFor: compiledMethodToMove 
-	^compiledMethodToMove methodNode selectorAndArgumentsAsString, ': self'! !
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/31/2024 18:41:58'!
+associationToModifySelectorAndArgumentsOn: aMethodNode withParameter: parameterInMethod 
+	| newSelectorAndArguments |
 
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 11/25/2024 02:33:15'!
-newSenderFor: compiledMethodToMove usingParameter: parameterName2 
+	newSelectorAndArguments := aMethodNode selector, ' ', parameterName.
+
+	^(1 to: aMethodNode selectorLastPosition ) -> newSelectorAndArguments.! !
+
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/30/2024 02:36:13'!
+newSenderFor: aMethodNode 
+	^aMethodNode selectorAndArgumentsAsString, ': self'! !
+
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/30/2024 02:36:04'!
+newSenderFor: aMethodNode usingParameter: parameterName2 
 	
-	^compiledMethodToMove methodNode selector, ' self'
+	^aMethodNode selector, ' self'
 	! !
 
 !ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
@@ -830,32 +817,32 @@ assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass
 	
 	(targetClass class includesSelector: (methodName asString, extraKeyword, ':') asSymbol) ifTrue: [Refactoring refactoringError: MoveMethodRefactoring classMethodShouldNotExistsOnTargertClassErrorMessage]! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
-associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection  
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 12/29/2024 17:08:42'!
+associationToModifySelectorAndArgumentsOn: aMethodNode addOn: aCollection  
 	| assoc |
-	assoc := (1 to: aCompiledMethod methodNode selectorLastPosition ) -> (aCompiledMethod methodNode selectorAndArgumentsAsString, ' ', extraKeyword , ': ',  parameterName).
+	assoc := (1 to: aMethodNode selectorLastPosition ) -> (aMethodNode selectorAndArgumentsAsString, ' ', extraKeyword , ': ',  parameterName).
 	aCollection add: assoc! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 12/26/2024 00:33:59'!
-associationToModifySelectorAndArgumentsOn: aCompiledMethod withParameter: parameterInCompiledMethod  
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 12/29/2024 17:09:02'!
+associationToModifySelectorAndArgumentsOn: aMethodNode withParameter: parameterInCompiledMethod  
 	| newSelectorAndArguments |
 	
-	newSelectorAndArguments := self selectorAndArgumentsOf: aCompiledMethod withoutParameter: parameterInCompiledMethod.
+	newSelectorAndArguments := self selectorAndArgumentsOf: aMethodNode withoutParameter: parameterInCompiledMethod.
 
 	newSelectorAndArguments := newSelectorAndArguments, ' ', extraKeyword, ': ', parameterName.
 
-	^(1 to: aCompiledMethod methodNode selectorLastPosition ) -> newSelectorAndArguments.! !
+	^(1 to: aMethodNode selectorLastPosition ) -> newSelectorAndArguments.! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:01'!
-newSenderFor: compiledMethodToMove 
-	^compiledMethodToMove methodNode selectorAndArgumentsAsString, ' ', extraKeyword, ': self'! !
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 12/30/2024 02:35:26'!
+newSenderFor: aMethodNode 
+	^aMethodNode selectorAndArgumentsAsString, ' ', extraKeyword, ': self'! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 12/26/2024 00:42:25'!
-newSenderFor: compiledMethodToMove usingParameter: parameterName2 
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 12/30/2024 02:35:42'!
+newSenderFor: aMethodNode usingParameter: parameterName2 
 
 	| newSelectorAndArguments |
 
-	newSelectorAndArguments := self selectorAndArgumentsOf: compiledMethodToMove withoutParameter: parameterName2.
+	newSelectorAndArguments := self selectorAndArgumentsOf: aMethodNode withoutParameter: parameterName2.
 
 	^newSelectorAndArguments, ' ', extraKeyword, ': self'.! !
 
@@ -910,32 +897,35 @@ assertIfCanMoveClassMethod: methodName from: sourceClass to: targetClass
 	needParameter ifTrue: [Refactoring refactoringError: MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
 	! !
 
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:03'!
-associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection 
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/29/2024 17:10:07'!
+associationToModifySelectorAndArgumentsOn: aMethodNode addOn: aCollection 
 	! !
 
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 11/29/2024 00:48:20'!
-associationToModifySelectorAndArgumentsOn: aCompiledMethod withParameter: parameterInCompiledMethod  
-
-	^(1 to: aCompiledMethod methodNode selectorLastPosition ) -> (self selectorAndArgumentsOf: aCompiledMethod withoutParameter: parameterInCompiledMethod ).
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/31/2024 19:04:28'!
+associationToModifySelectorAndArgumentsOn: aMethodNode withParameter: parameterInCompiledMethod  
+	(aMethodNode arguments size = 1)
+		ifTrue: [^(1 to: aMethodNode selectorLastPosition ) -> (aMethodNode selector copyUpTo: $:)]
+		ifFalse: [
+			^(1 to: aMethodNode selectorLastPosition ) -> (self selectorAndArgumentsOf: aMethodNode withoutParameter: parameterInCompiledMethod ).	
+			]
 	! !
 
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:03'!
-newSenderFor: compiledMethodToMove 
-	^compiledMethodToMove methodNode selectorAndArgumentsAsString.! !
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/30/2024 02:35:10'!
+newSenderFor: aMethodNode 
+	^aMethodNode selectorAndArgumentsAsString.! !
 
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 11/29/2024 00:50:14'!
-newSenderFor: compiledMethodToMove usingParameter: parameterName 
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/30/2024 02:34:53'!
+newSenderFor: aMethodNode usingParameter: parameterName 
 
 	| originalSelector |
 
-	(compiledMethodToMove methodNode argumentNames size = 1)
+	(aMethodNode argumentNames size = 1)
 		ifTrue: [
-			originalSelector := compiledMethodToMove selector.
+			originalSelector := aMethodNode selector.
 			^originalSelector asString copyFrom: 1 to: originalSelector size -1
 		]
 		ifFalse: [
-			^self selectorAndArgumentsOf: compiledMethodToMove withoutParameter: parameterName  
+			^self selectorAndArgumentsOf: aMethodNode withoutParameter: parameterName  
 		]! !
 
 !TesisMoveMethodRefactoringMenu class methodsFor: 'menu & kbd shortcuts' stamp: 'jmv 7/30/2024 12:29:21'!
@@ -1004,38 +994,37 @@ createAccessors
 	
 	^resultAfterReplaceDependencies compileOnSourceClass.! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/30/2024 03:23:38'!
 findMethodToMove
 
-	^ compiledMethodToMove := sourceClass methodDict at: methodName! !
+	compiledMethodToMove := sourceClass methodDict at: methodName.
+	methodNodeToMove := compiledMethodToMove methodNode.! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/28/2024 04:14:40'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/31/2024 03:27:29'!
 replaceDependenciesOnMethodToMove
 	| replacer methodNode |
 	
-	methodNode := compiledMethodToMove methodNode.
+	methodNode := methodNodeToMove.
 	replacer := CodeForNodeToMove 
-		for: compiledMethodToMove
 		methodNode: methodNode
 		variableToAcessThrough: instanceVariableToAccessTarget 
-		rejectingIntervals: OrderedCollection new
 		onNode: methodNode
 		parameterNeeded: parameterNeeded
 		targetClass: targetClass
 		usingPreview: (CodeForNodeToMoveResult 
-				newWith: compiledMethodToMove sourceCode 
+				newWith: methodNodeToMove sourceText 
 				sourceClass: sourceClass 
 				targetClass: targetClass
 				methodsToCompileOnSourceClass: Set new).
 	resultAfterReplaceDependencies := replacer value.! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 11/26/2024 02:59:51'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/30/2024 03:18:30'!
 replaceMethodForDelegation
 	
-	(compiledMethodToMove methodNode argumentNames includes: instanceVariableToAccessTarget)
-		ifFalse: [messageSendForDelegation := parameterNeeded newSenderFor: compiledMethodToMove.	]
-		ifTrue: [messageSendForDelegation := parameterNeeded newSenderFor: compiledMethodToMove usingParameter: instanceVariableToAccessTarget.].
-	codeForDelegation := compiledMethodToMove selectorAndArgumentsAsString, String newLineString, String tab, '^'.
+	(methodNodeToMove argumentNames includes: instanceVariableToAccessTarget)
+		ifFalse: [messageSendForDelegation := parameterNeeded newSenderFor: methodNodeToMove.	]
+		ifTrue: [messageSendForDelegation := parameterNeeded newSenderFor: methodNodeToMove usingParameter: instanceVariableToAccessTarget.].
+	codeForDelegation := methodNodeToMove selectorAndArgumentsAsString, String newLineString, String tab, '^'.
 	
 	sourceClass isMeta ifTrue: [ instanceVariableToAccessTarget := (targetClass soleInstance name) ].
 	codeForDelegation := codeForDelegation, instanceVariableToAccessTarget, ' ', messageSendForDelegation, '.'.
