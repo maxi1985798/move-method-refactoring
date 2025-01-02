@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6611] on 31 December 2024 at 7:15:19 pm'!
+'From Cuis7.1 [latest update: #6611] on 2 January 2025 at 2:43:12 am'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 123!
+!provides: 'MoveMethodRefactoring' 1 124!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -104,14 +104,14 @@ MoveMethodExtraParameterName subclass: #NonExtraParameterNameNeeded
 NonExtraParameterNameNeeded class
 	instanceVariableNames: ''!
 
-!classDefinition: #TesisMoveMethodRefactoringMenu category: #MoveMethodRefactoring!
-Object subclass: #TesisMoveMethodRefactoringMenu
+!classDefinition: #MoveMethodMenu category: #MoveMethodRefactoring!
+Object subclass: #MoveMethodMenu
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
-!classDefinition: 'TesisMoveMethodRefactoringMenu class' category: #MoveMethodRefactoring!
-TesisMoveMethodRefactoringMenu class
+!classDefinition: 'MoveMethodMenu class' category: #MoveMethodRefactoring!
+MoveMethodMenu class
 	instanceVariableNames: ''!
 
 !classDefinition: #MoveMethodRefactoring category: #MoveMethodRefactoring!
@@ -928,18 +928,14 @@ newSenderFor: aMethodNode usingParameter: parameterName
 			^self selectorAndArgumentsOf: aMethodNode withoutParameter: parameterName  
 		]! !
 
-!TesisMoveMethodRefactoringMenu class methodsFor: 'menu & kbd shortcuts' stamp: 'jmv 7/30/2024 12:29:21'!
+!MoveMethodMenu class methodsFor: 'menu & kbd shortcuts' stamp: 'HAW 12/31/2024 18:58:24'!
 messageListMenuSpec
-	"
-	BrowserWindow at: #messageListMenuSpec registerMenuAndShortcutsSpecProvider:
-		(MessageSend receiver: TesisMoveMethodRefactoringMenu selector: #messageListMenuSpec).
-	Do this in TesisMoveMethodRefactoringMenu class >> initialize
-	"
+	
 	^#(
-		#(1119		'move method...' 					nil 		window 			moveMethod 				saveAsIcon)
+		#(1075		'Move Method...' 					nil 		window 			moveMethod 				saveAsIcon)
 	)! !
 
-!TesisMoveMethodRefactoringMenu class methodsFor: 'menu & kbd shortcuts' stamp: 'jmv 7/30/2024 14:52:15'!
+!MoveMethodMenu class methodsFor: 'menu & kbd shortcuts' stamp: 'jmv 7/30/2024 14:52:15'!
 smalltalkEditorMenuSpec
 	"
 	BrowserWindow at: #SmalltalkEditor registerMenuAndShortcutsSpecProvider:
@@ -951,14 +947,14 @@ smalltalkEditorMenuSpec
 		 		saveAsIcon							'Move Method what is under cursor')
 	)! !
 
-!TesisMoveMethodRefactoringMenu class methodsFor: 'initialization' stamp: 'jmv 7/30/2024 14:53:09'!
+!MoveMethodMenu class methodsFor: 'initialization' stamp: 'HAW 12/31/2024 18:55:16'!
 initialize
 
 	BrowserWindow at: #messageListMenuSpec registerMenuAndShortcutsSpecProvider:
 		(MessageSend receiver: self selector: #messageListMenuSpec).
 
 	BrowserWindow at: #SmalltalkEditor registerMenuAndShortcutsSpecProvider:
-		(MessageSend receiver: TesisMoveMethodRefactoringMenu selector: #smalltalkEditorMenuSpec).! !
+		(MessageSend receiver: MoveMethodMenu selector: #smalltalkEditorMenuSpec).! !
 
 !MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:02'!
 initializeClassMethodNamed: aMethodName from: aSourceClass to: aTargetClass parameterNeeded: anExtraParameterNeeded 
@@ -3771,5 +3767,5 @@ registerMoveMethodApplier: aMoveMethodApplierClass
 
 	self registerApplierAt: self moveMethodApplierId with: aMoveMethodApplierClass
 ! !
-TesisMoveMethodRefactoringMenu initialize!
+MoveMethodMenu initialize!
 MoveMethodApplier initialize!
