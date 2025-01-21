@@ -1,12 +1,12 @@
-'From Cuis7.1 [latest update: #6611] on 2 January 2025 at 2:43:12 am'!
+'From Cuis7.3 [latest update: #6973] on 21 January 2025 at 2:36:22 am'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 124!
+!provides: 'MoveMethodRefactoring' 1 125!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
 !classDefinition: #CodeForNodeToMove category: #MoveMethodRefactoring!
 ParseNodeVisitor subclass: #CodeForNodeToMove
-	instanceVariableNames: 'methodNode node intervalsToModify nodeInterval nodeOffsetInSourceCode parameterNeeded variableToAccesThrough hasImplicitSelfReturn targetClass methodToCompileOnSourceClass previewModifications'
+	instanceVariableNames: 'methodNode node intervalsToModify nodeInterval nodeOffsetInSourceCode parameterNeeded variableToAccesThrough hasImplicitSelfReturn targetClass methodToCompileOnSourceClass'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -155,8 +155,8 @@ MoveMethodRefactoringTest class
 	instanceVariableNames: ''!
 
 
-!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 12/31/2024 03:39:47'!
-initializeFor: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName onNode: aNodeToGetCode parameterNeeded: aParameterNeeded targetClass: aTargetClass usingPreview: aPreviewModifications.
+!CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 1/21/2025 02:31:06'!
+initializeFor: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName onNode: aNodeToGetCode parameterNeeded: aParameterNeeded targetClass: aTargetClass
 	methodNode := aMethodNode.
 	node := aNodeToGetCode.
 	intervalsToModify := OrderedCollection new.
@@ -164,22 +164,20 @@ initializeFor: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName 
 	variableToAccesThrough := aVariableToAccesoThroughName.
 	hasImplicitSelfReturn := false.
 	targetClass := aTargetClass.
-	methodToCompileOnSourceClass := Set new.
-	previewModifications := aPreviewModifications! !
+	methodToCompileOnSourceClass := Set new.! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/31/2024 03:27:29'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 1/21/2025 02:32:45'!
 visitAssignmentNode: anAssignmentNode 
 	| assigmentValue completeRangesOfassigmentNode resultForValue setterSelectorAsString |
 	"self halt."
 	anAssignmentNode variable isTemp ifTrue: [^super visitAssignmentNode: anAssignmentNode].
 	completeRangesOfassigmentNode := self firstUnseenIntervalFor: anAssignmentNode.
-	resultForValue :=			(CodeForNodeToMove 
+	resultForValue := (CodeForNodeToMove 
 					methodNode: methodNode
 					variableToAcessThrough: variableToAccesThrough 
 					onNode: anAssignmentNode value
 					parameterNeeded: parameterNeeded
-					targetClass: targetClass
-					usingPreview: previewModifications ) value.
+					targetClass: targetClass) value.
 	(self shouldAddParenthesisOnValueOf: anAssignmentNode)
 		ifTrue: [assigmentValue := '(', resultForValue sourceCode , ')'.] 
 		ifFalse: [assigmentValue := resultForValue sourceCode .].
@@ -448,7 +446,7 @@ newSelectorForSuperColaboration: aMessageNode
 
 	^ 'CHANGE_ME_super_', aMessageNode selector key asString! !
 
-!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 12/31/2024 03:27:29'!
+!CodeForNodeToMove methodsFor: 'private' stamp: 'mc 1/21/2025 02:32:30'!
 newSenderFor: aMessageNode
 	|  newSend argumentsCode argumentIndex replacer replacerResult argumentNode |
 	argumentsCode := OrderedCollection new.
@@ -461,8 +459,7 @@ newSenderFor: aMessageNode
 					variableToAcessThrough: variableToAccesThrough
 					onNode: argumentNode
 					parameterNeeded: parameterNeeded
-					targetClass: targetClass
-					usingPreview: previewModifications.
+					targetClass: targetClass.
 		replacerResult := replacer value.
 		(self shouldAddParenthesis: argumentNode) 
 			ifTrue: [argumentsCode add: '(', replacerResult sourceCode, ')'.]
@@ -544,15 +541,14 @@ value
 				targetClass: targetClass
 				methodsToCompileOnSourceClass: methodToCompileOnSourceClass! !
 
-!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 12/31/2024 03:27:29'!
-methodNode: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName onNode: aNodeToGetCode parameterNeeded: parameterNeeded targetClass: aTargetClass usingPreview: previewModifications.
+!CodeForNodeToMove class methodsFor: 'instance creation' stamp: 'mc 1/21/2025 02:33:19'!
+methodNode: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName onNode: aNodeToGetCode parameterNeeded: parameterNeeded targetClass: aTargetClass
 	^self new 
 		initializeFor: aMethodNode
 		variableToAcessThrough: aVariableToAccesoThroughName
 		onNode: aNodeToGetCode
 		parameterNeeded: parameterNeeded
-		targetClass: aTargetClass
-		usingPreview: previewModifications.! !
+		targetClass: aTargetClass.! !
 
 !MethodWorksAsGetterVisitor methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:02'!
 initializeMethod: aGetterCandidate forClassVariable: aClassVariableName 
@@ -996,7 +992,7 @@ findMethodToMove
 	compiledMethodToMove := sourceClass methodDict at: methodName.
 	methodNodeToMove := compiledMethodToMove methodNode.! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/31/2024 03:27:29'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 1/21/2025 02:32:53'!
 replaceDependenciesOnMethodToMove
 	| replacer methodNode |
 	
@@ -1006,12 +1002,7 @@ replaceDependenciesOnMethodToMove
 		variableToAcessThrough: instanceVariableToAccessTarget 
 		onNode: methodNode
 		parameterNeeded: parameterNeeded
-		targetClass: targetClass
-		usingPreview: (CodeForNodeToMoveResult 
-				newWith: methodNodeToMove sourceText 
-				sourceClass: sourceClass 
-				targetClass: targetClass
-				methodsToCompileOnSourceClass: Set new).
+		targetClass: targetClass .
 	resultAfterReplaceDependencies := replacer value.! !
 
 !MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/30/2024 03:18:30'!
