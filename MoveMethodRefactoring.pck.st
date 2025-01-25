@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6973] on 21 January 2025 at 2:36:22 am'!
+'From Cuis7.3 [latest update: #6973] on 25 January 2025 at 2:14:36 am'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 125!
+!provides: 'MoveMethodRefactoring' 1 126!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -216,20 +216,29 @@ visitInstanceVariableNode: anInstanceVariableNode
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/29/2024 17:03:25'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 1/25/2025 01:34:41'!
 visitLiteralVariableNode: aLiteralVariableNode 
 	| sourceCodeForInterval anInterval getterToUse |
 	"self halt."
 	aLiteralVariableNode isReferencingGlobal ifTrue: [^self].
-	anInterval := self firstUnseenIntervalFor: aLiteralVariableNode.
-	getterToUse := self getterForClassVariable: aLiteralVariableNode name.
-	sourceCodeForInterval := parameterNeeded parameterName, ' ', getterToUse.
-	(methodNode methodClass selectors includes: getterToUse) 
-				ifFalse: [
-					methodToCompileOnSourceClass add: (getterToUse, String newLineString, String tab, '^', aLiteralVariableNode name, '.').
-					].
+	(variableToAccesThrough = aLiteralVariableNode name)
+		ifFalse: [
+			anInterval := self firstUnseenIntervalFor: aLiteralVariableNode.
+			getterToUse := self getterForClassVariable: aLiteralVariableNode name.
+			sourceCodeForInterval := parameterNeeded parameterName, ' ', getterToUse.
+			(methodNode methodClass selectors includes: getterToUse) 
+						ifFalse: [
+							methodToCompileOnSourceClass add: (getterToUse, String newLineString, String tab, '^', aLiteralVariableNode name, '.').
+							].
+			
+			self registerInterval: anInterval withModification: sourceCodeForInterval.
+			]
+		ifTrue: [
+			anInterval := self firstUnseenIntervalFor: aLiteralVariableNode.
+			sourceCodeForInterval := 'self'.
+			self registerInterval: anInterval withModification: sourceCodeForInterval.
+			]
 	
-	self registerInterval: anInterval withModification: sourceCodeForInterval.
 ! !
 
 !CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/31/2024 03:32:44'!
@@ -613,6 +622,11 @@ for: compiledMethod
 visitInstanceVariableNode: anInstanceVariableNode 
 	
 	needParameterName := needParameterName or: [instanceVariableNameToAccessThrough ~= anInstanceVariableNode name].! !
+
+!NeedParameterNameForInstanceMethod methodsFor: 'visiting' stamp: 'mc 1/25/2025 01:56:19'!
+visitLiteralVariableNode: aLiteralVariableNode 
+
+	needParameterName := needParameterName or: [aLiteralVariableNode  isReferencingGlobal not and: [ (aLiteralVariableNode isReferencingClassVariable and:[ aLiteralVariableNode name = instanceVariableNameToAccessThrough ]) not]].! !
 
 !NeedParameterNameForInstanceMethod methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:03'!
 initializeWith: aCompiledMethod newAccessingThrough: instanceVariable 
@@ -1043,7 +1057,7 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: inst
 		parameterNeeded: NonExtraParameterNameNeeded new
 		! !
 
-!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 12/22/2024 02:13:11'!
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 1/23/2025 01:46:58'!
 methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable parameterNeeded: anExtraParameterNeeded  
 	
 	
@@ -1052,7 +1066,7 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: inst
 	(methodName isNil) ifTrue: [ self refactoringError: self methodShouldNotBeNilErrorMessage ].
 	(instanceVariable isNil) ifTrue: [ self refactoringError: self instanceVariableToAccessingThroughShouldNotBeNilErrorMessage ].
 	(sourceClass includesSelector: methodName) ifFalse: [ self refactoringError: self methodShouldExistsOnSourceClassErrorMessage ].
-	((sourceClass allInstVarNames includes: instanceVariable) or: [((sourceClass>>methodName) methodNode ) hasLocallyArgumentNamed: instanceVariable ]) ifFalse: [ self refactoringError: self instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage ].
+	((sourceClass allInstVarNames includes: instanceVariable) or: [(((sourceClass>>methodName) methodNode ) hasLocallyArgumentNamed: instanceVariable) or: [sourceClass allClassVarNames includes: instanceVariable] ]) ifFalse: [ self refactoringError: self instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage ].
 	
 	anExtraParameterNeeded assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable.
 	
@@ -1132,13 +1146,17 @@ sourceClassShouldNotBeNilErrorMessage
 targetClassShouldNotBeNilErrorMessage
 	^'Target class should not be nil'! !
 
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'HAW 8/10/2024 21:09:19'!
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 1/24/2025 01:42:57'!
 existsAssignationOf: instanceVariable inHierarchyOf: sourceClass 
 	| existsAssignation |
 	existsAssignation := false.
-	sourceClass withAllSuperAndSubclassesDo: [ :aClassInSourceHierachy |  
-		existsAssignation := existsAssignation or: [(aClassInSourceHierachy whichSelectorsStoreInto: instanceVariable) notEmpty] 
-	].
+	(sourceClass allClassVarNames includes: instanceVariable)
+		ifTrue: [existsAssignation := true]
+		ifFalse: [
+			sourceClass withAllSuperAndSubclassesDo: [ :aClassInSourceHierachy |  
+				existsAssignation := existsAssignation or: [(aClassInSourceHierachy whichSelectorsStoreInto: instanceVariable) notEmpty] 
+			].
+			].
 	^existsAssignation.! !
 
 !MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 7/14/2024 02:17:02'!
@@ -3709,6 +3727,66 @@ test506CanMoveMethodWithInstVarUsingLastParameterAsAccessThrougVariable
 	self assert: 'm1: arg1 withObject: sourceObject ^self m2: sourceObject iv1' equals: (targetClass sourceCodeAt: #m1:withObject:).
 	self assert: 'm1: arg1 m2: aTargetClass
 	^aTargetClass m1: arg1 withObject: self.' equals: (sourceClass sourceCodeAt: #m1:m2:).
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 1/23/2025 01:48:10'!
+test600CanMoveMethodUsingClassVarAsAccessThrougVariable
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self 
+		createClassNamed: #SourceClass
+		subclassOf: Object
+		instanceVariableNames: ''
+		classVariableNames: 'CLASSVAR'
+		poolDictionaries: ''
+		category: self classCategoryOfTestData.
+	sourceClass compile: 'initializeCLASSVAR CLASSVAR := TargetClass new.' .
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'm1 ^1' .
+	
+	
+	refactoring := MoveMethodRefactoring 
+					methodNamed: #m1
+					from: sourceClass 
+					to: targetClass 
+					accessingThrough: 'CLASSVAR' 
+					parameterNeeded: (NonExtraParameterNameNeeded new).
+	refactoring apply.
+	
+	self assert: 'm1 ^1' equals: (targetClass sourceCodeAt: #m1).
+	self assert: 'm1
+	^CLASSVAR m1.' equals: (sourceClass sourceCodeAt: #m1).
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 1/24/2025 01:52:34'!
+test601CanMoveMethodWithClassVarUsingClassVarAsAccessThrougVariable
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self 
+		createClassNamed: #SourceClass
+		subclassOf: Object
+		instanceVariableNames: ''
+		classVariableNames: 'CLASSVAR'
+		poolDictionaries: ''
+		category: self classCategoryOfTestData.
+	sourceClass compile: 'initializeCLASSVAR CLASSVAR := TargetClass new.' .
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'm1 ^CLASSVAR' .
+	
+	
+	refactoring := MoveMethodRefactoring 
+					methodNamed: #m1
+					from: sourceClass 
+					to: targetClass 
+					accessingThrough: 'CLASSVAR' 
+					parameterNeeded: (NonExtraParameterNameNeeded new).
+	refactoring apply.
+	
+	self assert: 'm1 ^self' equals: (targetClass sourceCodeAt: #m1).
+	self assert: 'm1
+	^CLASSVAR m1.' equals: (sourceClass sourceCodeAt: #m1).
 	! !
 
 !BrowserWindow methodsFor: '*MoveMethodRefactoring' stamp: 'mc 4/28/2024 20:29:11'!
