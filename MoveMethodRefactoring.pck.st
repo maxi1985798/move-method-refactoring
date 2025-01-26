@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6973] on 25 January 2025 at 2:14:36 am'!
+'From Cuis7.3 [latest update: #6973] on 26 January 2025 at 3:49:24 am'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 126!
+!provides: 'MoveMethodRefactoring' 1 127!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -216,14 +216,14 @@ visitInstanceVariableNode: anInstanceVariableNode
 	self registerInterval: anInterval withModification: sourceCodeForInterval.
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 1/25/2025 01:34:41'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 1/25/2025 02:57:49'!
 visitLiteralVariableNode: aLiteralVariableNode 
 	| sourceCodeForInterval anInterval getterToUse |
 	"self halt."
 	aLiteralVariableNode isReferencingGlobal ifTrue: [^self].
+	anInterval := self firstUnseenIntervalFor: aLiteralVariableNode.
 	(variableToAccesThrough = aLiteralVariableNode name)
 		ifFalse: [
-			anInterval := self firstUnseenIntervalFor: aLiteralVariableNode.
 			getterToUse := self getterForClassVariable: aLiteralVariableNode name.
 			sourceCodeForInterval := parameterNeeded parameterName, ' ', getterToUse.
 			(methodNode methodClass selectors includes: getterToUse) 
@@ -231,14 +231,12 @@ visitLiteralVariableNode: aLiteralVariableNode
 							methodToCompileOnSourceClass add: (getterToUse, String newLineString, String tab, '^', aLiteralVariableNode name, '.').
 							].
 			
-			self registerInterval: anInterval withModification: sourceCodeForInterval.
 			]
 		ifTrue: [
-			anInterval := self firstUnseenIntervalFor: aLiteralVariableNode.
 			sourceCodeForInterval := 'self'.
-			self registerInterval: anInterval withModification: sourceCodeForInterval.
-			]
-	
+			].
+	self registerInterval: anInterval withModification: sourceCodeForInterval.
+			
 ! !
 
 !CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/31/2024 03:32:44'!
@@ -618,15 +616,20 @@ visitInstanceVariableNode: anInstanceVariableNode
 for: compiledMethod
 	^self new initializeWith: compiledMethod ! !
 
+!NeedParameterNameForInstanceMethod methodsFor: 'visiting' stamp: 'mc 1/25/2025 03:07:40'!
+isClassVarDifferentFromAccessThroughVariable: aLiteralVariableNode
+
+	^ (aLiteralVariableNode isReferencingClassVariable and:[ aLiteralVariableNode name = instanceVariableNameToAccessThrough ]) not! !
+
 !NeedParameterNameForInstanceMethod methodsFor: 'visiting' stamp: 'mc 7/14/2024 02:17:03'!
 visitInstanceVariableNode: anInstanceVariableNode 
 	
 	needParameterName := needParameterName or: [instanceVariableNameToAccessThrough ~= anInstanceVariableNode name].! !
 
-!NeedParameterNameForInstanceMethod methodsFor: 'visiting' stamp: 'mc 1/25/2025 01:56:19'!
+!NeedParameterNameForInstanceMethod methodsFor: 'visiting' stamp: 'mc 1/25/2025 03:07:40'!
 visitLiteralVariableNode: aLiteralVariableNode 
 
-	needParameterName := needParameterName or: [aLiteralVariableNode  isReferencingGlobal not and: [ (aLiteralVariableNode isReferencingClassVariable and:[ aLiteralVariableNode name = instanceVariableNameToAccessThrough ]) not]].! !
+	needParameterName := needParameterName or: [aLiteralVariableNode  isReferencingGlobal not and: [ self isClassVarDifferentFromAccessThroughVariable: aLiteralVariableNode]].! !
 
 !NeedParameterNameForInstanceMethod methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:03'!
 initializeWith: aCompiledMethod newAccessingThrough: instanceVariable 
