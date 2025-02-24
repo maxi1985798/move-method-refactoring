@@ -1,8 +1,18 @@
-'From Cuis7.3 [latest update: #6973] on 26 January 2025 at 3:49:24 am'!
+'From Cuis7.3 [latest update: #6973] on 23 February 2025 at 11:57:36 pm'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 127!
+!provides: 'MoveMethodRefactoring' 1 128!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
+
+!classDefinition: #ClassVarAssignationChecker category: #MoveMethodRefactoring!
+ParseNodeVisitor subclass: #ClassVarAssignationChecker
+	instanceVariableNames: 'compiledMethod returnBlockTrue classVarNamed'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'ClassVarAssignationChecker class' category: #MoveMethodRefactoring!
+ClassVarAssignationChecker class
+	instanceVariableNames: ''!
 
 !classDefinition: #CodeForNodeToMove category: #MoveMethodRefactoring!
 ParseNodeVisitor subclass: #CodeForNodeToMove
@@ -154,6 +164,25 @@ RefactoringTest subclass: #MoveMethodRefactoringTest
 MoveMethodRefactoringTest class
 	instanceVariableNames: ''!
 
+
+!ClassVarAssignationChecker methodsFor: 'initialization' stamp: 'mc 2/19/2025 01:59:25'!
+initializeFor: aCompiledMethod onClassVar: aClassVarNamed 
+	compiledMethod := aCompiledMethod.
+	classVarNamed := aClassVarNamed! !
+
+!ClassVarAssignationChecker methodsFor: 'evaluating' stamp: 'mc 2/19/2025 01:53:55'!
+value
+	returnBlockTrue := [^true].
+	compiledMethod methodNode accept: self.
+	^false! !
+
+!ClassVarAssignationChecker methodsFor: 'visiting' stamp: 'mc 2/19/2025 02:01:09'!
+visitAssignmentNode: anAssignmentNode 
+	anAssignmentNode variable name = classVarNamed ifTrue: [returnBlockTrue value]! !
+
+!ClassVarAssignationChecker class methodsFor: 'instance creation' stamp: 'mc 2/19/2025 01:58:31'!
+for: aCompiledMethod onClassVar: aClassVarName 
+	^self new initializeFor: aCompiledMethod onClassVar: aClassVarName ! !
 
 !CodeForNodeToMove methodsFor: 'initialization' stamp: 'mc 1/21/2025 02:31:06'!
 initializeFor: aMethodNode variableToAcessThrough: aVariableToAccesoThroughName onNode: aNodeToGetCode parameterNeeded: aParameterNeeded targetClass: aTargetClass
@@ -1060,26 +1089,26 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: inst
 		parameterNeeded: NonExtraParameterNameNeeded new
 		! !
 
-!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 1/23/2025 01:46:58'!
-methodNamed: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable parameterNeeded: anExtraParameterNeeded  
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 2/17/2025 11:59:52'!
+methodNamed: methodName from: sourceClass to: targetClass accessingThrough: accessThroughVariable parameterNeeded: anExtraParameterNeeded  
 	
 	
 	(targetClass isNil) ifTrue: [ self refactoringError: self targetClassShouldNotBeNilErrorMessage ].
 	(sourceClass isNil) ifTrue: [ self refactoringError: self sourceClassShouldNotBeNilErrorMessage].
 	(methodName isNil) ifTrue: [ self refactoringError: self methodShouldNotBeNilErrorMessage ].
-	(instanceVariable isNil) ifTrue: [ self refactoringError: self instanceVariableToAccessingThroughShouldNotBeNilErrorMessage ].
+	(accessThroughVariable isNil) ifTrue: [ self refactoringError: self instanceVariableToAccessingThroughShouldNotBeNilErrorMessage ].
 	(sourceClass includesSelector: methodName) ifFalse: [ self refactoringError: self methodShouldExistsOnSourceClassErrorMessage ].
-	((sourceClass allInstVarNames includes: instanceVariable) or: [(((sourceClass>>methodName) methodNode ) hasLocallyArgumentNamed: instanceVariable) or: [sourceClass allClassVarNames includes: instanceVariable] ]) ifFalse: [ self refactoringError: self instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage ].
+	((sourceClass allInstVarNames includes: accessThroughVariable) or: [(((sourceClass>>methodName) methodNode ) hasLocallyArgumentNamed: accessThroughVariable) or: [sourceClass allClassVarNames includes: accessThroughVariable] ]) ifFalse: [ self refactoringError: self instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage ].
 	
-	anExtraParameterNeeded assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: instanceVariable.
+	anExtraParameterNeeded assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: accessThroughVariable.
 	
-	((self existsAssignationOf: instanceVariable inHierarchyOf: sourceClass) or: [((sourceClass>>methodName) methodNode ) hasLocallyArgumentNamed: instanceVariable ] ) ifFalse: [ self refactoringWarning: (self instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: instanceVariable) ].
+	((self existsAssignationOf: accessThroughVariable inHierarchyOf: sourceClass) or: [((sourceClass>>methodName) methodNode ) hasLocallyArgumentNamed: accessThroughVariable ] ) ifFalse: [ self refactoringWarning: (self instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: accessThroughVariable) ].
 	
 	^self new 
 		initializeMethodNamed: methodName 
 		from: sourceClass 
 		to: targetClass 
-		accessingThrough: instanceVariable 
+		accessingThrough: accessThroughVariable 
 		parameterNeeded: anExtraParameterNeeded 
 		! !
 
@@ -1149,17 +1178,22 @@ sourceClassShouldNotBeNilErrorMessage
 targetClassShouldNotBeNilErrorMessage
 	^'Target class should not be nil'! !
 
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 1/24/2025 01:42:57'!
-existsAssignationOf: instanceVariable inHierarchyOf: sourceClass 
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 2/20/2025 00:41:18'!
+existsAssignationOf: accessThroughVariable inHierarchyOf: sourceClass 
 	| existsAssignation |
 	existsAssignation := false.
-	(sourceClass allClassVarNames includes: instanceVariable)
-		ifTrue: [existsAssignation := true]
-		ifFalse: [
-			sourceClass withAllSuperAndSubclassesDo: [ :aClassInSourceHierachy |  
-				existsAssignation := existsAssignation or: [(aClassInSourceHierachy whichSelectorsStoreInto: instanceVariable) notEmpty] 
-			].
-			].
+	sourceClass withAllSuperAndSubclassesDo: [ :aClassInSourceHierachy |  
+		(sourceClass allClassVarNames includes: accessThroughVariable)
+			ifTrue: [
+					existsAssignation := existsAssignation 
+						or: [
+							(aClassInSourceHierachy whichSelectorsReferTo: accessThroughVariable asSymbol) anySatisfy: [ :aSelector | (ClassVarAssignationChecker for: aClassInSourceHierachy>>aSelector onClassVar: accessThroughVariable) value]
+						]
+				]
+			ifFalse: [
+					existsAssignation := existsAssignation or: [(aClassInSourceHierachy whichSelectorsStoreInto: accessThroughVariable) notEmpty] 
+				].
+	].
 	^existsAssignation.! !
 
 !MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 7/14/2024 02:17:02'!
@@ -1255,9 +1289,9 @@ askTargetClassName
 chooseMethodToMove
 	methodToMove := methodReference selector! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 19:00:12'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 2/20/2025 00:47:17'!
 chooseVariableToAccessThrough
-	| vars index methodArgumentNames variableToMoveMethod |
+	| vars index methodArgumentNames variableToMoveMethod linesArrays classVarNames |
 	"self halt."
 	sourceClass isMeta ifTrue: [^self].
 	vars := sourceClass allInstVarNames sorted.
@@ -1265,11 +1299,17 @@ chooseVariableToAccessThrough
 	variableToMoveMethod := OrderedCollection new.
 	variableToMoveMethod addAll: vars.
 	variableToMoveMethod addAll: methodArgumentNames.
-	"variableToMoveMethod := vars union: methodArgumentNames."
-	"vars := vars reject: [ :anInstanceVariable | anInstanceVariable = instanceVariableName ]."
+	classVarNames := sourceClass allClassVarNames sorted.
+	variableToMoveMethod addAll: classVarNames.
+
+	linesArrays := OrderedCollection new.
+	linesArrays add: vars size.
+	linesArrays add: vars size + methodArgumentNames size.
+	linesArrays add: vars size + methodArgumentNames size + classVarNames size.
+
 	vars isEmpty ifTrue: [Refactoring refactoringErrorClass signal: 'There is no instance variable to access through' ].
 	"methodArgumentNames addAll: vars "
-	index := (PopUpMenu labelArray: variableToMoveMethod lines: {vars size}) startUpWithCaption: self selectVariableLabel.
+	index := (PopUpMenu labelArray: variableToMoveMethod lines: linesArrays) startUpWithCaption: self selectVariableLabel.
 	index = 0 ifTrue: [^self endRequest].
 	accessingThroughVariableName := variableToMoveMethod at: index.! !
 
@@ -2169,6 +2209,60 @@ test042WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetSuperClass_2
 		raise: self refactoringWarning
 		withMessageText: [
 			MoveMethodRefactoring method: #m1: IsGoingToOverrideWarningMessageOn: targetClass].
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/17/2025 12:18:54'!
+test043ClassVariableToAccessingThroughShouldHaveAtLeastOneAssignation
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self 
+		createClassNamed: #SourceClass
+		subclassOf: Object
+		instanceVariableNames: ''
+		classVariableNames: 'CLASSVAR'
+		poolDictionaries: ''
+		category: self classCategoryOfTestData.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'm1 ^1' .
+	
+	self 
+		should: [
+			MoveMethodRefactoring 
+				methodNamed: #m1 
+				from: sourceClass 
+				to: targetClass 
+				accessingThrough: 'CLASSVAR'
+				parameterNeeded: NonExtraParameterNameNeeded new ]  
+		raise: self refactoringWarning 
+		withMessageText: [MoveMethodRefactoring instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: 'CLASSVAR'].
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/18/2025 02:03:57'!
+test043ClassVariableToAccessingThroughShouldHaveAtLeastOneAssignation2
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self 
+		createClassNamed: #SourceClass
+		subclassOf: Object
+		instanceVariableNames: ''
+		classVariableNames: 'CLASSVAR'
+		poolDictionaries: ''
+		category: self classCategoryOfTestData.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'm1 ^1' .
+	sourceClass compile: 'm2 ^CLASSVAR' .
+	self 
+		should: [
+			MoveMethodRefactoring 
+				methodNamed: #m1 
+				from: sourceClass 
+				to: targetClass 
+				accessingThrough: 'CLASSVAR'
+				parameterNeeded: NonExtraParameterNameNeeded new ]  
+		raise: self refactoringWarning 
+		withMessageText: [MoveMethodRefactoring instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: 'CLASSVAR'].
 	! !
 
 !MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:02'!
