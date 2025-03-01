@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6973] on 23 February 2025 at 11:57:36 pm'!
+'From Cuis7.3 [latest update: #6973] on 1 March 2025 at 5:12:52 pm'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 128!
+!provides: 'MoveMethodRefactoring' 1 129!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -1051,7 +1051,7 @@ replaceDependenciesOnMethodToMove
 		targetClass: targetClass .
 	resultAfterReplaceDependencies := replacer value.! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 12/30/2024 03:18:30'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 2/26/2025 00:26:49'!
 replaceMethodForDelegation
 	
 	(methodNodeToMove argumentNames includes: instanceVariableToAccessTarget)
@@ -1059,6 +1059,8 @@ replaceMethodForDelegation
 		ifTrue: [messageSendForDelegation := parameterNeeded newSenderFor: methodNodeToMove usingParameter: instanceVariableToAccessTarget.].
 	codeForDelegation := methodNodeToMove selectorAndArgumentsAsString, String newLineString, String tab, '^'.
 	
+	instanceVariableToAccessTarget isNil ifTrue: [ instanceVariableToAccessTarget := targetClass name ].
+	"this should be removed"
 	sourceClass isMeta ifTrue: [ instanceVariableToAccessTarget := (targetClass soleInstance name) ].
 	codeForDelegation := codeForDelegation, instanceVariableToAccessTarget, ' ', messageSendForDelegation, '.'.
 	sourceClass compile: codeForDelegation				! !
@@ -1111,6 +1113,28 @@ methodNamed: methodName from: sourceClass to: targetClass accessingThrough: acce
 		accessingThrough: accessThroughVariable 
 		parameterNeeded: anExtraParameterNeeded 
 		! !
+
+!MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 3/1/2025 14:22:20'!
+methodNamed: methodName from: sourceClass toClass: targetClass parameterNeeded: anExtraParameterNeeded 
+	(methodName isNil) ifTrue: [ self refactoringError: self methodShouldNotBeNilErrorMessage ].
+	(sourceClass isNil) ifTrue: [ self refactoringError: self sourceClassShouldNotBeNilErrorMessage].
+	(targetClass isNil) ifTrue: [ self refactoringError: self targetClassShouldNotBeNilErrorMessage ].
+	
+	(targetClass class includesSelector: methodName) ifTrue: [ self refactoringError: self methodShouldNotExistsOnTargertClassErrorMessage ].
+	(sourceClass includesSelector: methodName) ifFalse: [ self refactoringError: self methodShouldExistsOnSourceClassErrorMessage ].
+	
+	anExtraParameterNeeded 
+		assertIfCanMove: methodName
+		from: sourceClass
+		to: targetClass class
+		accessingThrough: nil.
+		
+	^self new 
+		initializeMethodNamed: methodName 
+		from: sourceClass 
+		to: targetClass 
+		accessingThrough: nil
+		parameterNeeded: anExtraParameterNeeded ! !
 
 !MoveMethodRefactoring class methodsFor: 'error messages' stamp: 'mc 7/14/2024 02:17:02'!
 classMethodShouldExistsOnSourceClassErrorMessage
@@ -2265,6 +2289,149 @@ test043ClassVariableToAccessingThroughShouldHaveAtLeastOneAssignation2
 		withMessageText: [MoveMethodRefactoring instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: 'CLASSVAR'].
 	! !
 
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/27/2025 23:23:24'!
+test044ClassMethodToMoveShouldNotBeNil
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class compile: 'm1 ^1' .
+	
+	
+	self 
+		assertCreation: [
+			MoveMethodRefactoring
+				methodNamed: nil
+				from: sourceClass
+				toClass: targetClass
+				parameterNeeded: NonExtraParameterNameNeeded new.]  
+		failsWith: [MoveMethodRefactoring methodShouldNotBeNilErrorMessage].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/27/2025 23:25:11'!
+test044SourceClassShouldNotBeNil
+	
+	| sourceClass targetClass |
+	
+	sourceClass := nil.
+	targetClass := self createClassNamed: #TargetClass.
+	
+	
+	
+	self 
+		assertCreation: [
+			MoveMethodRefactoring 
+				methodNamed: #m1
+				from: sourceClass
+				toClass: targetClass
+				parameterNeeded: NonExtraParameterNameNeeded new.]  
+		failsWith: [MoveMethodRefactoring sourceClassShouldNotBeNilErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/27/2025 23:27:19'!
+test044TargetClassShouldNotBeNil
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := nil.
+	
+	
+	
+	self 
+		assertCreation: [
+			MoveMethodRefactoring 
+				methodNamed: #m1
+				from: sourceClass
+				toClass: targetClass
+				parameterNeeded: NonExtraParameterNameNeeded new.]  
+		failsWith: [MoveMethodRefactoring targetClassShouldNotBeNilErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/27/2025 23:30:28'!
+test045ClassMethodShouldNotExistsInTarget
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass class compile: 'm1 ^1' .
+	targetClass class compile: 'm1 ^2' .
+	
+	self 
+		assertCreation: [
+			MoveMethodRefactoring 
+				methodNamed: #m1
+				from: sourceClass
+				toClass: targetClass
+				parameterNeeded: NonExtraParameterNameNeeded new.]  
+		failsWith: [MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/27/2025 23:39:15'!
+test046ClassMethodShouldExistsInSouceClass
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	
+	
+	
+	self 
+		assertCreation: [
+			MoveMethodRefactoring 
+				methodNamed: #m1
+				from: sourceClass
+				toClass: targetClass
+				parameterNeeded: NonExtraParameterNameNeeded new.]  
+		failsWith: [MoveMethodRefactoring methodShouldExistsOnSourceClassErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/28/2025 19:10:39'!
+test047ClassSelectorWithNewParameterShouldNotExistsOnTargetClass
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass addInstVarName: 'iv2'.
+	sourceClass compile: 'm1 ^iv2' .
+	targetClass class compile: 'm1: anObject ^1' .
+	self 
+		assertCreation: [
+			MoveMethodRefactoring 
+				methodNamed: #m1
+				from: sourceClass
+				toClass: targetClass
+				parameterNeeded: (ExtraParameterNameNeeded 
+							parameterName: 'originalClass').]  
+		failsWith: [MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage ].
+		! !
+
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/1/2025 14:32:10'!
+test048ClassSelectorWithNewParameterAndKeywordShouldNotExistsOnTargetClass
+	
+	| sourceClass targetClass |
+	
+	sourceClass := self createClassNamed: #SourceClass.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass addInstVarName: 'iv2'.
+	sourceClass compile: 'm1: anInt ^iv2'.
+	targetClass class compile: 'm1: anInt originalObject: originalObject ^originalObject + anInt' .
+	self 
+		assertCreation: [
+			MoveMethodRefactoring 
+				methodNamed: #m1:
+				from: sourceClass
+				toClass: targetClass
+				parameterNeeded: (ExtraParameterNameNeededAndExtraKeyword
+							parameterName: 'originalObject'
+							extraKeyword: 'originalObject').]  
+		failsWith: [MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage ].
+		! !
+
 !MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:02'!
 test100CanMoveMethodWithoutReferences
 	
@@ -2436,12 +2603,12 @@ test106CanMoveMethodWhenReferencesTwoInstanceVariableForWriting
 	self assert: 'iv3: anObject', String newLineString, String tab, '^iv3 := anObject.' equals: (sourceClass sourceCodeAt: #iv3:).
 	self assert: 'iv4: anObject', String newLineString, String tab, '^iv4 := anObject.' equals: (sourceClass sourceCodeAt: #iv4:).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 2/27/2025 23:41:08'!
 test107CanMoveMethodWhenReferencesInstanceVariableAnd2Params
 	
 	| sourceClass targetClass refactoring |
 	
-	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv3 iv4'.
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1 iv2 iv3 iv4'.
 	targetClass := self createClassNamed: #TargetClass.
 	sourceClass compile: 'initializeIv1 iv1 := TargetClass new.' .
 	sourceClass compile: 'm1: anInt param: anInt2 ^iv2 := anInt + anInt2 + iv2.' .
@@ -3826,7 +3993,7 @@ test506CanMoveMethodWithInstVarUsingLastParameterAsAccessThrougVariable
 	^aTargetClass m1: arg1 withObject: self.' equals: (sourceClass sourceCodeAt: #m1:m2:).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 1/23/2025 01:48:10'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 2/27/2025 23:42:56'!
 test600CanMoveMethodUsingClassVarAsAccessThrougVariable
 	
 	| sourceClass targetClass refactoring |
@@ -3838,8 +4005,8 @@ test600CanMoveMethodUsingClassVarAsAccessThrougVariable
 		classVariableNames: 'CLASSVAR'
 		poolDictionaries: ''
 		category: self classCategoryOfTestData.
-	sourceClass compile: 'initializeCLASSVAR CLASSVAR := TargetClass new.' .
 	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeCLASSVAR CLASSVAR := TargetClass new.' .
 	sourceClass compile: 'm1 ^1' .
 	
 	
@@ -3856,7 +4023,7 @@ test600CanMoveMethodUsingClassVarAsAccessThrougVariable
 	^CLASSVAR m1.' equals: (sourceClass sourceCodeAt: #m1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 1/24/2025 01:52:34'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 2/27/2025 23:43:16'!
 test601CanMoveMethodWithClassVarUsingClassVarAsAccessThrougVariable
 	
 	| sourceClass targetClass refactoring |
@@ -3868,8 +4035,8 @@ test601CanMoveMethodWithClassVarUsingClassVarAsAccessThrougVariable
 		classVariableNames: 'CLASSVAR'
 		poolDictionaries: ''
 		category: self classCategoryOfTestData.
-	sourceClass compile: 'initializeCLASSVAR CLASSVAR := TargetClass new.' .
 	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'initializeCLASSVAR CLASSVAR := TargetClass new.' .
 	sourceClass compile: 'm1 ^CLASSVAR' .
 	
 	
@@ -3884,6 +4051,28 @@ test601CanMoveMethodWithClassVarUsingClassVarAsAccessThrougVariable
 	self assert: 'm1 ^self' equals: (targetClass sourceCodeAt: #m1).
 	self assert: 'm1
 	^CLASSVAR m1.' equals: (sourceClass sourceCodeAt: #m1).
+	! !
+
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 2/26/2025 00:19:07'!
+test700CanMoveInstanceMethodToClass
+	
+	| sourceClass targetClass refactoring |
+	
+	sourceClass := self createClassNamed: #SourceClass instanceVariableNames: 'iv1'.
+	targetClass := self createClassNamed: #TargetClass.
+	sourceClass compile: 'm1 ^1' .
+	
+	
+	refactoring := MoveMethodRefactoring 
+					methodNamed: #m1
+					from: sourceClass 
+					toClass: targetClass 
+					parameterNeeded: (NonExtraParameterNameNeeded new).
+	refactoring apply.
+	
+	self assert: 'm1 ^1' equals: (targetClass sourceCodeAt: #m1).
+	self assert: 'm1
+	^TargetClass m1.' equals: (sourceClass sourceCodeAt: #m1).
 	! !
 
 !BrowserWindow methodsFor: '*MoveMethodRefactoring' stamp: 'mc 4/28/2024 20:29:11'!
