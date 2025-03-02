@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #7044] on 2 March 2025 at 7:36:27 pm'!
+'From Cuis7.3 [latest update: #7044] on 2 March 2025 at 8:28:18 pm'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 131!
+!provides: 'MoveMethodRefactoring' 1 132!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -3681,7 +3681,7 @@ test303AfterMovingMethodWhichReferencesAClassShouldKeepTheClassAndResolveDepende
 	self assert: 'm1
 	^iv1 m1: self.' equals: (sourceClass sourceCodeAt: #m1)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:03'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 3/2/2025 20:19:24'!
 test304CanMoveClassMethodWithoutDependencies
 	
 	| sourceClass targetClass refactoring |
@@ -3691,9 +3691,9 @@ test304CanMoveClassMethodWithoutDependencies
 	sourceClass class compile: 'm1 ^1.'.
 	
 	refactoring := MoveMethodRefactoring 
-		classMethodNamed: #m1 
-		from: sourceClass 
-		to: targetClass
+		methodNamed: #m1 
+		from: sourceClass class 
+		toClass: targetClass
 		parameterNeeded: NonExtraParameterNameNeeded new.
 	refactoring apply.
 	
@@ -3701,7 +3701,7 @@ test304CanMoveClassMethodWithoutDependencies
 	self assert: 'm1
 	^TargetClass m1.' equals: (sourceClass class sourceCodeAt: #m1)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:03'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 3/2/2025 20:22:07'!
 test305CanMoveClassMethodWithSelfAndClassReferenceDependencies
 	
 	| sourceClass targetClass refactoring |
@@ -3713,9 +3713,9 @@ test305CanMoveClassMethodWithSelfAndClassReferenceDependencies
 	^SmallInteger.'.
 	
 	refactoring := MoveMethodRefactoring 
-		classMethodNamed: #m1 
-		from: sourceClass 
-		to: targetClass
+		methodNamed: #m1 
+		from: sourceClass class 
+		toClass: targetClass
 		parameterNeeded: (ExtraParameterNameNeeded parameterName: 'aSourceClassClass').
 	refactoring apply.
 	
@@ -3725,7 +3725,7 @@ test305CanMoveClassMethodWithSelfAndClassReferenceDependencies
 	self assert: 'm1
 	^TargetClass m1: self.' equals: (sourceClass class sourceCodeAt: #m1)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 3/2/2025 20:23:06'!
 test305CanMoveClassMethodWithSelfDependencies
 	
 	| sourceClass targetClass refactoring |
@@ -3735,9 +3735,9 @@ test305CanMoveClassMethodWithSelfDependencies
 	sourceClass class compile: 'm1 ^self new.'.
 	
 	refactoring := MoveMethodRefactoring 
-		classMethodNamed: #m1 
-		from: sourceClass 
-		to: targetClass
+		methodNamed: #m1 
+		from: sourceClass class
+		toClass: targetClass
 		parameterNeeded: (ExtraParameterNameNeeded parameterName: 'aSourceClassClass').
 	refactoring apply.
 	
@@ -3745,7 +3745,7 @@ test305CanMoveClassMethodWithSelfDependencies
 	self assert: 'm1
 	^TargetClass m1: self.' equals: (sourceClass class sourceCodeAt: #m1)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:03'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 3/2/2025 20:23:39'!
 test306CanMoveClassMethodWithSuperUnaryDependencies
 	
 	| sourceClass targetClass refactoring |
@@ -3755,9 +3755,9 @@ test306CanMoveClassMethodWithSuperUnaryDependencies
 	sourceClass class compile: 'm1 ^super new.'.
 	
 	refactoring := MoveMethodRefactoring 
-		classMethodNamed: #m1 
-		from: sourceClass 
-		to: targetClass
+		methodNamed: #m1 
+		from: sourceClass class
+		toClass: targetClass
 		parameterNeeded: (ExtraParameterNameNeeded parameterName: 'aSourceClassClass').
 	refactoring apply.
 	
@@ -3767,7 +3767,7 @@ test306CanMoveClassMethodWithSuperUnaryDependencies
 	self assert: 'CHANGE_ME_super_new
 	^super new.' equals: (sourceClass class sourceCodeAt: #CHANGE_ME_super_new).! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 3/2/2025 20:24:09'!
 test307CanMoveClassMethodWithInstVarReadDependencies
 	
 	| sourceClass targetClass refactoring |
@@ -3779,9 +3779,9 @@ test307CanMoveClassMethodWithInstVarReadDependencies
 	sourceClass class compile: 'm1 ^iv3 + 1.'.
 	
 	refactoring := MoveMethodRefactoring 
-		classMethodNamed: #m1
-		from: sourceClass 
-		to: targetClass
+		methodNamed: #m1
+		from: sourceClass class
+		toClass: targetClass
 		parameterNeeded: (ExtraParameterNameNeeded parameterName: 'aSourceClassClass').
 	refactoring apply.
 
@@ -3790,7 +3790,7 @@ test307CanMoveClassMethodWithInstVarReadDependencies
 	self assert: 'm1
 	^TargetClass m1: self.' equals: (sourceClass class sourceCodeAt: #m1)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:03'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 3/2/2025 20:24:29'!
 test308CanMoveClassMethodWithInstVarWriteDependencies
 	
 	| sourceClass targetClass refactoring |
@@ -3802,9 +3802,9 @@ test308CanMoveClassMethodWithInstVarWriteDependencies
 	sourceClass class compile: 'm1 ^iv3 := 1.'.
 	
 	refactoring := MoveMethodRefactoring 
-		classMethodNamed: #m1
-		from: sourceClass 
-		to: targetClass
+		methodNamed: #m1
+		from: sourceClass class
+		toClass: targetClass
 		parameterNeeded: (ExtraParameterNameNeeded parameterName: 'aSourceClassClass').
 	refactoring apply.
 
@@ -3813,7 +3813,7 @@ test308CanMoveClassMethodWithInstVarWriteDependencies
 	self assert: 'm1
 	^TargetClass m1: self.' equals: (sourceClass class sourceCodeAt: #m1)! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 3/2/2025 20:25:20'!
 test309CanMoveClassMethodWithSuperKeywordDependencies
 	
 	| sourceClass targetClass refactoring sourceSuperClass |
@@ -3823,9 +3823,9 @@ test309CanMoveClassMethodWithSuperKeywordDependencies
 	sourceClass class compile: 'm1 ^super increment: 1.'.
 	
 	refactoring := MoveMethodRefactoring 
-		classMethodNamed: #m1
-		from: sourceClass 
-		to: targetClass
+		methodNamed: #m1
+		from: sourceClass class
+		toClass: targetClass
 		parameterNeeded: (ExtraParameterNameNeeded parameterName: 'aSourceClassClass').
 	refactoring apply.
 
@@ -3836,7 +3836,7 @@ test309CanMoveClassMethodWithSuperKeywordDependencies
 	^super increment: arg1.' equals: (sourceClass class sourceCodeAt: #CHANGE_ME_super_increment:).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 3/2/2025 20:25:38'!
 test310CanMoveClassMethodWithClassReferenceDependencies
 	
 	| sourceClass targetClass refactoring sourceSuperClass |
@@ -3847,9 +3847,9 @@ test310CanMoveClassMethodWithClassReferenceDependencies
 	targetClass class compile: 'onePlusOne ^1+1.'.	
 	
 	refactoring := MoveMethodRefactoring 
-		classMethodNamed: #m1
-		from: sourceClass 
-		to: targetClass
+		methodNamed: #m1
+		from: sourceClass class
+		toClass: targetClass
 		parameterNeeded: (NonExtraParameterNameNeeded new).
 	refactoring apply.
 
@@ -3858,7 +3858,7 @@ test310CanMoveClassMethodWithClassReferenceDependencies
 	^TargetClass m1.' equals: (sourceClass class sourceCodeAt: #m1).
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodRefactoringTest methodsFor: 'tests' stamp: 'mc 3/2/2025 20:25:58'!
 test311CanMoveClassMethodWithClassVarDependencies
 	
 	| sourceClass targetClass refactoring |
@@ -3869,9 +3869,9 @@ test311CanMoveClassMethodWithClassVarDependencies
 	targetClass class compile: 'onePlusOne ^1+1.'.	
 	
 	refactoring := MoveMethodRefactoring 
-		classMethodNamed: #m1
-		from: sourceClass 
-		to: targetClass
+		methodNamed: #m1
+		from: sourceClass class
+		toClass: targetClass
 		parameterNeeded: (ExtraParameterNameNeeded parameterName: 'aSourceClass').
 	refactoring apply.
 
