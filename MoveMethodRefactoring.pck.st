@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #7044] on 3 March 2025 at 5:03:13 pm'!
+'From Cuis7.3 [latest update: #7044] on 3 March 2025 at 6:03:43 pm'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 134!
+!provides: 'MoveMethodRefactoring' 1 135!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -272,19 +272,18 @@ visitMessageNode: aMessageNode
 		ifFalse:[ super visitMessageNode: aMessageNode ].
 	! !
 
-!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 12/31/2024 19:09:09'!
+!CodeForNodeToMove methodsFor: 'visiting' stamp: 'mc 3/3/2025 17:41:41'!
 visitMethodNode: aMethodNode 
 	| assoc |
 	"moving to a parameter should change selector"
 	(methodNode argumentNames includes: variableToAccesThrough) 
 	ifTrue: [
 		assoc := parameterNeeded associationToModifySelectorAndArgumentsOn: methodNode withParameter: variableToAccesThrough.
-		self registerInterval: assoc key withModification: assoc value .	
 		]
 	ifFalse: [
-		parameterNeeded associationToModifySelectorAndArgumentsOn: methodNode addOn: intervalsToModify.
+		assoc :=  parameterNeeded associationToModifySelectorAndArgumentsOn: methodNode .
 		].
-	
+	self registerInterval: assoc key withModification: assoc value .
 	^super visitMethodNode: aMethodNode 
 
 
@@ -617,15 +616,10 @@ visitLiteralVariableNode: aLiteralVariableNode
 visitVariableNode: aVariableNode 
 	needParameterName := true.! !
 
-!NeedParameterName methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:03'!
-initializeWith: aCompiledMethod 
+!NeedParameterName methodsFor: 'initialization' stamp: 'mc 3/3/2025 17:07:45'!
+initializeWith: aCompiledMethod newAccessingThrough: instanceVariable 
 	needParameterName := false.
 	compiledMethod := aCompiledMethod.
-	! !
-
-!NeedParameterName methodsFor: 'initialization' stamp: 'mc 3/3/2025 17:01:03'!
-initializeWith: aCompiledMethod newAccessingThrough: instanceVariable 
-	self initializeWith: aCompiledMethod.
 	instanceVariableNameToAccessThrough := instanceVariable.! !
 
 !NeedParameterName methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:03'!
@@ -677,8 +671,8 @@ assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: 
 
 	self subclassResponsibility! !
 
-!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 7/14/2024 02:17:02'!
-associationToModifySelectorAndArgumentsOn: aCompiledMethod addOn: aCollection
+!MoveMethodExtraParameterName methodsFor: 'accessing' stamp: 'mc 3/3/2025 17:41:41'!
+associationToModifySelectorAndArgumentsOn: aCompiledMethod 
 
 	self subclassResponsibility! !
 
@@ -728,11 +722,10 @@ assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: 
 	
 	(targetClass allSelectors includes: newSelector) ifTrue: [Refactoring refactoringWarning: (MoveMethodRefactoring method: newSelector IsGoingToOverrideWarningMessageOn: targetClass )].! !
 
-!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/29/2024 17:08:23'!
-associationToModifySelectorAndArgumentsOn: aMethodNode addOn: aCollection  
-	| assoc |
-	assoc := (1 to: aMethodNode selectorLastPosition ) -> (aMethodNode selectorAndArgumentsAsString, ': ', parameterName).
-	aCollection add: assoc.! !
+!ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 3/3/2025 17:45:43'!
+associationToModifySelectorAndArgumentsOn: aMethodNode   
+	
+	^(1 to: aMethodNode selectorLastPosition ) -> (aMethodNode selectorAndArgumentsAsString, ': ', parameterName).! !
 
 !ExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/31/2024 18:41:58'!
 associationToModifySelectorAndArgumentsOn: aMethodNode withParameter: parameterInMethod 
@@ -797,11 +790,10 @@ assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: 
 			].
 	! !
 
-!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 12/29/2024 17:08:42'!
-associationToModifySelectorAndArgumentsOn: aMethodNode addOn: aCollection  
-	| assoc |
-	assoc := (1 to: aMethodNode selectorLastPosition ) -> (aMethodNode selectorAndArgumentsAsString, ' ', extraKeyword , ': ',  parameterName).
-	aCollection add: assoc! !
+!ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 3/3/2025 17:46:03'!
+associationToModifySelectorAndArgumentsOn: aMethodNode   
+	
+	^(1 to: aMethodNode selectorLastPosition ) -> (aMethodNode selectorAndArgumentsAsString, ' ', extraKeyword , ': ',  parameterName).! !
 
 !ExtraParameterNameNeededAndExtraKeyword methodsFor: 'accessing' stamp: 'mc 12/29/2024 17:09:02'!
 associationToModifySelectorAndArgumentsOn: aMethodNode withParameter: parameterInCompiledMethod  
@@ -868,9 +860,10 @@ assertIfCanMove: methodName from: sourceClass to: targetClass accessingThrough: 
 			]
 ! !
 
-!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/29/2024 17:10:07'!
-associationToModifySelectorAndArgumentsOn: aMethodNode addOn: aCollection 
-	! !
+!NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 3/3/2025 17:47:13'!
+associationToModifySelectorAndArgumentsOn: aMethodNode
+	
+	^(1 to: aMethodNode selectorLastPosition ) -> aMethodNode selectorAndArgumentsAsString.! !
 
 !NonExtraParameterNameNeeded methodsFor: 'accessing' stamp: 'mc 12/31/2024 19:04:28'!
 associationToModifySelectorAndArgumentsOn: aMethodNode withParameter: parameterInCompiledMethod  
