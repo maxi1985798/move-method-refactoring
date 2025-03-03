@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #7044] on 3 March 2025 at 4:54:34 pm'!
+'From Cuis7.3 [latest update: #7044] on 3 March 2025 at 5:03:13 pm'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 133!
+!provides: 'MoveMethodRefactoring' 1 134!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -36,22 +36,12 @@ MethodWorksAsGetterVisitor class
 
 !classDefinition: #NeedParameterName category: #MoveMethodRefactoring!
 ParseNodeVisitor subclass: #NeedParameterName
-	instanceVariableNames: 'needParameterName methodNode compiledMethod'
+	instanceVariableNames: 'needParameterName methodNode compiledMethod instanceVariableNameToAccessThrough'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'NeedParameterName class' category: #MoveMethodRefactoring!
 NeedParameterName class
-	instanceVariableNames: ''!
-
-!classDefinition: #NeedParameterNameForInstanceMethod category: #MoveMethodRefactoring!
-NeedParameterName subclass: #NeedParameterNameForInstanceMethod
-	instanceVariableNames: 'instanceVariableNameToAccessThrough'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'MoveMethodRefactoring'!
-!classDefinition: 'NeedParameterNameForInstanceMethod class' category: #MoveMethodRefactoring!
-NeedParameterNameForInstanceMethod class
 	instanceVariableNames: ''!
 
 !classDefinition: #CodeForNodeToMoveResult category: #MoveMethodRefactoring!
@@ -608,10 +598,20 @@ value
 	methodNode accept: self.
 	^self needParameterName ! !
 
-!NeedParameterName methodsFor: 'visiting' stamp: 'mc 7/14/2024 02:17:03'!
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 3/3/2025 17:00:59'!
+isClassVarDifferentFromAccessThroughVariable: aLiteralVariableNode
+
+	^ (aLiteralVariableNode isReferencingClassVariable and:[ aLiteralVariableNode name = instanceVariableNameToAccessThrough ]) not! !
+
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 3/3/2025 17:00:26'!
+visitInstanceVariableNode: anInstanceVariableNode 
+	
+	needParameterName := needParameterName or: [instanceVariableNameToAccessThrough ~= anInstanceVariableNode name].! !
+
+!NeedParameterName methodsFor: 'visiting' stamp: 'mc 3/3/2025 17:00:17'!
 visitLiteralVariableNode: aLiteralVariableNode 
 
-	needParameterName := needParameterName or: [aLiteralVariableNode  isReferencingGlobal not].! !
+	needParameterName := needParameterName or: [aLiteralVariableNode  isReferencingGlobal not and: [ self isClassVarDifferentFromAccessThroughVariable: aLiteralVariableNode]].! !
 
 !NeedParameterName methodsFor: 'visiting' stamp: 'mc 7/14/2024 02:17:03'!
 visitVariableNode: aVariableNode 
@@ -623,31 +623,16 @@ initializeWith: aCompiledMethod
 	compiledMethod := aCompiledMethod.
 	! !
 
-!NeedParameterName methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:03'!
-needParameterName
-	^needParameterName! !
-
-!NeedParameterNameForInstanceMethod methodsFor: 'visiting' stamp: 'mc 1/25/2025 03:07:40'!
-isClassVarDifferentFromAccessThroughVariable: aLiteralVariableNode
-
-	^ (aLiteralVariableNode isReferencingClassVariable and:[ aLiteralVariableNode name = instanceVariableNameToAccessThrough ]) not! !
-
-!NeedParameterNameForInstanceMethod methodsFor: 'visiting' stamp: 'mc 7/14/2024 02:17:03'!
-visitInstanceVariableNode: anInstanceVariableNode 
-	
-	needParameterName := needParameterName or: [instanceVariableNameToAccessThrough ~= anInstanceVariableNode name].! !
-
-!NeedParameterNameForInstanceMethod methodsFor: 'visiting' stamp: 'mc 1/25/2025 03:07:40'!
-visitLiteralVariableNode: aLiteralVariableNode 
-
-	needParameterName := needParameterName or: [aLiteralVariableNode  isReferencingGlobal not and: [ self isClassVarDifferentFromAccessThroughVariable: aLiteralVariableNode]].! !
-
-!NeedParameterNameForInstanceMethod methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:03'!
+!NeedParameterName methodsFor: 'initialization' stamp: 'mc 3/3/2025 17:01:03'!
 initializeWith: aCompiledMethod newAccessingThrough: instanceVariable 
 	self initializeWith: aCompiledMethod.
 	instanceVariableNameToAccessThrough := instanceVariable.! !
 
-!NeedParameterNameForInstanceMethod class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:03'!
+!NeedParameterName methodsFor: 'private' stamp: 'mc 7/14/2024 02:17:03'!
+needParameterName
+	^needParameterName! !
+
+!NeedParameterName class methodsFor: 'instance creation' stamp: 'mc 3/3/2025 17:01:44'!
 for: compiledMethod newAccessingThrough: instanceVariable 
 	
 	^self new initializeWith: compiledMethod newAccessingThrough: instanceVariable ! !
@@ -1103,11 +1088,11 @@ existsAssignationOf: accessThroughVariable inHierarchyOf: sourceClass
 	].
 	^existsAssignation.! !
 
-!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodRefactoring class methodsFor: 'testing' stamp: 'mc 3/3/2025 17:01:29'!
 needParameterNameToMove: methodName from: sourceClass accessingThrough: instanceVariable 
 	| compiledMethod needParameterNameVisitor |
 	compiledMethod := sourceClass compiledMethodAt: methodName.
-	needParameterNameVisitor := NeedParameterNameForInstanceMethod for: compiledMethod newAccessingThrough: instanceVariable .
+	needParameterNameVisitor := NeedParameterName for: compiledMethod newAccessingThrough: instanceVariable .
 	^needParameterNameVisitor value! !
 
 !MoveMethodApplier methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:02'!
