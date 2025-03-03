@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #7044] on 3 March 2025 at 6:03:43 pm'!
+'From Cuis7.3 [latest update: #7044] on 3 March 2025 at 6:24:58 pm'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 135!
+!provides: 'MoveMethodRefactoring' 1 136!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -106,7 +106,7 @@ MoveMethodMenu class
 
 !classDefinition: #MoveMethodRefactoring category: #MoveMethodRefactoring!
 TransferMethod subclass: #MoveMethodRefactoring
-	instanceVariableNames: 'methodName sourceClass targetClass instanceVariableToAccessTarget parameterNeeded compiledMethodToMove resultAfterReplaceDependencies messageSendForDelegation codeForDelegation methodNodeToMove'
+	instanceVariableNames: 'methodName sourceClass targetClass variableToAccessTarget parameterNeeded compiledMethodToMove resultAfterReplaceDependencies messageSendForDelegation codeForDelegation methodNodeToMove'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'MoveMethodRefactoring'!
@@ -920,12 +920,12 @@ initialize
 	BrowserWindow at: #SmalltalkEditor registerMenuAndShortcutsSpecProvider:
 		(MessageSend receiver: MoveMethodMenu selector: #smalltalkEditorMenuSpec).! !
 
-!MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:02'!
-initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: anInstanceVariable parameterNeeded: anExtraParameterNeeded 
+!MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 3/3/2025 18:12:49'!
+initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: aVariableToAccessTarget parameterNeeded: anExtraParameterNeeded 
 	methodName := aMethodName.
 	sourceClass := aSourceClass.
 	targetClass := aTargetClass.
-	instanceVariableToAccessTarget := anInstanceVariable.
+	variableToAccessTarget := aVariableToAccessTarget.
 	parameterNeeded := anExtraParameterNeeded ! !
 
 !MoveMethodRefactoring methodsFor: 'applying' stamp: 'mc 11/7/2024 23:34:43'!
@@ -953,29 +953,29 @@ findMethodToMove
 	compiledMethodToMove := sourceClass methodDict at: methodName.
 	methodNodeToMove := compiledMethodToMove methodNode.! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 1/21/2025 02:32:53'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 3/3/2025 18:12:49'!
 replaceDependenciesOnMethodToMove
 	| replacer methodNode |
 	
 	methodNode := methodNodeToMove.
 	replacer := CodeForNodeToMove 
 		methodNode: methodNode
-		variableToAcessThrough: instanceVariableToAccessTarget 
+		variableToAcessThrough: variableToAccessTarget 
 		onNode: methodNode
 		parameterNeeded: parameterNeeded
 		targetClass: targetClass .
 	resultAfterReplaceDependencies := replacer value.! !
 
-!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 3/3/2025 14:21:52'!
+!MoveMethodRefactoring methodsFor: 'private' stamp: 'mc 3/3/2025 18:13:46'!
 replaceMethodForDelegation
 	
-	(methodNodeToMove argumentNames includes: instanceVariableToAccessTarget)
-		ifFalse: [messageSendForDelegation := parameterNeeded newSenderFor: methodNodeToMove.	]
-		ifTrue: [messageSendForDelegation := parameterNeeded newSenderFor: methodNodeToMove usingParameter: instanceVariableToAccessTarget.].
+	(methodNodeToMove argumentNames includes: variableToAccessTarget)
+		ifFalse: [messageSendForDelegation := parameterNeeded newSenderFor: methodNodeToMove.]
+		ifTrue: [messageSendForDelegation := parameterNeeded newSenderFor: methodNodeToMove usingParameter: variableToAccessTarget.].
 	codeForDelegation := methodNodeToMove selectorAndArgumentsAsString, String newLineString, String tab, '^'.
 	
-	instanceVariableToAccessTarget isNil ifTrue: [ instanceVariableToAccessTarget := targetClass soleInstance name ].
-	codeForDelegation := codeForDelegation, instanceVariableToAccessTarget, ' ', messageSendForDelegation, '.'.
+	variableToAccessTarget isNil ifTrue: [ variableToAccessTarget := targetClass soleInstance name ].
+	codeForDelegation := codeForDelegation, variableToAccessTarget, ' ', messageSendForDelegation, '.'.
 	sourceClass compile: codeForDelegation				! !
 
 !MoveMethodRefactoring class methodsFor: 'instance creation' stamp: 'mc 3/2/2025 17:39:53'!
