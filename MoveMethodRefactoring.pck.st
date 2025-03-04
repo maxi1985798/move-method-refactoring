@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #7044] on 3 March 2025 at 6:24:58 pm'!
+'From Cuis7.3 [latest update: #7044] on 4 March 2025 at 3:49:58 pm'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 136!
+!provides: 'MoveMethodRefactoring' 1 137!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -1407,8 +1407,8 @@ test007SelectorShouldNotBeNil
 		 ] 
 		failsWith: [MoveMethodRefactoring methodShouldNotBeNilErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/2/2025 18:27:21'!
-test009InstanceVariableToAccessingThroughShouldExistsInSourceClass
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:45:48'!
+test008InstanceVariableToAccessingThroughShouldExistsInSourceClass
 	
 	| sourceClass targetClass |
 	
@@ -1429,8 +1429,8 @@ test009InstanceVariableToAccessingThroughShouldExistsInSourceClass
 		failsWith: [
 			MoveMethodRefactoring instanceVariableToAccessingThroughShouldExistsInSourceClassErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/2/2025 18:27:26'!
-test010NameForANewParameterShouldBeProvidedIfNeeded
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:46:00'!
+test009NameForANewParameterShouldBeProvidedIfNeeded
 	
 	| sourceClass targetClass |
 	
@@ -1451,8 +1451,8 @@ test010NameForANewParameterShouldBeProvidedIfNeeded
 		failsWith: [
 			MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 7/14/2024 02:17:03'!
-test011NameForANewParameterKeywordShouldBeProvidedIfNeeded
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:46:06'!
+test010NameForANewParameterKeywordShouldBeProvidedIfNeeded
 	
 	| sourceClass targetClass |
 	
@@ -1473,8 +1473,8 @@ test011NameForANewParameterKeywordShouldBeProvidedIfNeeded
 		failsWith: [
 			MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/2/2025 18:27:41'!
-test012NeedNameForNewParameterWhenClassVariable
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:46:13'!
+test011NeedNameForNewParameterWhenClassVariable
 	
 	| sourceClass targetClass |
 	
@@ -1494,8 +1494,8 @@ test012NeedNameForNewParameterWhenClassVariable
 			MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/2/2025 18:27:51'!
-test013NeedNameForNewParameterWhenInstanceVariable
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:46:18'!
+test012NeedNameForNewParameterWhenInstanceVariable
 	
 	| sourceClass targetClass |
 	
@@ -1516,8 +1516,8 @@ test013NeedNameForNewParameterWhenInstanceVariable
 			MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/2/2025 18:28:00'!
-test014NeedNameForNewParameterWhenSelfReference
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:46:23'!
+test013NeedNameForNewParameterWhenSelfReference
 	
 	| sourceClass targetClass |
 	
@@ -1538,8 +1538,8 @@ test014NeedNameForNewParameterWhenSelfReference
 			MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/2/2025 18:28:10'!
-test015NeedNameForNewParameterWhenSuperReference
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:46:28'!
+test014NeedNameForNewParameterWhenSuperReference
 	
 	| sourceClass targetClass |
 	
@@ -1560,8 +1560,8 @@ test015NeedNameForNewParameterWhenSuperReference
 			MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 7/14/2024 02:17:02'!
-test016ShouldNotPassNameForNewParameterWhenIsNotNeeded
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:46:33'!
+test015ShouldNotPassNameForNewParameterWhenIsNotNeeded
 	
 	| sourceClass targetClass |
 	
@@ -1583,8 +1583,8 @@ test016ShouldNotPassNameForNewParameterWhenIsNotNeeded
 			MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 7/14/2024 02:17:02'!
-test017ShouldNotPassNameForNewParameterWhenIsNotNeeded
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:46:39'!
+test016ShouldNotPassNameForNewParameterWhenIsNotNeeded
 	
 	| sourceClass targetClass |
 	
@@ -1607,8 +1607,8 @@ test017ShouldNotPassNameForNewParameterWhenIsNotNeeded
 			MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage].
 ! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 7/14/2024 02:17:02'!
-test018InstanceVariableToAccessingThroughShouldHaveAtLeastOneAssignation
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:46:47'!
+test017InstanceVariableToAccessingThroughShouldHaveAtLeastOneAssignation
 	
 	| sourceClass targetClass |
 	
@@ -1629,8 +1629,8 @@ test018InstanceVariableToAccessingThroughShouldHaveAtLeastOneAssignation
 		withMessageText: [MoveMethodRefactoring instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: 'iv1'].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 8/8/2024 23:46:53'!
-test031SelectorShouldNotExistsOnTargetSuperClass
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:46:54'!
+test018SelectorShouldNotExistsOnTargetSuperClass
 	
 	| sourceClass targetClass targetSuperClass |
 	
@@ -1652,8 +1652,8 @@ test031SelectorShouldNotExistsOnTargetSuperClass
 		raise: self refactoringWarning 
 		withMessageText: [MoveMethodRefactoring method: #m1 IsGoingToOverrideWarningMessageOn: targetClass].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 8/9/2024 00:18:21'!
-test032SelectorWithNewParameterShouldNotExistsOnTargetSuperClass
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:47:00'!
+test019SelectorWithNewParameterShouldNotExistsOnTargetSuperClass
 	
 	| sourceClass targetClass targetSuperClass |
 	
@@ -1676,8 +1676,8 @@ test032SelectorWithNewParameterShouldNotExistsOnTargetSuperClass
 		raise: self refactoringWarning 
 		withMessageText: [MoveMethodRefactoring method: #m1: IsGoingToOverrideWarningMessageOn: targetClass].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 8/9/2024 00:18:29'!
-test033SelectorWithNewParameterAndKeywordShouldNotExistsOnTargetSuperClass
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:47:06'!
+test020SelectorWithNewParameterAndKeywordShouldNotExistsOnTargetSuperClass
 	
 	| sourceClass targetClass targetSuperClass |
 	
@@ -1699,8 +1699,8 @@ test033SelectorWithNewParameterAndKeywordShouldNotExistsOnTargetSuperClass
 		raise: self refactoringWarning 
 		withMessageText: [MoveMethodRefactoring method: #m1:originalObject: IsGoingToOverrideWarningMessageOn: targetClass].! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/5/2024 01:53:33'!
-test040WheDestinationIsParameterShouldNotPassNameForNewParameterWhenIsNotNeeded
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:47:12'!
+test021WheDestinationIsParameterShouldNotPassNameForNewParameterWhenIsNotNeeded
 	
 	| sourceClass targetClass |
 	
@@ -1719,8 +1719,8 @@ test040WheDestinationIsParameterShouldNotPassNameForNewParameterWhenIsNotNeeded
 		failsWith: [MoveMethodRefactoring nameForNewParameterKeywordShouldNotBeProvidedClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/6/2024 00:19:46'!
-test041WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetClass
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:47:20'!
+test022WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetClass
 	
 	| sourceClass targetClass |
 	
@@ -1743,8 +1743,8 @@ test041WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetClass
 			MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/17/2024 01:35:11'!
-test042WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetClass
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:48:07'!
+test023WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetClass
 	
 	| sourceClass targetClass |
 	
@@ -1767,8 +1767,8 @@ test042WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetClass
 			MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/17/2024 02:07:20'!
-test042WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetClass_2
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:48:12'!
+test024WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetClass_2
 	
 	| sourceClass targetClass |
 	
@@ -1791,8 +1791,8 @@ test042WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetClass_2
 			MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/14/2024 23:42:38'!
-test042WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetSuperClass
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:48:17'!
+test025WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetSuperClass
 	
 	| sourceClass targetClass targetSuperClass |
 	
@@ -1817,8 +1817,8 @@ test042WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetSuperClass
 			MoveMethodRefactoring method: #m1:withParam: IsGoingToOverrideWarningMessageOn: targetClass].
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 12/17/2024 02:23:41'!
-test042WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetSuperClass_2
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:48:23'!
+test026WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetSuperClass_2
 	
 	| sourceClass targetClass targetSuperClass |
 	
@@ -1843,8 +1843,8 @@ test042WhenDestinationIsParameterNewSelectorShouldNotExistOnTargetSuperClass_2
 			MoveMethodRefactoring method: #m1: IsGoingToOverrideWarningMessageOn: targetClass].
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/17/2025 12:18:54'!
-test043ClassVariableToAccessingThroughShouldHaveAtLeastOneAssignation
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:48:30'!
+test027ClassVariableToAccessingThroughShouldHaveAtLeastOneAssignation
 	
 	| sourceClass targetClass |
 	
@@ -1870,8 +1870,8 @@ test043ClassVariableToAccessingThroughShouldHaveAtLeastOneAssignation
 		withMessageText: [MoveMethodRefactoring instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: 'CLASSVAR'].
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/18/2025 02:03:57'!
-test043ClassVariableToAccessingThroughShouldHaveAtLeastOneAssignation2
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:48:35'!
+test028ClassVariableToAccessingThroughShouldHaveAtLeastOneAssignation2
 	
 	| sourceClass targetClass |
 	
@@ -1897,8 +1897,8 @@ test043ClassVariableToAccessingThroughShouldHaveAtLeastOneAssignation2
 		withMessageText: [MoveMethodRefactoring instanceVariableToAccessingThroughShouldHaveAtLeastOneAssignationErrorMessage: 'CLASSVAR'].
 	! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/27/2025 23:23:24'!
-test044ClassMethodToMoveShouldNotBeNil
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:48:40'!
+test029ClassMethodToMoveToClassShouldNotBeNil
 	
 	| sourceClass targetClass |
 	
@@ -1917,8 +1917,8 @@ test044ClassMethodToMoveShouldNotBeNil
 		failsWith: [MoveMethodRefactoring methodShouldNotBeNilErrorMessage].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/27/2025 23:25:11'!
-test044SourceClassShouldNotBeNil
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:48:44'!
+test030SourceClassShouldNotBeNil
 	
 	| sourceClass targetClass |
 	
@@ -1937,8 +1937,8 @@ test044SourceClassShouldNotBeNil
 		failsWith: [MoveMethodRefactoring sourceClassShouldNotBeNilErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/27/2025 23:27:19'!
-test044TargetClassShouldNotBeNil
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:48:51'!
+test031TargetClassShouldNotBeNil
 	
 	| sourceClass targetClass |
 	
@@ -1957,8 +1957,8 @@ test044TargetClassShouldNotBeNil
 		failsWith: [MoveMethodRefactoring targetClassShouldNotBeNilErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/2/2025 17:22:35'!
-test045ClassMethodShouldNotExistsInTarget
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:48:56'!
+test032ClassMethodMovingToClassShouldNotExistsInTarget
 	
 	| sourceClass targetClass |
 	
@@ -1977,8 +1977,8 @@ test045ClassMethodShouldNotExistsInTarget
 		failsWith: [MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/27/2025 23:39:15'!
-test046ClassMethodShouldExistsInSouceClass
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:49:01'!
+test033ClassMethodMovingToClassShouldExistsInSouceClass
 	
 	| sourceClass targetClass |
 	
@@ -1997,8 +1997,8 @@ test046ClassMethodShouldExistsInSouceClass
 		failsWith: [MoveMethodRefactoring methodShouldExistsOnSourceClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 2/28/2025 19:10:39'!
-test047ClassSelectorWithNewParameterShouldNotExistsOnTargetClass
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:49:09'!
+test034MethodMovingToClassWithNewParameterShouldNotExistsOnTargetClass
 	
 	| sourceClass targetClass |
 	
@@ -2018,8 +2018,8 @@ test047ClassSelectorWithNewParameterShouldNotExistsOnTargetClass
 		failsWith: [MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/1/2025 14:32:10'!
-test048ClassSelectorWithNewParameterAndKeywordShouldNotExistsOnTargetClass
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:49:14'!
+test035MethodMovingToClassWithNewParameterAndKeywordShouldNotExistsOnTargetClass
 	
 	| sourceClass targetClass |
 	
@@ -2040,8 +2040,8 @@ test048ClassSelectorWithNewParameterAndKeywordShouldNotExistsOnTargetClass
 		failsWith: [MoveMethodRefactoring methodShouldNotExistsOnTargertClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/2/2025 16:58:55'!
-test049ClassSelectorWithNewParameterAndKeywordShouldNotExistsOnTargetClass
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:49:19'!
+test036MethodMovingToClassWithNewParameterAndKeywordShouldNotExistsOnTargetClass
 	
 	| sourceClass targetClass |
 	
@@ -2061,8 +2061,8 @@ test049ClassSelectorWithNewParameterAndKeywordShouldNotExistsOnTargetClass
 		failsWith: [MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/2/2025 17:10:10'!
-test050NameForANewParameterShouldBeProvidedIfNeeded
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:49:23'!
+test037MethodMovingToClassShouldProvideNameForANewParameter
 	
 	| sourceClass targetClass |
 	
@@ -2081,8 +2081,8 @@ test050NameForANewParameterShouldBeProvidedIfNeeded
 		failsWith: [MoveMethodRefactoring nameForNewParameterShouldBeProvidedClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/2/2025 17:10:57'!
-test051NameForANewParameterKeywordShouldBeProvidedIfNeeded
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:49:29'!
+test038MethodMovingToClassShouldProvideNameForANewParameterKeyword
 	
 	| sourceClass targetClass |
 	
@@ -2102,8 +2102,8 @@ test051NameForANewParameterKeywordShouldBeProvidedIfNeeded
 		failsWith: [MoveMethodRefactoring nameForNewParameterKeywordShouldBeProvidedClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/2/2025 17:11:54'!
-test052ShouldNotPassNameForNewParameterWhenIsNotNeeded
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:49:34'!
+test039ShouldNotPassNameForNewParameterWhenIsNotNeeded
 	
 	| sourceClass targetClass |
 	
@@ -2123,8 +2123,8 @@ test052ShouldNotPassNameForNewParameterWhenIsNotNeeded
 		failsWith: [MoveMethodRefactoring nameForNewParameterShouldNotBeProvidedClassErrorMessage ].
 		! !
 
-!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/2/2025 17:12:52'!
-test053ShouldNotPassNameForNewParameterWhenIsNotNeeded
+!MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/4/2025 15:49:40'!
+test040ShouldNotPassNameForNewParameterWhenIsNotNeeded
 	
 	| sourceClass targetClass |
 	
