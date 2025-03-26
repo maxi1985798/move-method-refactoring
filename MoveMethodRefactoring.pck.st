@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #7044] on 4 March 2025 at 3:49:58 pm'!
+'From Cuis7.3 [latest update: #7092] on 25 March 2025 at 11:05:43 pm'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 137!
+!provides: 'MoveMethodRefactoring' 1 138!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -122,16 +122,6 @@ TransferMethodApplier subclass: #MoveMethodApplier
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'MoveMethodApplier class' category: #MoveMethodRefactoring!
 MoveMethodApplier class
-	instanceVariableNames: ''!
-
-!classDefinition: #MoveMethodWithActualScopeApplier category: #MoveMethodRefactoring!
-MoveMethodApplier subclass: #MoveMethodWithActualScopeApplier
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'MoveMethodRefactoring'!
-!classDefinition: 'MoveMethodWithActualScopeApplier class' category: #MoveMethodRefactoring!
-MoveMethodWithActualScopeApplier class
 	instanceVariableNames: ''!
 
 !classDefinition: #MoveMethodRefactoringTest category: #MoveMethodRefactoring!
@@ -1088,8 +1078,9 @@ needParameterNameToMove: methodName from: sourceClass accessingThrough: instance
 	needParameterNameVisitor := NeedParameterName for: compiledMethod newAccessingThrough: instanceVariable .
 	^needParameterNameVisitor value! !
 
-!MoveMethodApplier methodsFor: 'initialization' stamp: 'mc 7/14/2024 02:17:02'!
-initializeInitializeOn: aModel forMethod: aMethodReference 
+!MoveMethodApplier methodsFor: 'initialization' stamp: 'HAW 3/22/2025 20:44:12'!
+initializeOn: aModel forMethod: aMethodReference
+ 
 	model := aModel.
 	methodReference := aMethodReference.! !
 
@@ -1224,34 +1215,15 @@ selectVariableLabel
 showChanges
 	"nothing to inform"! !
 
-!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
+!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'HAW 3/22/2025 20:43:41'!
 createAndValueHandlingExceptionsOn: aModel forMethod: aMethodReference 
-	self createAndValueHandlingExceptions: [ self initializeOn: aModel forMethod: aMethodReference ].! !
 
-!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
-initialize
-	(Smalltalk classNamed: #LiveTyping) ifNotNil: [
-		RefactoringApplier 
-			registerMoveMethodApplier: MoveMethodWithActualScopeApplier.
-	].
-	! !
+	self createAndValueHandlingExceptions: [ self on: aModel forMethod: aMethodReference ].! !
 
-!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'mc 7/14/2024 02:17:02'!
-initializeOn: aModel forMethod: aMethodReference 
-	^self new initializeInitializeOn: aModel forMethod: aMethodReference ! !
+!MoveMethodApplier class methodsFor: 'instance creation' stamp: 'HAW 3/22/2025 20:43:58'!
+on: aModel forMethod: aMethodReference 
 
-!MoveMethodWithActualScopeApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/14/2024 16:22:32'!
-initialAnswerForInstanceVariable: anAccessingThroughVariableName in: aSourceClass 
-	
-	| liveTypingTypes |
-	"self halt ."
-	sourceClass shouldLiveTypingBeDisabled ifTrue: [^''].
-	accessingThroughVariableName ifNil: [^''].
-	(methodReference methodNode argumentNames includes: accessingThroughVariableName) ifTrue: [^((sourceClass>>methodToMove typeInfoOfVariableNamed: accessingThroughVariableName ifAbsent: [^'']) commonSupertypeIfNoTypes: [^'']) name asString].
-	liveTypingTypes := sourceClass commonSupertypeOfInstanceVariableNamed: accessingThroughVariableName ifNoTypes: [^''].
-	
-	^liveTypingTypes name asString 
-! !
+	^self new initializeOn: aModel forMethod: aMethodReference ! !
 
 !MoveMethodRefactoringTest methodsFor: 'validations' stamp: 'mc 3/2/2025 18:26:02'!
 test001SelectorShouldExistsOnSourceClass
@@ -3851,4 +3823,3 @@ registerMoveMethodApplier: aMoveMethodApplierClass
 	self registerApplierAt: self moveMethodApplierId with: aMoveMethodApplierClass
 ! !
 MoveMethodMenu initialize!
-MoveMethodApplier initialize!
