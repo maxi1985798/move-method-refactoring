@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #7092] on 25 March 2025 at 11:05:43 pm'!
+'From Cuis7.3 [latest update: #7092] on 4 April 2025 at 8:40:10 am'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 138!
+!provides: 'MoveMethodRefactoring' 1 139!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -42,6 +42,16 @@ ParseNodeVisitor subclass: #NeedParameterName
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'NeedParameterName class' category: #MoveMethodRefactoring!
 NeedParameterName class
+	instanceVariableNames: ''!
+
+!classDefinition: #MVCMenuMorphWithSubtitles category: #MoveMethodRefactoring!
+MVCMenuMorph subclass: #MVCMenuMorphWithSubtitles
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'MVCMenuMorphWithSubtitles class' category: #MoveMethodRefactoring!
+MVCMenuMorphWithSubtitles class
 	instanceVariableNames: ''!
 
 !classDefinition: #CodeForNodeToMoveResult category: #MoveMethodRefactoring!
@@ -102,6 +112,16 @@ Object subclass: #MoveMethodMenu
 	category: 'MoveMethodRefactoring'!
 !classDefinition: 'MoveMethodMenu class' category: #MoveMethodRefactoring!
 MoveMethodMenu class
+	instanceVariableNames: ''!
+
+!classDefinition: #SelectionMenuWithSubtitles category: #MoveMethodRefactoring!
+SelectionMenu subclass: #SelectionMenuWithSubtitles
+	instanceVariableNames: 'subtitles'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'MoveMethodRefactoring'!
+!classDefinition: 'SelectionMenuWithSubtitles class' category: #MoveMethodRefactoring!
+SelectionMenuWithSubtitles class
 	instanceVariableNames: ''!
 
 !classDefinition: #MoveMethodRefactoring category: #MoveMethodRefactoring!
@@ -621,6 +641,39 @@ for: compiledMethod newAccessingThrough: instanceVariable
 	
 	^self new initializeWith: compiledMethod newAccessingThrough: instanceVariable ! !
 
+!MVCMenuMorphWithSubtitles class methodsFor: 'nil' stamp: 'mc 4/3/2025 23:50:04'!
+from: aPopupMenu title: titleStringOrNil
+	"Answer a MenuMorph constructed from the given PopUpMenu. Used to simulate MVC-style menus in a Morphic-only world."
+
+	| menu items lines selections labelString labelPlainString j emphasis subtitles |
+	menu := self new.
+	titleStringOrNil ifNotNil: [
+		titleStringOrNil isEmpty ifFalse: [menu addTitle: titleStringOrNil]].
+	labelString := aPopupMenu labelString.
+	labelPlainString := labelString asPlainString.
+	items := labelPlainString lines.
+	(labelString is: #Text) ifTrue: [
+		"Pass along text emphasis if present"
+		j := 1.
+		items := items collect: [ :item |
+			j := labelPlainString findString: item startingAt: j.
+			emphasis := TextEmphasis new emphasisCode: (labelString emphasisAt: j).
+			item asText addAttribute: emphasis]].
+	lines := aPopupMenu lineArray.
+	lines ifNil: [lines := #()].
+	subtitles := aPopupMenu subtitles.
+	menu cancelValue: 0.
+	menu defaultTarget: menu.
+	selections := (1 to: items size) asArray.
+	1 to: items size do: [ :i |
+		(subtitles at: i) 
+			ifTrue: [menu addTitle: (items at: i)]
+			ifFalse: [menu add: (items at: i) target: menu action: #selectMVCItem: argument: (selections at: i) icon: (aPopupMenu iconAt: i).].
+		
+		(lines includes: i) ifTrue: [menu addLine]].
+	^ menu
+! !
+
 !CodeForNodeToMoveResult methodsFor: 'public' stamp: 'mc 12/25/2024 12:51:52'!
 compileInTargetClass
 	^targetClass compile: self sourceCode! !
@@ -910,6 +963,181 @@ initialize
 	BrowserWindow at: #SmalltalkEditor registerMenuAndShortcutsSpecProvider:
 		(MessageSend receiver: MoveMethodMenu selector: #smalltalkEditorMenuSpec).! !
 
+!SelectionMenuWithSubtitles methodsFor: 'as yet unclassified' stamp: 'mc 4/2/2025 22:58:48'!
+subtitles: anOrderedCollection 
+	
+	subtitles := anOrderedCollection! !
+
+!SelectionMenuWithSubtitles methodsFor: 'basic control sequence' stamp: 'mc 4/3/2025 23:50:37'!
+startUpWithCaption: captionOrNil at: location allowKeyboard: aBoolean 
+	"Display the menu, with caption if supplied. Wait for the mouse button to go down, then track the selection as long as the button is pressed. When the button is released,
+	Answer the index of the current selection, or zero if the mouse is not released over  any menu item. Location specifies the desired topLeft of the menu body rectangle. The final argument indicates whether the menu should seize the keyboard focus in order to allow the user to navigate it via the keyboard."
+
+	| maxHeight index |
+	maxHeight := Display height * 3 // 4.
+	self frameHeight > maxHeight 
+		ifTrue: [
+			^self 
+				startUpSegmented: maxHeight
+				withCaption: captionOrNil
+				at: location
+				allowKeyboard: aBoolean].
+	index := (MVCMenuMorphWithSubtitles from: self title: captionOrNil) 
+		invokeAt: location
+		allowKeyboard: aBoolean.
+	selections ifNil: [ ^index ].  "If there are no selections defined, show the super class' behavior."
+	(index between: 1 and: selections size) ifFalse: [ ^nil ].
+	^ selections at: index! !
+
+!SelectionMenuWithSubtitles methodsFor: 'accessing' stamp: 'mc 4/3/2025 02:07:15'!
+subtitles
+
+	^subtitles! !
+
+!SelectionMenuWithSubtitles class methodsFor: 'as yet unclassified' stamp: 'mc 4/3/2025 23:47:37'!
+fromArray: anArray
+	"Construct a menu from anArray.  The elements of anArray must be either:
+	*  A pair of the form: <label> <selector>
+or	*  The 'dash' (or 'minus sign') symbol
+
+	Refer to the example at the bottom of the method"
+
+	| labelList lines selections anIndex subtitles |
+	labelList := OrderedCollection new.
+	lines := OrderedCollection new.
+	selections := OrderedCollection new.
+	subtitles := OrderedCollection new.
+	anIndex := 0.
+	anArray do:
+		[:anElement |
+			anElement size = 1
+				ifTrue:
+					[(anElement == #-) ifFalse: [self error: 'badly-formed menu constructor'].
+					lines add: anIndex]
+				ifFalse:
+					[anElement size = 3 ifFalse: [self error: 'badly-formed menu constructor'].
+					anIndex := anIndex + 1.
+					labelList add: anElement first.
+					selections add: anElement second.
+					subtitles add: anElement third ]].
+	
+	^((self labelArray: labelList lines: lines) selections: selections) subtitles: subtitles
+
+"(SelectionMenu fromArray:
+	#(	('first label'		moja)
+		('second label'	mbili)
+		-
+		('third label' 	tatu)
+		-
+		('fourth label'	nne)
+		('fifth label'	tano))) startUp"! !
+
+!SelectionMenuWithSubtitles class methodsFor: 'as yet unclassified' stamp: 'mc 4/4/2025 00:45:53'!
+intento01
+| selectionMenuWithSubtitles |
+
+selectionMenuWithSubtitles := self fromArray: #(
+	#( 'TestCase inst var...' #asd true)
+	#( 'assertCount' #assertCount false)
+	#( 'failureString' #failureString false)
+	#( 'raisedError' #raisedError false)
+	#( 'testSelector' #testSelector false)
+	#( 'failureString' #failureString false)
+	#( 'BankCustomerTest inst var...' #asd true)
+	#( 'iv1' #iv1 false)
+	#( 'BankCustomerTest class var...' #asd true)
+	#( 'CLASSVAR1' #CLASSVAR1 false)
+	#( 'BankCustomerTest parameter...' #asd true)
+	#( 'aParameter' #aParameter false)
+	#-
+	#( 'To Class / Global object' #ToClassGlobalObject false)
+).
+
+^selectionMenuWithSubtitles startUpWithCaption: 'Select variable to access through'! !
+
+!SelectionMenuWithSubtitles class methodsFor: 'as yet unclassified' stamp: 'mc 4/4/2025 00:11:35'!
+intento02
+| selectionMenuWithSubtitles |
+
+selectionMenuWithSubtitles := self fromArray: #(
+	#( 'TestCase inst var...' #asd true)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'assertCount' #assertCount false)
+	#( 'failureString' #failureString false)
+	#( 'raisedError' #raisedError false)
+	#( 'testSelector' #testSelector false)
+	#( 'failureString' #failureString false)
+	#( 'BankCustomerTest inst var...' #asd true)
+	#( 'iv1' #iv1 false)
+	#( 'BankCustomerTest class var...' #asd true)
+	#( 'CLASSVAR1' #CLASSVAR1 false)
+	#( 'BankCustomerTest parameter...' #asd true)
+	#( 'aParameter' #aParameter false)
+	#-
+	#( 'To Class / Global object' #fgh false)
+).
+
+^selectionMenuWithSubtitles startUpWithCaption: 'Select variable to access through'! !
+
 !MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 3/3/2025 18:12:49'!
 initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: aVariableToAccessTarget parameterNeeded: anExtraParameterNeeded 
 	methodName := aMethodName.
@@ -1156,7 +1384,7 @@ askTargetClassName
 chooseMethodToMove
 	methodToMove := methodReference selector! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 3/2/2025 19:22:43'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 4/4/2025 00:16:56'!
 chooseVariableToAccessThrough
 	| vars index methodArgumentNames variableToMoveMethod linesArrays classVarNames |
 	"self halt."
