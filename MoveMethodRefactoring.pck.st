@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #7092] on 4 April 2025 at 8:40:10 am'!
+'From Cuis7.3 [latest update: #7092] on 18 April 2025 at 4:00:02 am'!
 'Description Udated to Cuis 7.1'!
-!provides: 'MoveMethodRefactoring' 1 139!
+!provides: 'MoveMethodRefactoring' 1 140!
 SystemOrganization addCategory: #MoveMethodRefactoring!
 
 
@@ -968,20 +968,9 @@ subtitles: anOrderedCollection
 	
 	subtitles := anOrderedCollection! !
 
-!SelectionMenuWithSubtitles methodsFor: 'basic control sequence' stamp: 'mc 4/3/2025 23:50:37'!
+!SelectionMenuWithSubtitles methodsFor: 'basic control sequence' stamp: 'mc 4/18/2025 03:32:12'!
 startUpWithCaption: captionOrNil at: location allowKeyboard: aBoolean 
-	"Display the menu, with caption if supplied. Wait for the mouse button to go down, then track the selection as long as the button is pressed. When the button is released,
-	Answer the index of the current selection, or zero if the mouse is not released over  any menu item. Location specifies the desired topLeft of the menu body rectangle. The final argument indicates whether the menu should seize the keyboard focus in order to allow the user to navigate it via the keyboard."
-
-	| maxHeight index |
-	maxHeight := Display height * 3 // 4.
-	self frameHeight > maxHeight 
-		ifTrue: [
-			^self 
-				startUpSegmented: maxHeight
-				withCaption: captionOrNil
-				at: location
-				allowKeyboard: aBoolean].
+	| index |
 	index := (MVCMenuMorphWithSubtitles from: self title: captionOrNil) 
 		invokeAt: location
 		allowKeyboard: aBoolean.
@@ -994,10 +983,10 @@ subtitles
 
 	^subtitles! !
 
-!SelectionMenuWithSubtitles class methodsFor: 'as yet unclassified' stamp: 'mc 4/3/2025 23:47:37'!
+!SelectionMenuWithSubtitles class methodsFor: 'as yet unclassified' stamp: 'mc 4/10/2025 01:02:25'!
 fromArray: anArray
 	"Construct a menu from anArray.  The elements of anArray must be either:
-	*  A pair of the form: <label> <selector>
+	*  A pair of the form: <label> <selector> <isSubtitle>
 or	*  The 'dash' (or 'minus sign') symbol
 
 	Refer to the example at the bottom of the method"
@@ -1031,112 +1020,6 @@ or	*  The 'dash' (or 'minus sign') symbol
 		-
 		('fourth label'	nne)
 		('fifth label'	tano))) startUp"! !
-
-!SelectionMenuWithSubtitles class methodsFor: 'as yet unclassified' stamp: 'mc 4/4/2025 00:45:53'!
-intento01
-| selectionMenuWithSubtitles |
-
-selectionMenuWithSubtitles := self fromArray: #(
-	#( 'TestCase inst var...' #asd true)
-	#( 'assertCount' #assertCount false)
-	#( 'failureString' #failureString false)
-	#( 'raisedError' #raisedError false)
-	#( 'testSelector' #testSelector false)
-	#( 'failureString' #failureString false)
-	#( 'BankCustomerTest inst var...' #asd true)
-	#( 'iv1' #iv1 false)
-	#( 'BankCustomerTest class var...' #asd true)
-	#( 'CLASSVAR1' #CLASSVAR1 false)
-	#( 'BankCustomerTest parameter...' #asd true)
-	#( 'aParameter' #aParameter false)
-	#-
-	#( 'To Class / Global object' #ToClassGlobalObject false)
-).
-
-^selectionMenuWithSubtitles startUpWithCaption: 'Select variable to access through'! !
-
-!SelectionMenuWithSubtitles class methodsFor: 'as yet unclassified' stamp: 'mc 4/4/2025 00:11:35'!
-intento02
-| selectionMenuWithSubtitles |
-
-selectionMenuWithSubtitles := self fromArray: #(
-	#( 'TestCase inst var...' #asd true)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'assertCount' #assertCount false)
-	#( 'failureString' #failureString false)
-	#( 'raisedError' #raisedError false)
-	#( 'testSelector' #testSelector false)
-	#( 'failureString' #failureString false)
-	#( 'BankCustomerTest inst var...' #asd true)
-	#( 'iv1' #iv1 false)
-	#( 'BankCustomerTest class var...' #asd true)
-	#( 'CLASSVAR1' #CLASSVAR1 false)
-	#( 'BankCustomerTest parameter...' #asd true)
-	#( 'aParameter' #aParameter false)
-	#-
-	#( 'To Class / Global object' #fgh false)
-).
-
-^selectionMenuWithSubtitles startUpWithCaption: 'Select variable to access through'! !
 
 !MoveMethodRefactoring methodsFor: 'initialization' stamp: 'mc 3/3/2025 18:12:49'!
 initializeMethodNamed: aMethodName from: aSourceClass to: aTargetClass accessingThrough: aVariableToAccessTarget parameterNeeded: anExtraParameterNeeded 
@@ -1312,10 +1195,10 @@ initializeOn: aModel forMethod: aMethodReference
 	model := aModel.
 	methodReference := aMethodReference.! !
 
-!MoveMethodApplier methodsFor: 'refactoring - creation' stamp: 'mc 3/2/2025 19:22:53'!
+!MoveMethodApplier methodsFor: 'refactoring - creation' stamp: 'mc 4/18/2025 03:27:16'!
 createRefactoring
 	"self halt."
-	accessingThroughVariableName isNil 
+	accessingThroughVariableName = 'ToClassGlobalObject' 
 		ifTrue: [
 			^MoveMethodRefactoring 
 				methodNamed: methodToMove
@@ -1330,6 +1213,18 @@ createRefactoring
 				accessingThrough: accessingThroughVariableName 
 				parameterNeeded: extraParameter . ]
 ! !
+
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 4/18/2025 03:55:46'!
+addAllReachableVariableInClass: aClass onCollection: variableListWithSubtitles
+
+	aClass instVarNames ifNotEmpty: [
+		variableListWithSubtitles add: { aClass name asString, ' inst var...' . #subtitle . true}.
+		aClass instVarNames do: [ :instVarName |  variableListWithSubtitles add: { instVarName . instVarName asSymbol . false}. ].
+		].
+	aClass classVarNames ifNotEmpty: [
+		variableListWithSubtitles add: { aClass name asString, ' class var...' . #subtitle . true}.
+		aClass classVarNames do: [ :classVarName |  variableListWithSubtitles add: { classVarName . classVarName asSymbol . false}. ].
+		]! !
 
 !MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/5/2024 23:35:17'!
 askExtraParameterIfNeeded
@@ -1384,33 +1279,27 @@ askTargetClassName
 chooseMethodToMove
 	methodToMove := methodReference selector! !
 
-!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 4/4/2025 00:16:56'!
+!MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 4/18/2025 03:59:36'!
 chooseVariableToAccessThrough
-	| vars index methodArgumentNames variableToMoveMethod linesArrays classVarNames |
-	"self halt."
+	| methodArgumentNames variableListWithSubtitles varSelected |
 	
-	vars := sourceClass allInstVarNames sorted.
+	variableListWithSubtitles := OrderedCollection new.
+	self addAllReachableVariableInClass: sourceClass onCollection: variableListWithSubtitles.
+	sourceClass allSuperclassesDo: [ :aClass | self addAllReachableVariableInClass: aClass onCollection: variableListWithSubtitles.].
+	
 	methodArgumentNames := methodReference methodNode argumentNames sorted.
-	variableToMoveMethod := OrderedCollection new.
-	variableToMoveMethod addAll: vars.
-	variableToMoveMethod addAll: methodArgumentNames.
-	classVarNames := sourceClass allClassVarNames sorted.
-	variableToMoveMethod addAll: classVarNames.
-	variableToMoveMethod add: 'To Class / Global object'.
-
-	linesArrays := OrderedCollection new.
-	linesArrays add: vars size.
-	linesArrays add: vars size + methodArgumentNames size.
-	linesArrays add: vars size + methodArgumentNames size + classVarNames size.
-	linesArrays add: vars size + methodArgumentNames size + classVarNames size + 1.
+	methodArgumentNames ifNotEmpty: [
+		variableListWithSubtitles add: { methodToMove asString, ' parameter...' . #subtitle . true}.
+		methodArgumentNames do: [ :aParameterName |  variableListWithSubtitles add: { aParameterName . aParameterName asSymbol . false}. ].
+		].
 	
-	vars isEmpty ifTrue: [Refactoring refactoringErrorClass signal: 'There is no instance variable to access through' ].
-	"methodArgumentNames addAll: vars "
-	index := (PopUpMenu labelArray: variableToMoveMethod lines: linesArrays) startUpWithCaption: self selectVariableLabel.
-	index = 0 ifTrue: [^self endRequest].
+	variableListWithSubtitles add: #- .
+	variableListWithSubtitles add: #( 'To Class / Global object' #ToClassGlobalObject false).
 	
-	index = variableToMoveMethod size 
-	ifTrue: [accessingThroughVariableName := nil] ifFalse: [accessingThroughVariableName := variableToMoveMethod at: index.]
+	varSelected := (SelectionMenuWithSubtitles fromArray: variableListWithSubtitles) startUpWithCaption: self selectVariableLabel.
+	varSelected ifNil: [^self endRequest].
+	
+	accessingThroughVariableName := varSelected asString.
 	! !
 
 !MoveMethodApplier methodsFor: 'refactoring - parameters request' stamp: 'mc 12/3/2024 19:01:03'!
